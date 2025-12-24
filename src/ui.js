@@ -540,17 +540,9 @@ const ChatbotRoamUI = {
         const parentUid = this._savedBlockUid;
 
         try {
-            // IMPORTANTE: Los bloques [CODE] contienen \n internos que deben preservarse
-            // Primero protegemos los \n dentro de [CODE] con un placeholder
-            let contenidoProtegido = this._processedContent;
-            const codeBlockRegex = /\[CODE\]([^\n]*(?:\n(?!    |\* )[^\n]*)*)/g;
-            contenidoProtegido = contenidoProtegido.replace(codeBlockRegex, (match) => {
-                // Reemplazar \n dentro del bloque CODE con placeholder
-                return match.replace(/\n/g, '{{NEWLINE}}');
-            });
-
-            // Ahora sí podemos hacer split sin romper los code blocks
-            const lineas = contenidoProtegido.split('\n');
+            // Parsear el contenido procesado en estructura de bloques
+            // Los bloques [CODE] ya tienen {{NL}} en vez de \n gracias a processing.js
+            const lineas = this._processedContent.split('\n');
             const bloques = this._parseToBlockStructure(lineas);
 
             // Insertar bloques recursivamente
@@ -598,8 +590,8 @@ const ChatbotRoamUI = {
                 if (texto.startsWith('[CODE]')) {
                     // Extraer codigo sin el marcador y restaurar los \n
                     var codigo = texto.substring(6);
-                    // Restaurar los newlines que protegimos durante el split
-                    codigo = codigo.replace(/\{\{NEWLINE\}\}/g, '\n');
+                    // Restaurar los newlines: {{NL}} -> \n
+                    codigo = codigo.replace(/\{\{NL\}\}/g, '\n');
                     if (codigo) {
                         currentPrompt.children.push({
                             text: codigo,

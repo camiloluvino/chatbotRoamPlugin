@@ -1,7 +1,7 @@
 // CHATBOT ROAM PLUGIN v1.0.0
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2025-12-24 17:11:10
+// Generated: 2025-12-24 17:19:44
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -539,7 +539,8 @@ const ChatbotRoamProcessing = {
                             // Fin de bloque de codigo - unir todo en un solo item
                             codigoBuffer.push(lineaStripped);
                             // Usar marcador especial para codigo combinado
-                            resultado.push('    [CODE]' + codigoBuffer.join('\n'));
+                            // Usamos {{NL}} en vez de \n para no romperlo en el split posterior
+                            resultado.push('    [CODE]' + codigoBuffer.join('{{NL}}'));
                             codigoBuffer = [];
                             enBloqueCodigo = false;
                         }
@@ -574,7 +575,7 @@ const ChatbotRoamProcessing = {
 
                 // Si quedo codigo sin cerrar, agregarlo
                 if (codigoBuffer.length > 0) {
-                    resultado.push('    [CODE]' + codigoBuffer.join('\n'));
+                    resultado.push('    [CODE]' + codigoBuffer.join('{{NL}}'));
                 }
             }
 
@@ -1199,17 +1200,9 @@ const ChatbotRoamUI = {
         const parentUid = this._savedBlockUid;
 
         try {
-            // IMPORTANTE: Los bloques [CODE] contienen \n internos que deben preservarse
-            // Primero protegemos los \n dentro de [CODE] con un placeholder
-            let contenidoProtegido = this._processedContent;
-            const codeBlockRegex = /\[CODE\]([^\n]*(?:\n(?!    |\* )[^\n]*)*)/g;
-            contenidoProtegido = contenidoProtegido.replace(codeBlockRegex, (match) => {
-                // Reemplazar \n dentro del bloque CODE con placeholder
-                return match.replace(/\n/g, '{{NEWLINE}}');
-            });
-
-            // Ahora sÃ­ podemos hacer split sin romper los code blocks
-            const lineas = contenidoProtegido.split('\n');
+            // Parsear el contenido procesado en estructura de bloques
+            // Los bloques [CODE] ya tienen {{NL}} en vez de \n gracias a processing.js
+            const lineas = this._processedContent.split('\n');
             const bloques = this._parseToBlockStructure(lineas);
 
             // Insertar bloques recursivamente
@@ -1257,8 +1250,8 @@ const ChatbotRoamUI = {
                 if (texto.startsWith('[CODE]')) {
                     // Extraer codigo sin el marcador y restaurar los \n
                     var codigo = texto.substring(6);
-                    // Restaurar los newlines que protegimos durante el split
-                    codigo = codigo.replace(/\{\{NEWLINE\}\}/g, '\n');
+                    // Restaurar los newlines: {{NL}} -> \n
+                    codigo = codigo.replace(/\{\{NL\}\}/g, '\n');
                     if (codigo) {
                         currentPrompt.children.push({
                             text: codigo,

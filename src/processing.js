@@ -203,7 +203,8 @@ const ChatbotRoamProcessing = {
                             // Fin de bloque de codigo - unir todo en un solo item
                             codigoBuffer.push(lineaStripped);
                             // Usar marcador especial para codigo combinado
-                            resultado.push('    [CODE]' + codigoBuffer.join('\n'));
+                            // Usamos {{NL}} en vez de \n para no romperlo en el split posterior
+                            resultado.push('    [CODE]' + codigoBuffer.join('{{NL}}'));
                             codigoBuffer = [];
                             enBloqueCodigo = false;
                         }
@@ -238,7 +239,7 @@ const ChatbotRoamProcessing = {
 
                 // Si quedo codigo sin cerrar, agregarlo
                 if (codigoBuffer.length > 0) {
-                    resultado.push('    [CODE]' + codigoBuffer.join('\n'));
+                    resultado.push('    [CODE]' + codigoBuffer.join('{{NL}}'));
                 }
             }
 
