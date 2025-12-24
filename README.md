@@ -10,6 +10,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 - 🎛️ **10 opciones de limpieza** - Configura exactamente qué limpiar
 - 👁️ **Vista previa** - Previsualiza el resultado antes de insertar
 - ⚡ **Inserción directa** - Inserta como hijo del bloque seleccionado
+- 💻 **Preserva code blocks** - Los bloques de código se insertan correctamente formateados
 
 ## 🚀 Instalación
 
