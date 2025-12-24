@@ -558,17 +558,22 @@ const ChatbotRoamUI = {
     },
 
     /**
-     * Convierte líneas en estructura jerárquica de bloques
+     * Convierte lineas en estructura jerarquica de bloques
+     * Combina bloques de codigo en un solo bloque para mejor renderizado en Roam
      */
     _parseToBlockStructure(lineas) {
-        const result = [];
-        let currentPrompt = null;
+        var result = [];
+        var currentPrompt = null;
+        var enBloqueCodigo = false;
+        var codigoAcumulado = [];
+        var BT3 = String.fromCharCode(96, 96, 96);
 
-        for (const linea of lineas) {
-            if (!linea.trim()) continue;
+        for (var i = 0; i < lineas.length; i++) {
+            var linea = lineas[i];
 
             // Detectar prompts (nivel 0, empiezan con "* ")
             if (linea.startsWith('* ')) {
+                // Si habia un prompt anterior, guardarlo
                 if (currentPrompt) {
                     result.push(currentPrompt);
                 }
@@ -576,12 +581,41 @@ const ChatbotRoamUI = {
                     text: linea.substring(2).trim(),
                     children: []
                 };
+                continue;
             }
+
             // Detectar respuestas (indentadas 4 espacios)
-            else if (linea.startsWith('    ') && currentPrompt) {
-                const texto = linea.substring(4);
-                // Quitar "* " si es un bullet
-                const textoLimpio = texto.startsWith('* ') ? texto.substring(2) : texto;
+            if (linea.startsWith('    ') && currentPrompt) {
+                var texto = linea.substring(4);
+
+                // Detectar inicio/fin de bloque de codigo
+                var textoTrimmed = texto.trim();
+                if (textoTrimmed.startsWith(BT3)) {
+                    if (!enBloqueCodigo) {
+                        // Inicio de bloque de codigo
+                        enBloqueCodigo = true;
+                        codigoAcumulado = [textoTrimmed];
+                    } else {
+                        // Fin de bloque de codigo - agregar cierre y crear bloque
+                        codigoAcumulado.push(textoTrimmed);
+                        currentPrompt.children.push({
+                            text: codigoAcumulado.join('\n'),
+                            children: []
+                        });
+                        codigoAcumulado = [];
+                        enBloqueCodigo = false;
+                    }
+                    continue;
+                }
+
+                // Dentro de bloque de codigo - acumular
+                if (enBloqueCodigo) {
+                    codigoAcumulado.push(texto);
+                    continue;
+                }
+
+                // Linea normal - quitar "* " si es un bullet
+                var textoLimpio = texto.startsWith('* ') ? texto.substring(2) : texto;
                 if (textoLimpio.trim()) {
                     currentPrompt.children.push({
                         text: textoLimpio.trim(),
@@ -591,7 +625,7 @@ const ChatbotRoamUI = {
             }
         }
 
-        // Agregar último prompt
+        // Agregar ultimo prompt
         if (currentPrompt) {
             result.push(currentPrompt);
         }
