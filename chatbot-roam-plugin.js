@@ -1,7 +1,7 @@
 // CHATBOT ROAM PLUGIN v1.0.0
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2025-12-24 15:22:59
+// Generated: 2025-12-24 15:44:47
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -530,13 +530,15 @@ const ChatbotRoamProcessing = {
                     }
 
                     if (enBloqueCodigo) {
-                        resultado.push(`    ${linea}`);
+                        resultado.push('    ' + linea);
                     } else if (lineaStripped.startsWith('#')) {
-                        resultado.push(`    ${lineaStripped}`);
+                        // Convertir headings Markdown a negrita de Roam
+                        var headingText = lineaStripped.replace(/^#+\s*/, '');
+                        resultado.push('    * **' + headingText + '**');
                     } else if (lineaStripped.startsWith('* ') || lineaStripped.startsWith('- ')) {
-                        resultado.push(`    ${linea}`);
+                        resultado.push('    ' + linea);
                     } else {
-                        resultado.push(`    * ${lineaStripped}`);
+                        resultado.push('    * ' + lineaStripped);
                     }
                 }
             }
