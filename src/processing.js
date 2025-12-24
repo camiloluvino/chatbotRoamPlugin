@@ -194,15 +194,13 @@ const ChatbotRoamProcessing = {
                     }
 
                     if (enBloqueCodigo) {
-                        resultado.push('    ' + linea);
+                        resultado.push(`    ${linea}`);
                     } else if (lineaStripped.startsWith('#')) {
-                        // Convertir headings Markdown a negrita de Roam
-                        var headingText = lineaStripped.replace(/^#+\s*/, '');
-                        resultado.push('    * **' + headingText + '**');
+                        resultado.push(`    ${lineaStripped}`);
                     } else if (lineaStripped.startsWith('* ') || lineaStripped.startsWith('- ')) {
-                        resultado.push('    ' + linea);
+                        resultado.push(`    ${linea}`);
                     } else {
-                        resultado.push('    * ' + lineaStripped);
+                        resultado.push(`    * ${lineaStripped}`);
                     }
                 }
             }

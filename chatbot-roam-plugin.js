@@ -1,7 +1,7 @@
 // CHATBOT ROAM PLUGIN v1.0.0
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2025-12-24 15:44:47
+// Generated: 2025-12-24 15:48:54
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -530,15 +530,13 @@ const ChatbotRoamProcessing = {
                     }
 
                     if (enBloqueCodigo) {
-                        resultado.push('    ' + linea);
+                        resultado.push(`    ${linea}`);
                     } else if (lineaStripped.startsWith('#')) {
-                        // Convertir headings Markdown a negrita de Roam
-                        var headingText = lineaStripped.replace(/^#+\s*/, '');
-                        resultado.push('    * **' + headingText + '**');
+                        resultado.push(`    ${lineaStripped}`);
                     } else if (lineaStripped.startsWith('* ') || lineaStripped.startsWith('- ')) {
-                        resultado.push('    ' + linea);
+                        resultado.push(`    ${linea}`);
                     } else {
-                        resultado.push('    * ' + lineaStripped);
+                        resultado.push(`    * ${lineaStripped}`);
                     }
                 }
             }
@@ -1225,17 +1223,39 @@ const ChatbotRoamUI = {
 
     /**
      * Inserta bloques recursivamente en Roam usando la API correcta
+     * Detecta headings markdown y los convierte a headings nativos de Roam
      */
     async _insertBlocksRecursively(parentUid, bloques, startOrder) {
-        for (let i = 0; i < bloques.length; i++) {
-            const bloque = bloques[i];
-            const blockUid = window.roamAlphaAPI.util.generateUID();
+        for (var i = 0; i < bloques.length; i++) {
+            var bloque = bloques[i];
+            var blockUid = window.roamAlphaAPI.util.generateUID();
+            var texto = bloque.text;
+            var headingLevel = 0;
 
-            // Usar la API correcta: window.roamAlphaAPI.data.block.create
-            await window.roamAlphaAPI.data.block.create({
+            // Detectar nivel de heading (### = 3, ## = 2, # = 1)
+            if (texto.startsWith('### ')) {
+                headingLevel = 3;
+                texto = texto.substring(4).trim();
+            } else if (texto.startsWith('## ')) {
+                headingLevel = 2;
+                texto = texto.substring(3).trim();
+            } else if (texto.startsWith('# ')) {
+                headingLevel = 1;
+                texto = texto.substring(2).trim();
+            }
+
+            // Crear bloque con o sin heading
+            var blockData = {
                 location: { "parent-uid": parentUid, order: startOrder + i },
-                block: { uid: blockUid, string: bloque.text }
-            });
+                block: { uid: blockUid, string: texto }
+            };
+
+            // Agregar heading si corresponde
+            if (headingLevel > 0) {
+                blockData.block.heading = headingLevel;
+            }
+
+            await window.roamAlphaAPI.data.block.create(blockData);
 
             // Insertar hijos recursivamente
             if (bloque.children && bloque.children.length > 0) {

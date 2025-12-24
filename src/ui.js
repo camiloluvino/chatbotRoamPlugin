@@ -601,17 +601,39 @@ const ChatbotRoamUI = {
 
     /**
      * Inserta bloques recursivamente en Roam usando la API correcta
+     * Detecta headings markdown y los convierte a headings nativos de Roam
      */
     async _insertBlocksRecursively(parentUid, bloques, startOrder) {
-        for (let i = 0; i < bloques.length; i++) {
-            const bloque = bloques[i];
-            const blockUid = window.roamAlphaAPI.util.generateUID();
+        for (var i = 0; i < bloques.length; i++) {
+            var bloque = bloques[i];
+            var blockUid = window.roamAlphaAPI.util.generateUID();
+            var texto = bloque.text;
+            var headingLevel = 0;
 
-            // Usar la API correcta: window.roamAlphaAPI.data.block.create
-            await window.roamAlphaAPI.data.block.create({
+            // Detectar nivel de heading (### = 3, ## = 2, # = 1)
+            if (texto.startsWith('### ')) {
+                headingLevel = 3;
+                texto = texto.substring(4).trim();
+            } else if (texto.startsWith('## ')) {
+                headingLevel = 2;
+                texto = texto.substring(3).trim();
+            } else if (texto.startsWith('# ')) {
+                headingLevel = 1;
+                texto = texto.substring(2).trim();
+            }
+
+            // Crear bloque con o sin heading
+            var blockData = {
                 location: { "parent-uid": parentUid, order: startOrder + i },
-                block: { uid: blockUid, string: bloque.text }
-            });
+                block: { uid: blockUid, string: texto }
+            };
+
+            // Agregar heading si corresponde
+            if (headingLevel > 0) {
+                blockData.block.heading = headingLevel;
+            }
+
+            await window.roamAlphaAPI.data.block.create(blockData);
 
             // Insertar hijos recursivamente
             if (bloque.children && bloque.children.length > 0) {
