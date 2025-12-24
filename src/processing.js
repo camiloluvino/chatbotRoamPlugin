@@ -173,35 +173,65 @@ const ChatbotRoamProcessing = {
             // --- FORMATEAR PARA ROAM ---
             if (!promptLimpio) continue;
 
-            resultado.push(`* ${promptLimpio}`);
+
+            resultado.push('* ' + promptLimpio);
 
             if (responseLimpio) {
-                const lineasResponse = responseLimpio.split('\n');
-                let enBloqueCodigo = false;
+                var lineasResponse = responseLimpio.split('\n');
+                var enBloqueCodigo = false;
+                var codigoBuffer = [];
+                var BT3 = ChatbotRoamPatterns.BT3;
 
-                for (const linea of lineasResponse) {
-                    const lineaStripped = linea.trim();
+                for (var j = 0; j < lineasResponse.length; j++) {
+                    var linea = lineasResponse[j];
+                    var lineaStripped = linea.trim();
 
-                    if (lineaStripped.startsWith(ChatbotRoamPatterns.BT3)) {
-                        enBloqueCodigo = !enBloqueCodigo;
-                        resultado.push(`    ${lineaStripped}`);
+                    // Detectar inicio/fin de bloque de codigo
+                    if (lineaStripped.startsWith(BT3)) {
+                        if (!enBloqueCodigo) {
+                            // Inicio de bloque de codigo
+                            enBloqueCodigo = true;
+                            codigoBuffer = [lineaStripped];
+                        } else {
+                            // Fin de bloque de codigo - unir todo en un solo item
+                            codigoBuffer.push(lineaStripped);
+                            // Usar marcador especial para codigo combinado
+                            resultado.push('    [CODE]' + codigoBuffer.join('\n'));
+                            codigoBuffer = [];
+                            enBloqueCodigo = false;
+                        }
                         continue;
                     }
 
+                    if (enBloqueCodigo) {
+                        // Acumular lineas de codigo
+                        codigoBuffer.push(linea);
+                        continue;
+                    }
+
+                    // Linea vacia
                     if (!lineaStripped) {
                         resultado.push('');
                         continue;
                     }
 
-                    if (enBloqueCodigo) {
-                        resultado.push(`    ${linea}`);
-                    } else if (lineaStripped.startsWith('#')) {
-                        resultado.push(`    ${lineaStripped}`);
-                    } else if (lineaStripped.startsWith('* ') || lineaStripped.startsWith('- ')) {
-                        resultado.push(`    ${linea}`);
-                    } else {
-                        resultado.push(`    * ${lineaStripped}`);
+                    // Headings
+                    if (lineaStripped.startsWith('#')) {
+                        resultado.push('    ' + lineaStripped);
                     }
+                    // Listas
+                    else if (lineaStripped.startsWith('* ') || lineaStripped.startsWith('- ')) {
+                        resultado.push('    ' + linea);
+                    }
+                    // Texto normal
+                    else {
+                        resultado.push('    * ' + lineaStripped);
+                    }
+                }
+
+                // Si quedo codigo sin cerrar, agregarlo
+                if (codigoBuffer.length > 0) {
+                    resultado.push('    [CODE]' + codigoBuffer.join('\n'));
                 }
             }
 
