@@ -180,14 +180,21 @@ const ChatbotRoamProcessing = {
                 var lineasResponse = responseLimpio.split('\n');
                 var enBloqueCodigo = false;
                 var codigoBuffer = [];
-                var BT3 = ChatbotRoamPatterns.BT3;
+                // Definir backtick directamente para evitar problemas de resolucion
+                var BACKTICK = String.fromCharCode(96);
+                var BT3 = BACKTICK + BACKTICK + BACKTICK;
 
                 for (var j = 0; j < lineasResponse.length; j++) {
                     var linea = lineasResponse[j];
                     var lineaStripped = linea.trim();
 
-                    // Detectar inicio/fin de bloque de codigo
-                    if (lineaStripped.startsWith(BT3)) {
+                    // Detectar inicio/fin de bloque de codigo (3+ backticks)
+                    var esLineaCodigo = lineaStripped.length >= 3 &&
+                        lineaStripped.charAt(0) === BACKTICK &&
+                        lineaStripped.charAt(1) === BACKTICK &&
+                        lineaStripped.charAt(2) === BACKTICK;
+
+                    if (esLineaCodigo) {
                         if (!enBloqueCodigo) {
                             // Inicio de bloque de codigo
                             enBloqueCodigo = true;
