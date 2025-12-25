@@ -1,7 +1,7 @@
 // CHATBOT ROAM PLUGIN v1.0.0
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2025-12-25 03:43:36
+// Generated: 2025-12-25 03:54:11
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -669,7 +669,7 @@ const ChatbotRoamUI = {
     _originalProcessedContent: null,  // Para restaurar despuÃ©s de cortar
     _currentOpciones: null,
     _savedBlockUid: null,  // Guardar UID del bloque ANTES de abrir modal
-    
+
     // Estado de bÃºsqueda incremental
     _searchMatches: [],      // Posiciones de coincidencias
     _currentMatchIndex: -1,  // Ãndice actual
@@ -1129,16 +1129,16 @@ const ChatbotRoamUI = {
             '<button class="chatbot-roam-preset-btn" data-preset="gemini">Gemini</button>' +
             '<button class="chatbot-roam-preset-btn" data-preset="limpiar">Limpiar todo</button>' +
             '</div>' +
-            '<div class="chatbot-roam-section-title">IMPORTACIÃ“N INCREMENTAL</div>' +
+            '<div class="chatbot-roam-section-title">IMPORTACION INCREMENTAL</div>' +
             '<div class="chatbot-roam-search-section">' +
             '<div class="chatbot-roam-search-row">' +
-            '<input type="text" class="chatbot-roam-search-input" data-element="search-input" placeholder="Buscar texto del Ãºltimo prompt importado...">' +
+            '<input type="text" class="chatbot-roam-search-input" data-element="search-input" placeholder="Buscar texto del ultimo prompt importado...">' +
             '<div class="chatbot-roam-search-nav">' +
-            '<button class="chatbot-roam-search-btn" data-action="prev-match" disabled title="Anterior">â—€</button>' +
+            '<button class="chatbot-roam-search-btn" data-action="prev-match" disabled title="Anterior">&lt;</button>' +
             '<span class="chatbot-roam-search-count" data-element="match-count">0/0</span>' +
-            '<button class="chatbot-roam-search-btn" data-action="next-match" disabled title="Siguiente">â–¶</button>' +
+            '<button class="chatbot-roam-search-btn" data-action="next-match" disabled title="Siguiente">&gt;</button>' +
             '</div>' +
-            '<button class="chatbot-roam-cut-btn" data-action="cut-here" disabled>âœ‚ Cortar aquÃ­</button>' +
+            '<button class="chatbot-roam-cut-btn" data-action="cut-here" disabled>Cortar aqui</button>' +
             '<span class="chatbot-roam-cut-indicator" data-element="cut-indicator"></span>' +
             '</div>' +
             '</div>' +
@@ -1218,11 +1218,11 @@ const ChatbotRoamUI = {
         // Search functionality
         const searchInput = modal.querySelector('[data-element="search-input"]');
         searchInput.addEventListener('input', (e) => this._performSearch(e.target.value));
-        
+
         // Navigation buttons
         modal.querySelector('[data-action="prev-match"]').addEventListener('click', () => this._navigateMatch(-1));
         modal.querySelector('[data-action="next-match"]').addEventListener('click', () => this._navigateMatch(1));
-        
+
         // Cut button
         modal.querySelector('[data-action="cut-here"]').addEventListener('click', () => this._cutFromCurrentMatch());
 
@@ -1251,7 +1251,7 @@ const ChatbotRoamUI = {
             // Actualizar dropzone visual
             const dropzone = this._modalContainer.querySelector('[data-action="dropzone"]');
             dropzone.classList.add('chatbot-roam-file-loaded');
-            dropzone.querySelector('.chatbot-roam-dropzone-icon').textContent = 'âœ…';
+            dropzone.querySelector('.chatbot-roam-dropzone-icon').textContent = 'OK';
             dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML = `
                 <strong>${file.name}</strong><br>
                 <span style="color: #4CAF50;">Archivo cargado (${(file.size / 1024).toFixed(1)} KB)</span>
@@ -1363,7 +1363,7 @@ const ChatbotRoamUI = {
         const content = this._originalProcessedContent;
         const lowerContent = content.toLowerCase();
         const lowerQuery = query.toLowerCase();
-        
+
         this._searchMatches = [];
         let pos = 0;
         while ((pos = lowerContent.indexOf(lowerQuery, pos)) !== -1) {
@@ -1376,7 +1376,7 @@ const ChatbotRoamUI = {
 
         this._currentMatchIndex = this._searchMatches.length > 0 ? 0 : -1;
         this._renderPreviewWithHighlights();
-        
+
         if (this._currentMatchIndex >= 0) {
             this._scrollToCurrentMatch();
         }
@@ -1384,14 +1384,14 @@ const ChatbotRoamUI = {
 
     _navigateMatch(direction) {
         if (this._searchMatches.length === 0) return;
-        
+
         this._currentMatchIndex += direction;
         if (this._currentMatchIndex < 0) {
             this._currentMatchIndex = this._searchMatches.length - 1;
         } else if (this._currentMatchIndex >= this._searchMatches.length) {
             this._currentMatchIndex = 0;
         }
-        
+
         this._renderPreviewWithHighlights();
         this._scrollToCurrentMatch();
     },
@@ -1399,7 +1399,7 @@ const ChatbotRoamUI = {
     _renderPreviewWithHighlights() {
         const preview = this._modalContainer.querySelector('[data-element="preview"]');
         const content = this._isCut ? this._processedContent : this._originalProcessedContent;
-        
+
         if (!content) {
             preview.innerHTML = '<span style="color: #666;">Arrastra un archivo para ver la vista previa...</span>';
             this._updateSearchButtons();
@@ -1415,7 +1415,7 @@ const ChatbotRoamUI = {
         // Crear HTML con highlights
         let html = '';
         let lastEnd = 0;
-        
+
         for (let i = 0; i < this._searchMatches.length; i++) {
             const match = this._searchMatches[i];
             // Texto antes del match
@@ -1429,7 +1429,7 @@ const ChatbotRoamUI = {
         }
         // Texto despuÃ©s del Ãºltimo match
         html += this._escapeHtml(content.substring(lastEnd));
-        
+
         preview.innerHTML = html;
         this._updateSearchButtons();
     },
@@ -1452,14 +1452,14 @@ const ChatbotRoamUI = {
         const nextBtn = this._modalContainer.querySelector('[data-action="next-match"]');
         const cutBtn = this._modalContainer.querySelector('[data-action="cut-here"]');
         const countSpan = this._modalContainer.querySelector('[data-element="match-count"]');
-        
+
         const hasMatches = this._searchMatches.length > 0;
         const hasMultiple = this._searchMatches.length > 1;
-        
+
         prevBtn.disabled = !hasMultiple;
         nextBtn.disabled = !hasMultiple;
         cutBtn.disabled = !hasMatches || this._isCut;
-        
+
         if (hasMatches) {
             countSpan.textContent = `${this._currentMatchIndex + 1}/${this._searchMatches.length}`;
         } else {
@@ -1469,44 +1469,44 @@ const ChatbotRoamUI = {
 
     _cutFromCurrentMatch() {
         if (this._currentMatchIndex < 0 || this._isCut) return;
-        
+
         const match = this._searchMatches[this._currentMatchIndex];
         const content = this._originalProcessedContent;
-        
+
         // Encontrar el inicio de la lÃ­nea que contiene el match
         // Buscamos el "* " que indica un prompt
         let cutPosition = match.start;
-        
+
         // Buscar hacia atrÃ¡s el inicio del prompt ("* " al inicio de lÃ­nea o despuÃ©s de newline)
         while (cutPosition > 0) {
-            if (content.substring(cutPosition, cutPosition + 2) === '* ' && 
+            if (content.substring(cutPosition, cutPosition + 2) === '* ' &&
                 (cutPosition === 0 || content[cutPosition - 1] === '\n')) {
                 break;
             }
             cutPosition--;
         }
-        
+
         // Cortar desde esa posiciÃ³n
         this._processedContent = content.substring(cutPosition);
         this._isCut = true;
-        
+
         // Limpiar bÃºsqueda y actualizar UI
         this._searchMatches = [];
         this._currentMatchIndex = -1;
-        
+
         const searchInput = this._modalContainer.querySelector('[data-element="search-input"]');
         searchInput.value = '';
-        
+
         const cutIndicator = this._modalContainer.querySelector('[data-element="cut-indicator"]');
-        cutIndicator.textContent = 'âœ“ Cortado';
-        
+        cutIndicator.textContent = '[OK] Cortado';
+
         // Contar intercambios restantes
         const lines = this._processedContent.split('\n');
         let numIntercambios = 0;
         for (const line of lines) {
             if (line.startsWith('* ')) numIntercambios++;
         }
-        
+
         this._updatePreview(this._processedContent, numIntercambios);
     },
 
