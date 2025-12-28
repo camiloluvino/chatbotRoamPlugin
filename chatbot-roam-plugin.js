@@ -1,7 +1,7 @@
 // CHATBOT ROAM PLUGIN v1.0.0
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2025-12-25 03:54:11
+// Generated: 2025-12-28 00:57:36
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -516,9 +516,13 @@ const ChatbotRoamProcessing = {
                 var lineasResponse = responseLimpio.split('\n');
                 var enBloqueCodigo = false;
                 var codigoBuffer = [];
+                var bajoHeading = false;  // Track si estamos bajo un heading markdown
                 // Definir backtick directamente para evitar problemas de resolucion
                 var BACKTICK = String.fromCharCode(96);
                 var BT3 = BACKTICK + BACKTICK + BACKTICK;
+                // Indentacion base (4 espacios) y bajo heading (8 espacios)
+                var INDENT_BASE = '    ';
+                var INDENT_HEADING = '        ';
 
                 for (var j = 0; j < lineasResponse.length; j++) {
                     var linea = lineasResponse[j];
@@ -540,7 +544,8 @@ const ChatbotRoamProcessing = {
                             codigoBuffer.push(lineaStripped);
                             // Usar marcador especial para codigo combinado
                             // Usamos {{NL}} en vez de \n para no romperlo en el split posterior
-                            resultado.push('    [CODE]' + codigoBuffer.join('{{NL}}'));
+                            var indentCodigo = bajoHeading ? INDENT_HEADING : INDENT_BASE;
+                            resultado.push(indentCodigo + '[CODE]' + codigoBuffer.join('{{NL}}'));
                             codigoBuffer = [];
                             enBloqueCodigo = false;
                         }
@@ -559,17 +564,20 @@ const ChatbotRoamProcessing = {
                         continue;
                     }
 
-                    // Headings
+                    // Headings markdown (#, ##, ###, etc.)
                     if (lineaStripped.startsWith('#')) {
-                        resultado.push('    ' + lineaStripped);
+                        bajoHeading = true;  // Activar indentacion para contenido siguiente
+                        resultado.push(INDENT_BASE + lineaStripped);
                     }
                     // Listas
                     else if (lineaStripped.startsWith('* ') || lineaStripped.startsWith('- ')) {
-                        resultado.push('    ' + linea);
+                        var indentLista = bajoHeading ? INDENT_HEADING : INDENT_BASE;
+                        resultado.push(indentLista + linea.trim());
                     }
                     // Texto normal
                     else {
-                        resultado.push('    * ' + lineaStripped);
+                        var indentTexto = bajoHeading ? INDENT_HEADING : INDENT_BASE;
+                        resultado.push(indentTexto + '* ' + lineaStripped);
                     }
                 }
 
@@ -1544,10 +1552,12 @@ const ChatbotRoamUI = {
     /**
      * Convierte lineas en estructura jerarquica de bloques
      * Maneja bloques de codigo marcados con [CODE]
+     * Soporta 3 niveles: prompt â†’ respuesta/heading â†’ contenido bajo heading
      */
     _parseToBlockStructure(lineas) {
         var result = [];
         var currentPrompt = null;
+        var currentHeading = null;  // Track del heading actual para anidar contenido
 
         for (var i = 0; i < lineas.length; i++) {
             var linea = lineas[i];
@@ -1562,10 +1572,39 @@ const ChatbotRoamUI = {
                     text: linea.substring(2).trim(),
                     children: []
                 };
+                currentHeading = null;  // Reset heading al cambiar de prompt
                 continue;
             }
 
-            // Detectar respuestas (indentadas 4 espacios)
+            // Detectar contenido bajo heading (8 espacios de indentacion)
+            if (linea.startsWith('        ') && currentPrompt && currentHeading) {
+                var texto = linea.substring(8);
+
+                // Detectar bloque de codigo combinado
+                if (texto.startsWith('[CODE]')) {
+                    var codigo = texto.substring(6);
+                    codigo = codigo.replace(/\{\{NL\}\}/g, '\n');
+                    if (codigo) {
+                        currentHeading.children.push({
+                            text: codigo,
+                            children: []
+                        });
+                    }
+                    continue;
+                }
+
+                // Linea normal bajo heading - quitar "* " si es un bullet
+                var textoLimpio = texto.startsWith('* ') ? texto.substring(2) : texto;
+                if (textoLimpio.trim()) {
+                    currentHeading.children.push({
+                        text: textoLimpio.trim(),
+                        children: []
+                    });
+                }
+                continue;
+            }
+
+            // Detectar respuestas nivel 1 (indentadas 4 espacios)
             if (linea.startsWith('    ') && currentPrompt) {
                 var texto = linea.substring(4);
 
@@ -1576,21 +1615,40 @@ const ChatbotRoamUI = {
                     // Restaurar los newlines: {{NL}} -> \n
                     codigo = codigo.replace(/\{\{NL\}\}/g, '\n');
                     if (codigo) {
-                        currentPrompt.children.push({
+                        var bloqueCode = {
                             text: codigo,
                             children: []
-                        });
+                        };
+                        // Si hay heading activo, agregar como hijo del heading
+                        if (currentHeading) {
+                            currentHeading.children.push(bloqueCode);
+                        } else {
+                            currentPrompt.children.push(bloqueCode);
+                        }
                     }
                     continue;
                 }
 
                 // Linea normal - quitar "* " si es un bullet
                 var textoLimpio = texto.startsWith('* ') ? texto.substring(2) : texto;
+
+                // Detectar si es un heading markdown
+                var esHeading = textoLimpio.trim().startsWith('#');
+
                 if (textoLimpio.trim()) {
-                    currentPrompt.children.push({
+                    var nuevoBloque = {
                         text: textoLimpio.trim(),
                         children: []
-                    });
+                    };
+                    currentPrompt.children.push(nuevoBloque);
+
+                    // Si es heading, marcarlo como el heading actual para anidar contenido
+                    if (esHeading) {
+                        currentHeading = nuevoBloque;
+                    } else {
+                        // Si no es heading, resetear para que el contenido no se anide
+                        currentHeading = null;
+                    }
                 }
             }
         }

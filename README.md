@@ -11,6 +11,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 - 👁️ **Vista previa** - Previsualiza el resultado antes de insertar
 - ⚡ **Inserción directa** - Inserta como hijo del bloque seleccionado
 - 💻 **Preserva code blocks** - Los bloques de código se insertan correctamente formateados
+- 📐 **Indentación bajo headings** - El contenido bajo headings markdown (`#`, `##`, `###`) se anida automáticamente
 
 ## 🚀 Instalación
 
@@ -57,6 +58,7 @@ chatbotRoamPlugin/
 │   ├── index.js       # Entrada, registro comandos
 │   └── build.ps1      # Script de build
 ├── chatbot-roam-plugin.js  # Bundle final
+├── CONTRIBUTING.md         # Guías de codificación
 └── README.md
 ```
 

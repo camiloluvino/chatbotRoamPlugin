@@ -180,9 +180,13 @@ const ChatbotRoamProcessing = {
                 var lineasResponse = responseLimpio.split('\n');
                 var enBloqueCodigo = false;
                 var codigoBuffer = [];
+                var bajoHeading = false;  // Track si estamos bajo un heading markdown
                 // Definir backtick directamente para evitar problemas de resolucion
                 var BACKTICK = String.fromCharCode(96);
                 var BT3 = BACKTICK + BACKTICK + BACKTICK;
+                // Indentacion base (4 espacios) y bajo heading (8 espacios)
+                var INDENT_BASE = '    ';
+                var INDENT_HEADING = '        ';
 
                 for (var j = 0; j < lineasResponse.length; j++) {
                     var linea = lineasResponse[j];
@@ -204,7 +208,8 @@ const ChatbotRoamProcessing = {
                             codigoBuffer.push(lineaStripped);
                             // Usar marcador especial para codigo combinado
                             // Usamos {{NL}} en vez de \n para no romperlo en el split posterior
-                            resultado.push('    [CODE]' + codigoBuffer.join('{{NL}}'));
+                            var indentCodigo = bajoHeading ? INDENT_HEADING : INDENT_BASE;
+                            resultado.push(indentCodigo + '[CODE]' + codigoBuffer.join('{{NL}}'));
                             codigoBuffer = [];
                             enBloqueCodigo = false;
                         }
@@ -223,17 +228,20 @@ const ChatbotRoamProcessing = {
                         continue;
                     }
 
-                    // Headings
+                    // Headings markdown (#, ##, ###, etc.)
                     if (lineaStripped.startsWith('#')) {
-                        resultado.push('    ' + lineaStripped);
+                        bajoHeading = true;  // Activar indentacion para contenido siguiente
+                        resultado.push(INDENT_BASE + lineaStripped);
                     }
                     // Listas
                     else if (lineaStripped.startsWith('* ') || lineaStripped.startsWith('- ')) {
-                        resultado.push('    ' + linea);
+                        var indentLista = bajoHeading ? INDENT_HEADING : INDENT_BASE;
+                        resultado.push(indentLista + linea.trim());
                     }
                     // Texto normal
                     else {
-                        resultado.push('    * ' + lineaStripped);
+                        var indentTexto = bajoHeading ? INDENT_HEADING : INDENT_BASE;
+                        resultado.push(indentTexto + '* ' + lineaStripped);
                     }
                 }
 
