@@ -10,6 +10,9 @@ $sourceFiles = @(
     "patterns.js",
     "cleaners.js",
     "processing.js",
+    "styles.js",
+    "roam/parser.js",
+    "roam/inserter.js",
     "ui.js",
     "index.js"
 )
