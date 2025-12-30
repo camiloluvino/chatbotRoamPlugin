@@ -110,11 +110,20 @@ const ChatbotRoamUI = {
             '<input type="checkbox" data-option="eliminar_imagenes" checked>' +
             'Imagenes Base64' +
             '</label>' +
+            '<label class="chatbot-roam-option">' +
+            '<input type="checkbox" data-option="eliminar_acciones_antigravity">' +
+            'Acciones Antigravity' +
+            '</label>' +
+            '<label class="chatbot-roam-option">' +
+            '<input type="checkbox" data-option="eliminar_cci_links">' +
+            'Enlaces CCI internos' +
+            '</label>' +
             '</div>' +
             '<div class="chatbot-roam-presets">' +
             '<button class="chatbot-roam-preset-btn" data-preset="claude">Claude</button>' +
             '<button class="chatbot-roam-preset-btn" data-preset="chatgpt">ChatGPT</button>' +
             '<button class="chatbot-roam-preset-btn" data-preset="gemini">Gemini</button>' +
+            '<button class="chatbot-roam-preset-btn" data-preset="antigravity">Antigravity</button>' +
             '<button class="chatbot-roam-preset-btn" data-preset="limpiar">Limpiar todo</button>' +
             '</div>' +
             '<div class="chatbot-roam-section-title">IMPORTACION INCREMENTAL</div>' +
@@ -227,10 +236,104 @@ const ChatbotRoamUI = {
     // ========================================================================
     // FILE HANDLING
     // ========================================================================
+
+    // Constantes de validacion
+    MAX_FILE_SIZE_MB: 5,
+    VALID_EXTENSIONS: ['.md', '.txt'],
+
+    /**
+     * Valida el archivo antes de procesarlo
+     * @returns {Object} - { valid: boolean, error: string|null }
+     */
+    _validateFile(file) {
+        // Validar tamaño
+        const maxSizeBytes = this.MAX_FILE_SIZE_MB * 1024 * 1024;
+        if (file.size > maxSizeBytes) {
+            return {
+                valid: false,
+                error: 'Archivo muy grande. Maximo ' + this.MAX_FILE_SIZE_MB + 'MB. Tu archivo: ' + (file.size / 1024 / 1024).toFixed(1) + 'MB'
+            };
+        }
+
+        // Validar extension
+        const fileName = file.name.toLowerCase();
+        const hasValidExtension = this.VALID_EXTENSIONS.some(ext => fileName.endsWith(ext));
+        if (!hasValidExtension) {
+            return {
+                valid: false,
+                error: 'Extension no valida. Se aceptan: ' + this.VALID_EXTENSIONS.join(', ')
+            };
+        }
+
+        return { valid: true, error: null };
+    },
+
+    /**
+     * Valida el contenido del archivo
+     * @returns {Object} - { valid: boolean, error: string|null, warning: string|null }
+     */
+    _validateContent(content) {
+        // Verificar que no este vacio
+        if (!content || content.trim().length === 0) {
+            return { valid: false, error: 'El archivo esta vacio.', warning: null };
+        }
+
+        // Verificar marcadores de conversacion (incluye Antigravity)
+        const tienePrompt = content.includes('## Prompt:') || content.includes('### User Input');
+        const tieneResponse = content.includes('## Response:') || content.includes('### Planner Response');
+
+        if (!tienePrompt && !tieneResponse) {
+            return {
+                valid: false,
+                error: 'El archivo no parece ser una conversacion exportada. No se encontraron marcadores "## Prompt:" ni "## Response:".',
+                warning: null
+            };
+        }
+
+        // Warning si falta alguno
+        let warning = null;
+        if (!tienePrompt) {
+            warning = 'Advertencia: No se encontraron marcadores "## Prompt:"';
+        } else if (!tieneResponse) {
+            warning = 'Advertencia: No se encontraron marcadores "## Response:"';
+        }
+
+        return { valid: true, error: null, warning: warning };
+    },
+
+    /**
+     * Muestra error en la dropzone
+     */
+    _showDropzoneError(message) {
+        const dropzone = this._modalContainer.querySelector('[data-action="dropzone"]');
+        dropzone.classList.remove('chatbot-roam-file-loaded');
+        dropzone.classList.add('chatbot-roam-file-error');
+        dropzone.querySelector('.chatbot-roam-dropzone-icon').textContent = '!';
+        dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML =
+            '<strong style="color: #e94560;">Error</strong><br>' +
+            '<span style="color: #e94560;">' + message + '</span>';
+    },
+
     _handleFile(file) {
+        // Validar archivo antes de leer
+        const fileValidation = this._validateFile(file);
+        if (!fileValidation.valid) {
+            this._showDropzoneError(fileValidation.error);
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = (e) => {
-            this._fileContent = e.target.result;
+            const content = e.target.result;
+
+            // Validar contenido
+            const contentValidation = this._validateContent(content);
+            if (!contentValidation.valid) {
+                this._showDropzoneError(contentValidation.error);
+                return;
+            }
+
+            this._fileContent = content;
 
             // Detectar tipo de chatbot y aplicar preset
             const tipo = ChatbotRoamProcessing.detectarTipoChatbot(this._fileContent);
@@ -238,15 +341,26 @@ const ChatbotRoamUI = {
 
             // Actualizar dropzone visual
             const dropzone = this._modalContainer.querySelector('[data-action="dropzone"]');
+            dropzone.classList.remove('chatbot-roam-file-error');
             dropzone.classList.add('chatbot-roam-file-loaded');
             dropzone.querySelector('.chatbot-roam-dropzone-icon').textContent = 'OK';
-            dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML = `
-                <strong>${file.name}</strong><br>
-                <span style="color: #4CAF50;">Archivo cargado (${(file.size / 1024).toFixed(1)} KB)</span>
-            `;
+
+            // Mostrar warning si existe
+            let statusText = '<span style="color: #4CAF50;">Archivo cargado (' + (file.size / 1024).toFixed(1) + ' KB)</span>';
+            if (contentValidation.warning) {
+                statusText += '<br><span style="color: #FFA500; font-size: 11px;">' + contentValidation.warning + '</span>';
+            }
+
+            dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML =
+                '<strong>' + file.name + '</strong><br>' + statusText;
 
             this._processAndPreview();
         };
+
+        reader.onerror = () => {
+            this._showDropzoneError('Error al leer el archivo. Intenta de nuevo.');
+        };
+
         reader.readAsText(file);
     },
 
@@ -516,16 +630,21 @@ const ChatbotRoamUI = {
             const lineas = this._processedContent.split('\n');
             const bloques = ChatbotRoamParser.parseToBlockStructure(lineas);
 
+            if (bloques.length === 0) {
+                alert('No se encontraron bloques para insertar.');
+                return;
+            }
+
             // Insertar bloques recursivamente (usa modulo ChatbotRoamInserter)
-            await ChatbotRoamInserter.insertBlocksRecursively(parentUid, bloques, 0);
+            const insertedBlocks = await ChatbotRoamInserter.insertBlocksRecursively(parentUid, bloques, 0);
 
             // Cerrar modal despues de insertar
             this.closeModal();
-            console.log('Conversacion insertada en Roam');
+            console.log('Conversacion insertada en Roam: ' + insertedBlocks.length + ' bloques creados');
 
         } catch (error) {
             console.error('Error insertando en Roam:', error);
-            alert('Error al insertar en Roam: ' + error.message);
+            alert('Error al insertar en Roam:\n\n' + error.message + '\n\nRevisa la consola para mas detalles.');
         }
     },
 

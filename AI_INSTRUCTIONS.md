@@ -26,6 +26,7 @@ Plugin para Roam Research que importa conversaciones exportadas de chatbots (Cla
 |--------|---------|-----------------|
 | Patterns | `patterns.js` | Regex compilados y constantes |
 | Cleaners | `cleaners.js` | Funciones de limpieza de texto |
+| Formatter | `formatter.js` | Formatea respuestas para estructura de bloques Roam |
 | Processing | `processing.js` | Extracción y procesamiento de conversaciones |
 | UI | `ui.js` | Modal, eventos, inserción en Roam |
 | Plugin | `index.js` | Inicialización y registro de comandos |

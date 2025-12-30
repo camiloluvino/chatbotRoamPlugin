@@ -107,6 +107,17 @@ const ChatbotRoamStyles = {
                 color: #4CAF50;
             }
 
+            .chatbot-roam-file-error {
+                background: rgba(233, 69, 96, 0.1);
+                border-color: #e94560;
+            }
+
+            .chatbot-roam-file-error .chatbot-roam-dropzone-icon {
+                color: #e94560;
+                font-size: 36px;
+                font-weight: bold;
+            }
+
             .chatbot-roam-section-title {
                 color: #e94560;
                 font-size: 14px;

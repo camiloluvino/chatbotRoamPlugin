@@ -8,7 +8,7 @@ const BT4 = String.fromCharCode(96, 96, 96, 96);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.0.0",
+    VERSION: "1.1.0",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -41,7 +41,17 @@ const ChatbotRoamPatterns = {
     // MCP Tool calls (Claude con MCP)
     MCP_TOOL_CALLS: new RegExp("\\*\\*[\\w-]+:[\\w_]+\\*\\*\\s*\\*Request\\*\\s*" + BT4 + "(?:javascript|json|plaintext)[\\s\\S]*?" + BT4 + "\\s*\\*Response\\*\\s*" + BT4 + "(?:javascript|json|plaintext|text)[\\s\\S]*?" + BT4, "g"),
 
+    // ANTIGRAVITY FORMAT
+    ANTIGRAVITY_PROMPT_MARKER: /^### User Input$/gm,
+    ANTIGRAVITY_RESPONSE_MARKER: /^### Planner Response$/gm,
+    ANTIGRAVITY_ACTIONS: /^\*(?:Listed directory|Viewed|Searched filesystem|Searched|Edited relevant file|Edited|Grep searched|Checked command status|Checked command|User accepted the command|User accepted)[^\n]*$/gm,
+    ANTIGRAVITY_HEADER: /^# Chat Conversation\s*\n+Note: _This is purely[^_]*_\s*\n*/gm,
+    ANTIGRAVITY_SYSTEM_MESSAGE: /^This is a system-generated message[^\n]*$/gm,
+    CCI_LINKS: /\(cci:\d+:\/\/file:\/\/\/[^)]+\)/g,
+    TIMESTAMP_HORA_SUELTA: /^\d{1,2}:\d{2}\s+[ap]\.m\.$/,
+
     // DETECCION DE TIPO DE CHATBOT
+    DETECT_ANTIGRAVITY: /^### (?:User Input|Planner Response)$/m,
     DETECT_CLAUDE_TOOLS: /\*\*\w+\*\*\s*\*Request\*/,
     DETECT_GEMINI_THINKING: /^>\s*Thinking:/m,
 

@@ -269,5 +269,56 @@ const ChatbotRoamCleaners = {
         }
 
         return lineasLimpias.join('\n');
+    },
+
+    // ========================================================================
+    // LIMPIEZA ANTIGRAVITY
+    // ========================================================================
+
+    /**
+     * Elimina el encabezado del archivo Antigravity
+     */
+    eliminarHeaderAntigravity(texto) {
+        return texto.replace(ChatbotRoamPatterns.ANTIGRAVITY_HEADER, '');
+    },
+
+    /**
+     * Elimina lineas de acciones (*Listed directory*, *Viewed*, etc.)
+     */
+    eliminarAccionesAntigravity(texto) {
+        return texto.replace(ChatbotRoamPatterns.ANTIGRAVITY_ACTIONS, '');
+    },
+
+    /**
+     * Limpia enlaces CCI internos (cci:N://file:///...)
+     */
+    limpiarEnlacesCCI(texto) {
+        // Paso 1: Eliminar enlaces CCI completos
+        texto = texto.replace(ChatbotRoamPatterns.CCI_LINKS, '');
+        // Paso 2: Limpiar enlaces markdown que apuntan a CCI
+        texto = texto.replace(/\[([^\]]+)\]\(cci:[^)]+\)/g, '$1');
+        return texto;
+    },
+
+    /**
+     * Elimina mensajes de sistema generados automaticamente
+     */
+    eliminarMensajesSistemaAntigravity(texto) {
+        return texto.replace(ChatbotRoamPatterns.ANTIGRAVITY_SYSTEM_MESSAGE, '');
+    },
+
+    /**
+     * Elimina timestamps de hora suelta (sin fecha)
+     */
+    eliminarTimestampHoraSuelta(texto) {
+        const lineas = texto.split('\n');
+        const lineasLimpias = [];
+
+        for (const linea of lineas) {
+            if (ChatbotRoamPatterns.TIMESTAMP_HORA_SUELTA.test(linea.trim())) continue;
+            lineasLimpias.push(linea);
+        }
+
+        return lineasLimpias.join('\n');
     }
 };

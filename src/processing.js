@@ -14,15 +14,26 @@ const ChatbotRoamProcessing = {
     extraerConversacionRaw(contenido, skipTimestamp = true) {
         const marcadores = [];
 
-        // Encontrar todos los ## Prompt:
+        // Detectar formato Antigravity
+        const esAntigravity = ChatbotRoamPatterns.DETECT_ANTIGRAVITY.test(contenido);
+
+        // Usar marcadores segun formato
+        const promptPattern = esAntigravity
+            ? ChatbotRoamPatterns.ANTIGRAVITY_PROMPT_MARKER
+            : ChatbotRoamPatterns.PROMPT_MARKER;
+        const responsePattern = esAntigravity
+            ? ChatbotRoamPatterns.ANTIGRAVITY_RESPONSE_MARKER
+            : ChatbotRoamPatterns.RESPONSE_MARKER;
+
+        // Encontrar todos los prompts
         let match;
-        const promptRegex = new RegExp(ChatbotRoamPatterns.PROMPT_MARKER.source, 'gm');
+        const promptRegex = new RegExp(promptPattern.source, 'gm');
         while ((match = promptRegex.exec(contenido)) !== null) {
             marcadores.push({ tipo: 'PROMPT', pos: match.index });
         }
 
-        // Encontrar todos los ## Response:
-        const responseRegex = new RegExp(ChatbotRoamPatterns.RESPONSE_MARKER.source, 'gm');
+        // Encontrar todas las respuestas
+        const responseRegex = new RegExp(responsePattern.source, 'gm');
         while ((match = responseRegex.exec(contenido)) !== null) {
             marcadores.push({ tipo: 'RESPONSE', pos: match.index });
         }
@@ -61,22 +72,61 @@ const ChatbotRoamProcessing = {
             }
         }
 
-        // Emparejar prompts con responses
+        // Emparejar prompts con responses (concatenando respuestas consecutivas)
         const pares = [];
-        let promptIdx = 0;
-        let responseIdx = 0;
 
-        for (let i = 0; i < marcadores.length; i++) {
-            const { tipo } = marcadores[i];
+        // Recorrer marcadores y agrupar
+        let i = 0;
+        while (i < marcadores.length) {
+            const { tipo, pos } = marcadores[i];
+
             if (tipo === 'PROMPT') {
-                if (i + 1 < marcadores.length && marcadores[i + 1].tipo === 'RESPONSE') {
-                    pares.push({
-                        prompt: prompts[promptIdx],
-                        response: responses[responseIdx]
-                    });
-                    responseIdx++;
+                // Extraer contenido del prompt
+                const lineaInicio = contenido.substring(pos).split('\n', 2);
+                let siguienteLineaPos = pos + lineaInicio[0].length + 1;
+                let inicioContenido = siguienteLineaPos;
+
+                if (skipTimestamp) {
+                    const resto = contenido.substring(siguienteLineaPos);
+                    const lineasResto = resto.split('\n');
+                    if (lineasResto.length > 0 && ChatbotRoamPatterns.TIMESTAMP_FECHA.test(lineasResto[0].trim())) {
+                        inicioContenido = siguienteLineaPos + lineasResto[0].length + 1;
+                    }
                 }
-                promptIdx++;
+
+                const finPrompt = i + 1 < marcadores.length ? marcadores[i + 1].pos : contenido.length;
+                const promptBloque = contenido.substring(inicioContenido, finPrompt).trim();
+
+                // Buscar y concatenar todas las respuestas consecutivas
+                const responseParts = [];
+                let j = i + 1;
+
+                while (j < marcadores.length && marcadores[j].tipo === 'RESPONSE') {
+                    const respPos = marcadores[j].pos;
+                    const respLineaInicio = contenido.substring(respPos).split('\n', 2);
+                    const respSiguienteLineaPos = respPos + respLineaInicio[0].length + 1;
+                    const finResp = j + 1 < marcadores.length ? marcadores[j + 1].pos : contenido.length;
+                    const respBloque = contenido.substring(respSiguienteLineaPos, finResp).trim();
+
+                    if (respBloque) {
+                        responseParts.push(respBloque);
+                    }
+                    j++;
+                }
+
+                // Solo crear par si hay al menos una respuesta
+                if (responseParts.length > 0) {
+                    pares.push({
+                        prompt: promptBloque,
+                        response: responseParts.join('\n\n')
+                    });
+                }
+
+                // Saltar al siguiente prompt (o al final)
+                i = j;
+            } else {
+                // Si encontramos una respuesta sin prompt previo, saltarla
+                i++;
             }
         }
 
@@ -94,6 +144,11 @@ const ChatbotRoamProcessing = {
      * @returns {Object} - { resultado: string, numIntercambios: number }
      */
     procesarConOpcionesIndividuales(contenido, opciones) {
+        // Eliminar header Antigravity ANTES de procesar
+        if (opciones.eliminar_header_antigravity) {
+            contenido = ChatbotRoamCleaners.eliminarHeaderAntigravity(contenido);
+        }
+
         // Eliminar imágenes ANTES de extraer (si está marcado)
         if (opciones.eliminar_imagenes) {
             contenido = ChatbotRoamCleaners.eliminarImagenesEmbedidas(contenido);
@@ -111,147 +166,14 @@ const ChatbotRoamProcessing = {
 
         for (const { prompt: rawPrompt, response: rawResponse } of conversacionRaw) {
             // --- LIMPIAR PROMPT ---
-            let promptTemp = rawPrompt;
-
-            if (opciones.eliminar_adjuntos_gemini) {
-                promptTemp = ChatbotRoamCleaners.eliminarAdjuntosGemini(promptTemp);
-            }
-
-            if (opciones.eliminar_metadata) {
-                promptTemp = ChatbotRoamCleaners.limpiarMetadataGenerico(promptTemp);
-            }
-
-            promptTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(promptTemp);
-            const promptLimpio = ChatbotRoamCleaners.limpiarContenido(promptTemp).split('\n').join(' ').trim();
+            let promptLimpio = this._limpiarPrompt(rawPrompt, opciones);
 
             // --- LIMPIAR RESPUESTA ---
-            let responseTemp = rawResponse;
+            let responseLimpio = this._limpiarRespuesta(rawResponse, opciones);
 
-            // Bloques de pensamiento
-            if (opciones.eliminar_plaintext_claude) {
-                responseTemp = ChatbotRoamCleaners.eliminarThoughtProcessClaude(responseTemp);
-            }
-
-            if (opciones.eliminar_thinking_gemini) {
-                responseTemp = ChatbotRoamCleaners.eliminarThinkingGemini(responseTemp);
-            }
-
-            if (opciones.eliminar_thought_chatgpt) {
-                responseTemp = ChatbotRoamCleaners.eliminarThoughtProcessGenerico(responseTemp);
-            }
-
-            // Tool calls y logs
-            if (opciones.eliminar_toolcalls_claude) {
-                responseTemp = ChatbotRoamCleaners.eliminarToolCallsClaude(responseTemp);
-            }
-
-            if (opciones.eliminar_mcp_toolcalls_claude) {
-                responseTemp = ChatbotRoamCleaners.eliminarMcpToolCallsClaude(responseTemp);
-            }
-
-            if (opciones.eliminar_logs_chatgpt) {
-                responseTemp = ChatbotRoamCleaners.eliminarToolLogsGenerico(responseTemp);
-            }
-
-            // Metadata
-            if (opciones.eliminar_metadata) {
-                responseTemp = ChatbotRoamCleaners.limpiarMetadataGenerico(responseTemp);
-            }
-
-            if (opciones.eliminar_footer_gemini) {
-                responseTemp = ChatbotRoamCleaners.limpiarMetadataGemini(responseTemp);
-            }
-
-            if (opciones.eliminar_adjuntos_gemini) {
-                responseTemp = ChatbotRoamCleaners.eliminarAdjuntosGemini(responseTemp);
-            }
-
-            // Limpiar formato básico
-            responseTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(responseTemp);
-            const responseLimpio = ChatbotRoamCleaners.limpiarContenido(responseTemp);
-
-            // --- FORMATEAR PARA ROAM ---
-            if (!promptLimpio) continue;
-
-
-            resultado.push('* ' + promptLimpio);
-
-            if (responseLimpio) {
-                var lineasResponse = responseLimpio.split('\n');
-                var enBloqueCodigo = false;
-                var codigoBuffer = [];
-                var bajoHeading = false;  // Track si estamos bajo un heading markdown
-                // Definir backtick directamente para evitar problemas de resolucion
-                var BACKTICK = String.fromCharCode(96);
-                var BT3 = BACKTICK + BACKTICK + BACKTICK;
-                // Indentacion base (4 espacios) y bajo heading (8 espacios)
-                var INDENT_BASE = '    ';
-                var INDENT_HEADING = '        ';
-
-                for (var j = 0; j < lineasResponse.length; j++) {
-                    var linea = lineasResponse[j];
-                    var lineaStripped = linea.trim();
-
-                    // Detectar inicio/fin de bloque de codigo (3+ backticks)
-                    var esLineaCodigo = lineaStripped.length >= 3 &&
-                        lineaStripped.charAt(0) === BACKTICK &&
-                        lineaStripped.charAt(1) === BACKTICK &&
-                        lineaStripped.charAt(2) === BACKTICK;
-
-                    if (esLineaCodigo) {
-                        if (!enBloqueCodigo) {
-                            // Inicio de bloque de codigo
-                            enBloqueCodigo = true;
-                            codigoBuffer = [lineaStripped];
-                        } else {
-                            // Fin de bloque de codigo - unir todo en un solo item
-                            codigoBuffer.push(lineaStripped);
-                            // Usar marcador especial para codigo combinado
-                            // Usamos {{NL}} en vez de \n para no romperlo en el split posterior
-                            var indentCodigo = bajoHeading ? INDENT_HEADING : INDENT_BASE;
-                            resultado.push(indentCodigo + '[CODE]' + codigoBuffer.join('{{NL}}'));
-                            codigoBuffer = [];
-                            enBloqueCodigo = false;
-                        }
-                        continue;
-                    }
-
-                    if (enBloqueCodigo) {
-                        // Acumular lineas de codigo
-                        codigoBuffer.push(linea);
-                        continue;
-                    }
-
-                    // Linea vacia
-                    if (!lineaStripped) {
-                        resultado.push('');
-                        continue;
-                    }
-
-                    // Headings markdown (#, ##, ###, etc.)
-                    if (lineaStripped.startsWith('#')) {
-                        bajoHeading = true;  // Activar indentacion para contenido siguiente
-                        resultado.push(INDENT_BASE + lineaStripped);
-                    }
-                    // Listas
-                    else if (lineaStripped.startsWith('* ') || lineaStripped.startsWith('- ')) {
-                        var indentLista = bajoHeading ? INDENT_HEADING : INDENT_BASE;
-                        resultado.push(indentLista + linea.trim());
-                    }
-                    // Texto normal
-                    else {
-                        var indentTexto = bajoHeading ? INDENT_HEADING : INDENT_BASE;
-                        resultado.push(indentTexto + '* ' + lineaStripped);
-                    }
-                }
-
-                // Si quedo codigo sin cerrar, agregarlo
-                if (codigoBuffer.length > 0) {
-                    resultado.push('    [CODE]' + codigoBuffer.join('{{NL}}'));
-                }
-            }
-
-            resultado.push('');
+            // --- FORMATEAR PARA ROAM (usa modulo Formatter) ---
+            const lineasFormateadas = ChatbotRoamFormatter.formatExchange(promptLimpio, responseLimpio);
+            resultado.push(...lineasFormateadas);
         }
 
         return {
@@ -261,9 +183,102 @@ const ChatbotRoamProcessing = {
     },
 
     /**
+     * Limpia un prompt aplicando las opciones seleccionadas
+     * @private
+     */
+    _limpiarPrompt(rawPrompt, opciones) {
+        let promptTemp = rawPrompt;
+
+        if (opciones.eliminar_adjuntos_gemini) {
+            promptTemp = ChatbotRoamCleaners.eliminarAdjuntosGemini(promptTemp);
+        }
+
+        if (opciones.eliminar_metadata) {
+            promptTemp = ChatbotRoamCleaners.limpiarMetadataGenerico(promptTemp);
+        }
+
+        promptTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(promptTemp);
+        return ChatbotRoamCleaners.limpiarContenido(promptTemp).split('\n').join(' ').trim();
+    },
+
+    /**
+     * Limpia una respuesta aplicando las opciones seleccionadas
+     * @private
+     */
+    _limpiarRespuesta(rawResponse, opciones) {
+        let responseTemp = rawResponse;
+
+        // Bloques de pensamiento
+        if (opciones.eliminar_plaintext_claude) {
+            responseTemp = ChatbotRoamCleaners.eliminarThoughtProcessClaude(responseTemp);
+        }
+
+        if (opciones.eliminar_thinking_gemini) {
+            responseTemp = ChatbotRoamCleaners.eliminarThinkingGemini(responseTemp);
+        }
+
+        if (opciones.eliminar_thought_chatgpt) {
+            responseTemp = ChatbotRoamCleaners.eliminarThoughtProcessGenerico(responseTemp);
+        }
+
+        // Tool calls y logs
+        if (opciones.eliminar_toolcalls_claude) {
+            responseTemp = ChatbotRoamCleaners.eliminarToolCallsClaude(responseTemp);
+        }
+
+        if (opciones.eliminar_mcp_toolcalls_claude) {
+            responseTemp = ChatbotRoamCleaners.eliminarMcpToolCallsClaude(responseTemp);
+        }
+
+        if (opciones.eliminar_logs_chatgpt) {
+            responseTemp = ChatbotRoamCleaners.eliminarToolLogsGenerico(responseTemp);
+        }
+
+        // Metadata
+        if (opciones.eliminar_metadata) {
+            responseTemp = ChatbotRoamCleaners.limpiarMetadataGenerico(responseTemp);
+        }
+
+        if (opciones.eliminar_footer_gemini) {
+            responseTemp = ChatbotRoamCleaners.limpiarMetadataGemini(responseTemp);
+        }
+
+        if (opciones.eliminar_adjuntos_gemini) {
+            responseTemp = ChatbotRoamCleaners.eliminarAdjuntosGemini(responseTemp);
+        }
+
+        // Limpieza Antigravity
+        if (opciones.eliminar_acciones_antigravity) {
+            responseTemp = ChatbotRoamCleaners.eliminarAccionesAntigravity(responseTemp);
+        }
+
+        if (opciones.eliminar_cci_links) {
+            responseTemp = ChatbotRoamCleaners.limpiarEnlacesCCI(responseTemp);
+        }
+
+        if (opciones.eliminar_sistema_antigravity) {
+            responseTemp = ChatbotRoamCleaners.eliminarMensajesSistemaAntigravity(responseTemp);
+        }
+
+        if (opciones.eliminar_timestamp_hora) {
+            responseTemp = ChatbotRoamCleaners.eliminarTimestampHoraSuelta(responseTemp);
+        }
+
+        // Limpiar formato básico
+        responseTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(responseTemp);
+        return ChatbotRoamCleaners.limpiarContenido(responseTemp);
+    },
+
+    /**
      * Detecta automáticamente el tipo de chatbot basándose en marcadores característicos.
      */
     detectarTipoChatbot(contenido) {
+        // Detectar Antigravity PRIMERO (marcadores unicos)
+        const esAntigravity = ChatbotRoamPatterns.DETECT_ANTIGRAVITY.test(contenido);
+        if (esAntigravity) {
+            return 'antigravity';
+        }
+
         const tieneToolCalls = ChatbotRoamPatterns.DETECT_CLAUDE_TOOLS.test(contenido);
         const tienePlaintextBlocks = contenido.includes(ChatbotRoamPatterns.BT4 + 'plaintext');
 
@@ -295,7 +310,12 @@ const ChatbotRoamProcessing = {
             eliminar_logs_chatgpt: false,
             eliminar_metadata: false,
             eliminar_footer_gemini: false,
-            eliminar_adjuntos_gemini: false
+            eliminar_adjuntos_gemini: false,
+            eliminar_acciones_antigravity: false,
+            eliminar_cci_links: false,
+            eliminar_sistema_antigravity: false,
+            eliminar_timestamp_hora: false,
+            eliminar_header_antigravity: false
         };
 
         switch (tipo) {
@@ -320,6 +340,16 @@ const ChatbotRoamProcessing = {
                     eliminar_thinking_gemini: true,
                     eliminar_footer_gemini: true,
                     eliminar_adjuntos_gemini: true,
+                    eliminar_metadata: true
+                };
+            case 'antigravity':
+                return {
+                    ...base,
+                    eliminar_header_antigravity: true,
+                    eliminar_acciones_antigravity: true,
+                    eliminar_cci_links: true,
+                    eliminar_sistema_antigravity: true,
+                    eliminar_timestamp_hora: true,
                     eliminar_metadata: true
                 };
             default:
