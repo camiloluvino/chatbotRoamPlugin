@@ -9,6 +9,7 @@ $srcDir = "."
 $sourceFiles = @(
     "patterns.js",
     "cleaners.js",
+    "opciones-limpieza.js",
     "formatter.js",
     "processing.js",
     "styles.js",

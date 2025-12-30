@@ -1,26 +1,79 @@
 // ============================================================================
 // CHATBOT ROAM PLUGIN - ROAM INSERTER
 // Handles block insertion into Roam using the Roam Alpha API
+// Includes rollback capability for error recovery
 // ============================================================================
 
 const ChatbotRoamInserter = {
     /**
-     * Inserta bloques recursivamente en Roam usando la API correcta
-     * Detecta headings markdown y los convierte a headings nativos de Roam
+     * Elimina bloques por sus UIDs (para rollback en caso de error)
+     * @param {Array<string>} uids - Array de UIDs a eliminar
+     * @returns {Promise<number>} - Numero de bloques eliminados exitosamente
+     * @private
+     */
+    async _rollbackBlocks(uids) {
+        let deleted = 0;
+        for (const uid of uids) {
+            try {
+                await window.roamAlphaAPI.data.block.delete({ block: { uid: uid } });
+                deleted++;
+            } catch (e) {
+                // Ignorar errores de eliminacion (el bloque puede ya no existir)
+                console.warn('Rollback: No se pudo eliminar bloque ' + uid, e);
+            }
+        }
+        return deleted;
+    },
+
+    /**
+     * Inserta bloques recursivamente en Roam con soporte de rollback
+     * Si ocurre un error, automaticamente elimina los bloques ya insertados
+     * 
      * @param {string} parentUid - UID del bloque padre
      * @param {Array} bloques - Array de bloques a insertar
      * @param {number} startOrder - Orden inicial para los bloques
-     * @returns {Promise<Array>} - Array de UIDs de bloques insertados
-     * @throws {Error} - Si falla la insercion de algun bloque
+     * @returns {Promise<Object>} - { success, insertedBlocks, insertedCount, error, rolledBackCount }
      */
     async insertBlocksRecursively(parentUid, bloques, startOrder) {
-        var insertedBlocks = [];
+        const allInsertedUids = [];
 
-        for (var i = 0; i < bloques.length; i++) {
-            var bloque = bloques[i];
-            var blockUid = window.roamAlphaAPI.util.generateUID();
-            var texto = bloque.text;
-            var headingLevel = 0;
+        try {
+            const result = await this._insertBlocksInternal(parentUid, bloques, startOrder, allInsertedUids);
+            return {
+                success: true,
+                insertedBlocks: result,
+                insertedCount: allInsertedUids.length,
+                error: null,
+                rolledBackCount: 0
+            };
+        } catch (error) {
+            // Error durante insercion - hacer rollback
+            console.error('Error durante insercion, iniciando rollback de ' + allInsertedUids.length + ' bloques...');
+            const rolledBack = await this._rollbackBlocks(allInsertedUids);
+            console.log('Rollback completado: ' + rolledBack + '/' + allInsertedUids.length + ' bloques eliminados');
+
+            return {
+                success: false,
+                insertedBlocks: [],
+                insertedCount: allInsertedUids.length,
+                error: error.message,
+                rolledBackCount: rolledBack
+            };
+        }
+    },
+
+    /**
+     * Logica interna de insercion recursiva
+     * @private
+     */
+    async _insertBlocksInternal(parentUid, bloques, startOrder, allInsertedUids) {
+        const insertedBlocks = [];
+
+        for (let i = 0; i < bloques.length; i++) {
+            const bloque = bloques[i];
+            const blockUid = window.roamAlphaAPI.util.generateUID();
+            let texto = bloque.text;
+            let headingLevel = 0;
 
             // Detectar nivel de heading (### = 3, ## = 2, # = 1)
             if (texto.startsWith('### ')) {
@@ -35,7 +88,7 @@ const ChatbotRoamInserter = {
             }
 
             // Crear bloque con o sin heading
-            var blockData = {
+            const blockData = {
                 location: { "parent-uid": parentUid, order: startOrder + i },
                 block: { uid: blockUid, string: texto }
             };
@@ -45,24 +98,15 @@ const ChatbotRoamInserter = {
                 blockData.block.heading = headingLevel;
             }
 
-            try {
-                await window.roamAlphaAPI.data.block.create(blockData);
-                insertedBlocks.push(blockUid);
-            } catch (error) {
-                var textoPreview = texto.length > 50 ? texto.substring(0, 50) + '...' : texto;
-                console.error('Error insertando bloque ' + (i + 1) + '/' + bloques.length + ':', error);
-                throw new Error('Fallo al insertar bloque: "' + textoPreview + '" - ' + error.message);
-            }
+            // Intentar insertar
+            await window.roamAlphaAPI.data.block.create(blockData);
+            allInsertedUids.push(blockUid);
+            insertedBlocks.push(blockUid);
 
             // Insertar hijos recursivamente
             if (bloque.children && bloque.children.length > 0) {
-                try {
-                    var childBlocks = await this.insertBlocksRecursively(blockUid, bloque.children, 0);
-                    insertedBlocks = insertedBlocks.concat(childBlocks);
-                } catch (error) {
-                    // Re-lanzar con contexto adicional
-                    throw new Error('Error en hijos de "' + texto.substring(0, 30) + '...": ' + error.message);
-                }
+                const childBlocks = await this._insertBlocksInternal(blockUid, bloque.children, 0, allInsertedUids);
+                insertedBlocks.push(...childBlocks);
             }
         }
 

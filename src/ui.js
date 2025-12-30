@@ -14,6 +14,7 @@ const ChatbotRoamUI = {
     _searchMatches: [],      // Posiciones de coincidencias
     _currentMatchIndex: -1,  // Índice actual
     _isCut: false,           // Si ya se cortó
+    _boundEscHandler: null,  // Referencia al handler de ESC para cleanup
 
 
     // CREAR MODAL
@@ -70,54 +71,7 @@ const ChatbotRoamUI = {
             '<input type="file" class="chatbot-roam-hidden-input" accept=".md,.txt" data-action="file-input">' +
             '<div class="chatbot-roam-section-title">OPCIONES DE LIMPIEZA</div>' +
             '<div class="chatbot-roam-options">' +
-            '<label class="chatbot-roam-option">' +
-            '<input type="checkbox" data-option="eliminar_plaintext_claude" checked>' +
-            'Bloques plaintext (Claude)' +
-            '</label>' +
-            '<label class="chatbot-roam-option">' +
-            '<input type="checkbox" data-option="eliminar_logs_chatgpt">' +
-            'Logs de busqueda' +
-            '</label>' +
-            '<label class="chatbot-roam-option">' +
-            '<input type="checkbox" data-option="eliminar_thinking_gemini">' +
-            'Bloques Thinking (Gemini)' +
-            '</label>' +
-            '<label class="chatbot-roam-option">' +
-            '<input type="checkbox" data-option="eliminar_metadata" checked>' +
-            'Timestamps y referencias' +
-            '</label>' +
-            '<label class="chatbot-roam-option">' +
-            '<input type="checkbox" data-option="eliminar_thought_chatgpt">' +
-            'Thought process (ChatGPT)' +
-            '</label>' +
-            '<label class="chatbot-roam-option">' +
-            '<input type="checkbox" data-option="eliminar_footer_gemini">' +
-            'Footer Gemini Exporter' +
-            '</label>' +
-            '<label class="chatbot-roam-option">' +
-            '<input type="checkbox" data-option="eliminar_toolcalls_claude" checked>' +
-            'Tool calls (Claude)' +
-            '</label>' +
-            '<label class="chatbot-roam-option">' +
-            '<input type="checkbox" data-option="eliminar_adjuntos_gemini">' +
-            'Adjuntos Gemini' +
-            '</label>' +
-            '<label class="chatbot-roam-option">' +
-            '<input type="checkbox" data-option="eliminar_mcp_toolcalls_claude" checked>' +
-            'MCP Tool calls (Claude)' +
-            '</label>' +
-            '<label class="chatbot-roam-option">' +
-            '<input type="checkbox" data-option="eliminar_imagenes" checked>' +
-            'Imagenes Base64' +
-            '</label>' +
-            '<label class="chatbot-roam-option">' +
-            '<input type="checkbox" data-option="eliminar_acciones_antigravity">' +
-            'Acciones Antigravity' +
-            '</label>' +
-            '<label class="chatbot-roam-option">' +
-            '<input type="checkbox" data-option="eliminar_cci_links">' +
-            'Enlaces CCI internos' +
-            '</label>' +
+            ChatbotRoamOpciones.generarCheckboxesHTML() +
             '</div>' +
             '<div class="chatbot-roam-presets">' +
             '<button class="chatbot-roam-preset-btn" data-preset="claude">Claude</button>' +
@@ -223,14 +177,13 @@ const ChatbotRoamUI = {
         // Cut button
         modal.querySelector('[data-action="cut-here"]').addEventListener('click', () => this._cutFromCurrentMatch());
 
-        // ESC to close
-        document.addEventListener('keydown', this._handleEsc);
-    },
-
-    _handleEsc(e) {
-        if (e.key === 'Escape') {
-            ChatbotRoamUI.closeModal();
-        }
+        // ESC to close - guardar referencia bound para cleanup
+        this._boundEscHandler = (e) => {
+            if (e.key === 'Escape') {
+                this.closeModal();
+            }
+        };
+        document.addEventListener('keydown', this._boundEscHandler);
     },
 
     // ========================================================================
@@ -369,18 +322,12 @@ const ChatbotRoamUI = {
     // ========================================================================
     _applyPreset(preset) {
         if (preset === 'limpiar') {
-            this._currentOpciones = {
-                eliminar_imagenes: false,
-                eliminar_plaintext_claude: false,
-                eliminar_thinking_gemini: false,
-                eliminar_thought_chatgpt: false,
-                eliminar_toolcalls_claude: false,
-                eliminar_mcp_toolcalls_claude: false,
-                eliminar_logs_chatgpt: false,
-                eliminar_metadata: false,
-                eliminar_footer_gemini: false,
-                eliminar_adjuntos_gemini: false
-            };
+            // Generar objeto con todas las opciones en false
+            this._currentOpciones = {};
+            var opciones = ChatbotRoamOpciones.getAll();
+            for (var i = 0; i < opciones.length; i++) {
+                this._currentOpciones[opciones[i].id] = false;
+            }
         } else {
             this._currentOpciones = ChatbotRoamProcessing.getPresetOpciones(preset);
         }
@@ -624,41 +571,55 @@ const ChatbotRoamUI = {
 
         const parentUid = this._savedBlockUid;
 
-        try {
-            // Parsear el contenido procesado en estructura de bloques
-            // Los bloques [CODE] ya tienen {{NL}} en vez de \n gracias a processing.js
-            const lineas = this._processedContent.split('\n');
-            const bloques = ChatbotRoamParser.parseToBlockStructure(lineas);
+        // Parsear el contenido procesado en estructura de bloques
+        const lineas = this._processedContent.split('\n');
+        const bloques = ChatbotRoamParser.parseToBlockStructure(lineas);
 
-            if (bloques.length === 0) {
-                alert('No se encontraron bloques para insertar.');
-                return;
+        if (bloques.length === 0) {
+            alert('No se encontraron bloques para insertar.');
+            return;
+        }
+
+        // Insertar bloques recursivamente (usa modulo ChatbotRoamInserter)
+        const result = await ChatbotRoamInserter.insertBlocksRecursively(parentUid, bloques, 0);
+
+        if (result.success) {
+            // Insercion exitosa
+            this.closeModal();
+            console.log('Conversacion insertada en Roam: ' + result.insertedCount + ' bloques creados');
+        } else {
+            // Error con rollback
+            let mensaje = 'Error al insertar en Roam:\n\n' + result.error;
+
+            if (result.rolledBackCount > 0) {
+                mensaje += '\n\nSe revirtieron ' + result.rolledBackCount + ' bloques que se habian insertado antes del error.';
+            } else if (result.insertedCount > 0) {
+                mensaje += '\n\nAdvertencia: ' + result.insertedCount + ' bloques fueron insertados antes del error pero no se pudieron revertir.';
             }
 
-            // Insertar bloques recursivamente (usa modulo ChatbotRoamInserter)
-            const insertedBlocks = await ChatbotRoamInserter.insertBlocksRecursively(parentUid, bloques, 0);
-
-            // Cerrar modal despues de insertar
-            this.closeModal();
-            console.log('Conversacion insertada en Roam: ' + insertedBlocks.length + ' bloques creados');
-
-        } catch (error) {
-            console.error('Error insertando en Roam:', error);
-            alert('Error al insertar en Roam:\n\n' + error.message + '\n\nRevisa la consola para mas detalles.');
+            console.error('Error insertando en Roam:', result);
+            alert(mensaje);
         }
     },
+
 
 
     // CLOSE MODAL
     closeModal() {
         const savedUid = this._savedBlockUid;
+
+        // Limpiar event listener SIEMPRE (incluso si modal ya no existe)
+        if (this._boundEscHandler) {
+            document.removeEventListener('keydown', this._boundEscHandler);
+            this._boundEscHandler = null;
+        }
+
         if (this._modalContainer) {
             this._modalContainer.remove();
             this._modalContainer = null;
             this._fileContent = null;
             this._processedContent = null;
             this._savedBlockUid = null;
-            document.removeEventListener('keydown', this._handleEsc);
         }
         // Restaurar foco al bloque original
         if (savedUid) {

@@ -189,13 +189,8 @@ const ChatbotRoamProcessing = {
     _limpiarPrompt(rawPrompt, opciones) {
         let promptTemp = rawPrompt;
 
-        if (opciones.eliminar_adjuntos_gemini) {
-            promptTemp = ChatbotRoamCleaners.eliminarAdjuntosGemini(promptTemp);
-        }
-
-        if (opciones.eliminar_metadata) {
-            promptTemp = ChatbotRoamCleaners.limpiarMetadataGenerico(promptTemp);
-        }
+        // Aplicar cleaners del registro centralizado
+        promptTemp = ChatbotRoamOpciones.aplicarLimpieza(promptTemp, opciones, 'prompt');
 
         promptTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(promptTemp);
         return ChatbotRoamCleaners.limpiarContenido(promptTemp).split('\n').join(' ').trim();
@@ -208,61 +203,8 @@ const ChatbotRoamProcessing = {
     _limpiarRespuesta(rawResponse, opciones) {
         let responseTemp = rawResponse;
 
-        // Bloques de pensamiento
-        if (opciones.eliminar_plaintext_claude) {
-            responseTemp = ChatbotRoamCleaners.eliminarThoughtProcessClaude(responseTemp);
-        }
-
-        if (opciones.eliminar_thinking_gemini) {
-            responseTemp = ChatbotRoamCleaners.eliminarThinkingGemini(responseTemp);
-        }
-
-        if (opciones.eliminar_thought_chatgpt) {
-            responseTemp = ChatbotRoamCleaners.eliminarThoughtProcessGenerico(responseTemp);
-        }
-
-        // Tool calls y logs
-        if (opciones.eliminar_toolcalls_claude) {
-            responseTemp = ChatbotRoamCleaners.eliminarToolCallsClaude(responseTemp);
-        }
-
-        if (opciones.eliminar_mcp_toolcalls_claude) {
-            responseTemp = ChatbotRoamCleaners.eliminarMcpToolCallsClaude(responseTemp);
-        }
-
-        if (opciones.eliminar_logs_chatgpt) {
-            responseTemp = ChatbotRoamCleaners.eliminarToolLogsGenerico(responseTemp);
-        }
-
-        // Metadata
-        if (opciones.eliminar_metadata) {
-            responseTemp = ChatbotRoamCleaners.limpiarMetadataGenerico(responseTemp);
-        }
-
-        if (opciones.eliminar_footer_gemini) {
-            responseTemp = ChatbotRoamCleaners.limpiarMetadataGemini(responseTemp);
-        }
-
-        if (opciones.eliminar_adjuntos_gemini) {
-            responseTemp = ChatbotRoamCleaners.eliminarAdjuntosGemini(responseTemp);
-        }
-
-        // Limpieza Antigravity
-        if (opciones.eliminar_acciones_antigravity) {
-            responseTemp = ChatbotRoamCleaners.eliminarAccionesAntigravity(responseTemp);
-        }
-
-        if (opciones.eliminar_cci_links) {
-            responseTemp = ChatbotRoamCleaners.limpiarEnlacesCCI(responseTemp);
-        }
-
-        if (opciones.eliminar_sistema_antigravity) {
-            responseTemp = ChatbotRoamCleaners.eliminarMensajesSistemaAntigravity(responseTemp);
-        }
-
-        if (opciones.eliminar_timestamp_hora) {
-            responseTemp = ChatbotRoamCleaners.eliminarTimestampHoraSuelta(responseTemp);
-        }
+        // Aplicar cleaners del registro centralizado
+        responseTemp = ChatbotRoamOpciones.aplicarLimpieza(responseTemp, opciones, 'respuesta');
 
         // Limpiar formato básico
         responseTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(responseTemp);
@@ -298,62 +240,9 @@ const ChatbotRoamProcessing = {
 
     /**
      * Devuelve las opciones preconfiguradas según el tipo de chatbot.
+     * Delega al registro centralizado en ChatbotRoamOpciones.
      */
     getPresetOpciones(tipo) {
-        const base = {
-            eliminar_imagenes: true,
-            eliminar_plaintext_claude: false,
-            eliminar_thinking_gemini: false,
-            eliminar_thought_chatgpt: false,
-            eliminar_toolcalls_claude: false,
-            eliminar_mcp_toolcalls_claude: false,
-            eliminar_logs_chatgpt: false,
-            eliminar_metadata: false,
-            eliminar_footer_gemini: false,
-            eliminar_adjuntos_gemini: false,
-            eliminar_acciones_antigravity: false,
-            eliminar_cci_links: false,
-            eliminar_sistema_antigravity: false,
-            eliminar_timestamp_hora: false,
-            eliminar_header_antigravity: false
-        };
-
-        switch (tipo) {
-            case 'claude':
-                return {
-                    ...base,
-                    eliminar_plaintext_claude: true,
-                    eliminar_toolcalls_claude: true,
-                    eliminar_mcp_toolcalls_claude: true,
-                    eliminar_metadata: true
-                };
-            case 'chatgpt':
-                return {
-                    ...base,
-                    eliminar_thought_chatgpt: true,
-                    eliminar_logs_chatgpt: true,
-                    eliminar_metadata: true
-                };
-            case 'gemini':
-                return {
-                    ...base,
-                    eliminar_thinking_gemini: true,
-                    eliminar_footer_gemini: true,
-                    eliminar_adjuntos_gemini: true,
-                    eliminar_metadata: true
-                };
-            case 'antigravity':
-                return {
-                    ...base,
-                    eliminar_header_antigravity: true,
-                    eliminar_acciones_antigravity: true,
-                    eliminar_cci_links: true,
-                    eliminar_sistema_antigravity: true,
-                    eliminar_timestamp_hora: true,
-                    eliminar_metadata: true
-                };
-            default:
-                return base;
-        }
+        return ChatbotRoamOpciones.getPreset(tipo);
     }
 };
