@@ -1,7 +1,7 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.0.0** | Build: 2025-12-28 00:57:36
+**v1.1.0** | Build: 2025-12-30 16:02
 
 ---
 
@@ -9,8 +9,8 @@
 
 ### ✅ Funcionando
 - Drag & drop de archivos .md
-- Auto-detección de tipo de chatbot (Claude, ChatGPT, Gemini)
-- 10 opciones de limpieza configurables
+- Auto-detección de tipo de chatbot (Claude, ChatGPT, Gemini, Antigravity)
+- 15 opciones de limpieza configurables (registro centralizado)
 - Vista previa antes de insertar
 - Inserción jerárquica en Roam
 - Preservación de bloques de código
@@ -29,6 +29,8 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2025-12-30 | Refactorización: opciones de limpieza centralizadas en `opciones-limpieza.js` |
+| 2025-12-30 | Agregado soporte para Antigravity (error handling con rollback) |
 | 2025-12-28 | Agregada indentación bajo headings markdown (3 niveles) |
 | 2025-12-25 | Corregido encoding UTF-8 para caracteres especiales |
 | 2025-12-24 | Agregado filtro para MCP Tool Calls de Claude |

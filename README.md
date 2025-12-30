@@ -5,9 +5,9 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 ## ✨ Características
 
 - 📁 **Drag & Drop** - Arrastra archivos .md directamente al modal
-- 🤖 **Multi-chatbot** - Soporta Claude, ChatGPT y Google Gemini
+- 🤖 **Multi-chatbot** - Soporta Claude, ChatGPT, Google Gemini y Antigravity
 - 🔍 **Auto-detección** - Detecta el tipo de chatbot y aplica el preset correspondiente
-- 🎛️ **10 opciones de limpieza** - Configura exactamente qué limpiar
+- 🎛️ **15 opciones de limpieza** - Configura exactamente qué limpiar
 - 👁️ **Vista previa** - Previsualiza el resultado antes de insertar
 - ⚡ **Inserción directa** - Inserta como hijo del bloque seleccionado
 - 💻 **Preserva code blocks** - Los bloques de código se insertan correctamente formateados
@@ -51,14 +51,19 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 ```
 chatbotRoamPlugin/
 ├── src/
-│   ├── patterns.js    # Regex compilados
-│   ├── cleaners.js    # Funciones de limpieza
-│   ├── processing.js  # Lógica de procesamiento
-│   ├── ui.js          # Modal y componentes UI
-│   ├── index.js       # Entrada, registro comandos
-│   └── build.ps1      # Script de build
-├── chatbot-roam-plugin.js  # Bundle final
-├── CONTRIBUTING.md         # Guías de codificación
+│   ├── patterns.js           # Regex compilados
+│   ├── cleaners.js           # Funciones de limpieza
+│   ├── opciones-limpieza.js  # Registro centralizado de opciones
+│   ├── formatter.js          # Formateo para Roam
+│   ├── processing.js         # Lógica de procesamiento
+│   ├── styles.js             # CSS del modal
+│   ├── roam/
+│   │   ├── parser.js         # Parser de bloques
+│   │   └── inserter.js       # Inserción con rollback
+│   ├── ui.js                 # Modal y componentes UI
+│   ├── index.js              # Entrada, registro comandos
+│   └── build.ps1             # Script de build
+├── chatbot-roam-plugin.js    # Bundle final
 └── README.md
 ```
 

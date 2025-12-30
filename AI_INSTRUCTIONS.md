@@ -6,7 +6,7 @@ Plugin para Roam Research que importa conversaciones exportadas de chatbots (Cla
 
 ## Fuente de Verdad
 
-**Archivos fuente**: `src/` (5 archivos JavaScript)  
+**Archivos fuente**: `src/` (6 módulos JavaScript + 2 en `roam/`)  
 **Bundle generado**: `chatbot-roam-plugin.js` (NO editar directamente)
 
 ### Flujo de trabajo obligatorio
@@ -26,9 +26,13 @@ Plugin para Roam Research que importa conversaciones exportadas de chatbots (Cla
 |--------|---------|-----------------|
 | Patterns | `patterns.js` | Regex compilados y constantes |
 | Cleaners | `cleaners.js` | Funciones de limpieza de texto |
+| Opciones | `opciones-limpieza.js` | **Registro centralizado de opciones de limpieza** |
 | Formatter | `formatter.js` | Formatea respuestas para estructura de bloques Roam |
 | Processing | `processing.js` | Extracción y procesamiento de conversaciones |
-| UI | `ui.js` | Modal, eventos, inserción en Roam |
+| Styles | `styles.js` | CSS del modal |
+| Parser | `roam/parser.js` | Parsea texto a estructura de bloques |
+| Inserter | `roam/inserter.js` | Inserta bloques en Roam con rollback |
+| UI | `ui.js` | Modal, eventos, vista previa |
 | Plugin | `index.js` | Inicialización y registro de comandos |
 
 ### Flujo de control
@@ -48,11 +52,12 @@ index.js → Registra comando "Importar Conversacion de Chatbot"
 
 1. **JavaScript vanilla**: Sin dependencias npm. El código se concatena en un solo bundle.
 
-2. **Objetos globales por módulo**: `ChatbotRoamPatterns`, `ChatbotRoamCleaners`, `ChatbotRoamProcessing`, `ChatbotRoamUI`, `ChatbotRoamPlugin`.
+2. **Objetos globales por módulo**: `ChatbotRoamPatterns`, `ChatbotRoamCleaners`, `ChatbotRoamOpciones`, `ChatbotRoamFormatter`, `ChatbotRoamProcessing`, `ChatbotRoamStyles`, `ChatbotRoamParser`, `ChatbotRoamInserter`, `ChatbotRoamUI`, `ChatbotRoamPlugin`.
 
 3. **Orden de concatenación**: El build respeta dependencias:
    ```
-   patterns.js → cleaners.js → processing.js → ui.js → index.js
+   patterns.js → cleaners.js → opciones-limpieza.js → formatter.js → 
+   processing.js → styles.js → roam/parser.js → roam/inserter.js → ui.js → index.js
    ```
 
 4. **Distribución via GitHub Pages**: `loader.js` carga el plugin desde `https://camiloluvino.github.io/chatbotRoamPlugin/`
