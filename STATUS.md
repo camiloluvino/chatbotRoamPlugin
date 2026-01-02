@@ -1,7 +1,7 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.1.0** | Build: 2025-12-30 16:02
+**v1.1.0** | Build: 2026-01-02 01:02
 
 ---
 
@@ -29,6 +29,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-01-02 | Fix: MCP Tool Calls ahora se eliminan correctamente (reordenado cleaners) |
 | 2025-12-30 | Refactorización: opciones de limpieza centralizadas en `opciones-limpieza.js` |
 | 2025-12-30 | Agregado soporte para Antigravity (error handling con rollback) |
 | 2025-12-28 | Agregada indentación bajo headings markdown (3 niveles) |

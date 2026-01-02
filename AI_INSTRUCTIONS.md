@@ -67,15 +67,17 @@ index.js → Registra comando "Importar Conversacion de Chatbot"
 ## Principios Operativos
 
 ### Backticks (CRÍTICO)
-Roam interpreta backticks de forma especial. **NUNCA** escribir backticks literales en strings.
+Roam interpreta backticks de forma especial. **NUNCA** escribir backticks literales en strings NI EN COMENTARIOS.
 
 ```javascript
 // ✅ CORRECTO
 const BACKTICK = String.fromCharCode(96);
 const BT3 = BACKTICK + BACKTICK + BACKTICK;
+// Buscar bloque (BT4 + lang ... BT4)
 
 // ❌ INCORRECTO - Rompe el código en Roam
 const BT3 = '```';
+// Buscar bloque (````lang ... ````)
 ```
 
 ### Convenciones de nombrado
@@ -139,11 +141,13 @@ Archivos `.md` con marcadores:
 
 1. **Regex MCP Tool Calls**: Historial de bugs con patrones complejos. Probar exhaustivamente cualquier cambio.
 
-2. **`_parseToBlockStructure()`**: Maneja jerarquía de 3 niveles. Errores aquí corrompen la estructura del graph.
+2. **Orden de ejecución de cleaners en `opciones-limpieza.js`**: Los cleaners se ejecutan en el orden en que están definidos. MCP Tool Calls debe ejecutarse ANTES que plaintext para encontrar el patrón completo.
 
-3. **Marcador `[CODE]` y `{{NL}}`**: Sistema frágil para preservar bloques de código multilínea.
+3. **`_parseToBlockStructure()`**: Maneja jerarquía de 3 niveles. Errores aquí corrompen la estructura del graph.
 
-4. **Encoding UTF-8**: Problemas históricos con caracteres especiales (flechas →, acentos). El build usa UTF-8 sin BOM.
+4. **Marcador `[CODE]` y `{{NL}}`**: Sistema frágil para preservar bloques de código multilínea.
+
+5. **Encoding UTF-8**: Problemas históricos con caracteres especiales (flechas →, acentos). El build usa UTF-8 sin BOM.
 
 ### Checklist pre-commit
 - [ ] El código compila sin errores (`build.ps1` ejecuta correctamente)
