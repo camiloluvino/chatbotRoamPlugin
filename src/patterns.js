@@ -8,7 +8,7 @@ const BT4 = String.fromCharCode(96, 96, 96, 96);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.1.0",
+    VERSION: "1.1.1",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
