@@ -8,7 +8,7 @@ const BT4 = String.fromCharCode(96, 96, 96, 96);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.1.1",
+    VERSION: "1.1.0",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -39,7 +39,7 @@ const ChatbotRoamPatterns = {
     TOOL_CALLS_SIMPLE: /\*\*\w+\*\*\s*(?=\*Request\*|$)/g,
 
     // MCP Tool calls (Claude con MCP)
-    MCP_TOOL_CALLS: new RegExp("\\*\\*[\\w-]+:[\\w_]+\\*\\*\\s*\\*Request\\*\\s*" + BT4 + "(?:javascript|json|plaintext)[\\s\\S]*?" + BT4 + "\\s*\\*Response\\*\\s*" + BT4 + "(?:javascript|json|plaintext|text)[\\s\\S]*?" + BT4, "g"),
+    MCP_TOOL_CALLS: new RegExp("\\*\\*[\\w-]+:[\\w_]+\\*\\*[\\s\\n]*\\*Request\\*[\\s\\n]*" + BT4 + "(?:javascript|json|plaintext)[\\s\\S]*?" + BT4 + "[\\s\\n]*\\*Response\\*[\\s\\n]*" + BT4 + "(?:javascript|json|plaintext|text)[\\s\\S]*?" + BT4, "g"),
 
     // ANTIGRAVITY FORMAT
     ANTIGRAVITY_PROMPT_MARKER: /^### User Input$/gm,

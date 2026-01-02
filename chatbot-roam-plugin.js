@@ -1,8 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.1.1
+// CHATBOT ROAM PLUGIN v1.1.0
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-01-02 02:15:34
-
+// Generated: 2026-01-02 00:52:40
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -15,7 +14,7 @@ const BT4 = String.fromCharCode(96, 96, 96, 96);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.1.1",
+    VERSION: "1.1.0",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -46,7 +45,7 @@ const ChatbotRoamPatterns = {
     TOOL_CALLS_SIMPLE: /\*\*\w+\*\*\s*(?=\*Request\*|$)/g,
 
     // MCP Tool calls (Claude con MCP)
-    MCP_TOOL_CALLS: new RegExp("\\*\\*[\\w-]+:[\\w_]+\\*\\*\\s*\\*Request\\*\\s*" + BT4 + "(?:javascript|json|plaintext)[\\s\\S]*?" + BT4 + "\\s*\\*Response\\*\\s*" + BT4 + "(?:javascript|json|plaintext|text)[\\s\\S]*?" + BT4, "g"),
+    MCP_TOOL_CALLS: new RegExp("\\*\\*[\\w-]+:[\\w_]+\\*\\*[\\s\\n]*\\*Request\\*[\\s\\n]*" + BT4 + "(?:javascript|json|plaintext)[\\s\\S]*?" + BT4 + "[\\s\\n]*\\*Response\\*[\\s\\n]*" + BT4 + "(?:javascript|json|plaintext|text)[\\s\\S]*?" + BT4, "g"),
 
     // ANTIGRAVITY FORMAT
     ANTIGRAVITY_PROMPT_MARKER: /^### User Input$/gm,
@@ -76,20 +75,20 @@ const ChatbotRoamPatterns = {
 
 const ChatbotRoamCleaners = {
     // ========================================================================
-    // FUNCIONES DE LIMPIEZA GENÉRICAS
+    // FUNCIONES DE LIMPIEZA GENÃ‰RICAS
     // ========================================================================
 
     /**
-     * Elimina las líneas de Markdown que contienen imágenes Base64.
+     * Elimina las lÃ­neas de Markdown que contienen imÃ¡genes Base64.
      */
     eliminarImagenesEmbedidas(texto) {
-        // Patrón 1: Imágenes completas con paréntesis de cierre
+        // PatrÃ³n 1: ImÃ¡genes completas con parÃ©ntesis de cierre
         texto = texto.replace(ChatbotRoamPatterns.IMAGEN_COMPLETA, '');
 
-        // Patrón 2: Imágenes truncadas
+        // PatrÃ³n 2: ImÃ¡genes truncadas
         texto = texto.replace(ChatbotRoamPatterns.IMAGEN_TRUNCADA, '');
 
-        // Patrón 3: Limpiar líneas que solo contienen restos de Base64
+        // PatrÃ³n 3: Limpiar lÃ­neas que solo contienen restos de Base64
         const lineas = texto.split('\n');
         const lineasLimpias = [];
 
@@ -109,7 +108,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Limpia líneas vacías excesivas y espacios al inicio/fin.
+     * Limpia lÃ­neas vacÃ­as excesivas y espacios al inicio/fin.
      */
     limpiarContenido(texto) {
         texto = texto.replace(ChatbotRoamPatterns.LINEAS_VACIAS_EXCESIVAS, '\n\n');
@@ -117,7 +116,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Limpia etiquetas de lenguaje de bloques de código pero PRESERVA los delimitadores.
+     * Limpia etiquetas de lenguaje de bloques de cÃ³digo pero PRESERVA los delimitadores.
      */
     limpiarFormatoMarkdownBasico(texto) {
         texto = texto.replace(ChatbotRoamPatterns.CODIGO_CUATRO_BACKTICKS, ChatbotRoamPatterns.BT4);
@@ -126,11 +125,11 @@ const ChatbotRoamCleaners = {
     },
 
     // ========================================================================
-    // LIMPIEZA GENÉRICA / CHATGPT
+    // LIMPIEZA GENÃ‰RICA / CHATGPT
     // ========================================================================
 
     /**
-     * Elimina los logs de herramientas de búsqueda como 'project_knowledge_search'.
+     * Elimina los logs de herramientas de bÃºsqueda como 'project_knowledge_search'.
      */
     eliminarToolLogsGenerico(texto) {
         if (!texto.includes('**project_knowledge_search**')) {
@@ -164,7 +163,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Elimina líneas de metadata como fechas y '> File:'.
+     * Elimina lÃ­neas de metadata como fechas y '> File:'.
      */
     limpiarMetadataGenerico(texto) {
         const lineas = texto.split('\n');
@@ -195,15 +194,15 @@ const ChatbotRoamCleaners = {
      * Elimina los bloques completos de herramientas de Claude.
      */
     eliminarToolCallsClaude(texto) {
-        // Patrón completo
+        // PatrÃ³n completo
         texto = texto.replace(ChatbotRoamPatterns.TOOL_CALLS_COMPLETO, '');
-        // Patrón simple
+        // PatrÃ³n simple
         texto = texto.replace(ChatbotRoamPatterns.TOOL_CALLS_SIMPLE, '');
         return texto;
     },
 
     /**
-     * Elimina líneas que comienzan con 'Thought:'.
+     * Elimina lÃ­neas que comienzan con 'Thought:'.
      */
     eliminarThoughtLinesClaude(texto) {
         const lineas = texto.split('\n');
@@ -219,16 +218,67 @@ const ChatbotRoamCleaners = {
 
     /**
      * Elimina bloques completos de MCP tool calls de Claude.
+     * Usa procesamiento iterativo para mayor robustez con contenido largo.
      */
     eliminarMcpToolCallsClaude(texto) {
-        // Paso 1: Eliminar bloques completos de MCP tool calls
-        texto = texto.replace(ChatbotRoamPatterns.MCP_TOOL_CALLS, '');
+        const BT4 = ChatbotRoamPatterns.BT4;
 
-        // Paso 2: Limpiar líneas residuales (nombres de herramientas sueltos)
+        // Patron para encontrar nombres de herramientas MCP
+        const patronNombre = /\*\*[\w-]+:[\w_]+\*\*/g;
+
+        // Encontrar todas las posiciones de herramientas MCP
+        const matches = [];
+        let match;
+        while ((match = patronNombre.exec(texto)) !== null) {
+            matches.push({ start: match.index, nombre: match[0] });
+        }
+
+        // Procesar en reversa para no afectar los indices
+        for (let i = matches.length - 1; i >= 0; i--) {
+            const { start, nombre } = matches[i];
+
+            // Buscar *Request* despues del nombre
+            const despuesNombre = texto.substring(start + nombre.length);
+            const posRequest = despuesNombre.indexOf('*Request*');
+            if (posRequest === -1 || posRequest > 50) continue; // Muy lejos, no es parte del bloque
+
+            // Buscar el primer bloque de codigo (BT4 + lang ... BT4)
+            const despuesRequest = despuesNombre.substring(posRequest + 9);
+            const posAbreCode1 = despuesRequest.indexOf(BT4);
+            if (posAbreCode1 === -1 || posAbreCode1 > 50) continue;
+
+            const despuesAbre1 = despuesRequest.substring(posAbreCode1 + 4);
+            const posCierraCode1 = despuesAbre1.indexOf(BT4);
+            if (posCierraCode1 === -1) continue;
+
+            // Buscar *Response* despues del primer bloque
+            const despuesCierra1 = despuesAbre1.substring(posCierraCode1 + 4);
+            const posResponse = despuesCierra1.indexOf('*Response*');
+            if (posResponse === -1 || posResponse > 50) continue;
+
+            // Buscar el segundo bloque de codigo
+            const despuesResponse = despuesCierra1.substring(posResponse + 10);
+            const posAbreCode2 = despuesResponse.indexOf(BT4);
+            if (posAbreCode2 === -1 || posAbreCode2 > 50) continue;
+
+            const despuesAbre2 = despuesResponse.substring(posAbreCode2 + 4);
+            const posCierraCode2 = despuesAbre2.indexOf(BT4);
+            if (posCierraCode2 === -1) continue;
+
+            // Calcular el fin del bloque completo
+            const finBloque = start + nombre.length + posRequest + 9 + posAbreCode1 + 4 +
+                posCierraCode1 + 4 + posResponse + 10 + posAbreCode2 + 4 +
+                posCierraCode2 + 4;
+
+            // Eliminar el bloque
+            texto = texto.substring(0, start) + texto.substring(finBloque);
+        }
+
+        // Limpiar lineas residuales (nombres sueltos que no matchearon el patron completo)
         const patronNombresResiduales = /^\*\*[\w-]+:[\w_]+\*\*\s*$/gm;
         texto = texto.replace(patronNombresResiduales, '');
 
-        // Paso 3: Limpiar *Request* y *Response* huérfanos
+        // Limpiar *Request* y *Response* huerfanos
         const lineas = texto.split('\n');
         const lineasLimpias = [];
 
@@ -242,7 +292,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Elimina metadata específica de Claude.
+     * Elimina metadata especÃ­fica de Claude.
      */
     limpiarMetadataClaude(texto) {
         const lineas = texto.split('\n');
@@ -264,7 +314,7 @@ const ChatbotRoamCleaners = {
     // ========================================================================
 
     /**
-     * Elimina bloques de 'Thinking:' específicos de Gemini.
+     * Elimina bloques de 'Thinking:' especÃ­ficos de Gemini.
      */
     eliminarThinkingGemini(texto) {
         const lineas = texto.split('\n');
@@ -296,7 +346,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Elimina el símbolo '>' de líneas de adjuntos de Gemini.
+     * Elimina el sÃ­mbolo '>' de lÃ­neas de adjuntos de Gemini.
      */
     eliminarAdjuntosGemini(texto) {
         const lineas = texto.split('\n');
@@ -323,7 +373,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Elimina metadata específica de Gemini.
+     * Elimina metadata especÃ­fica de Gemini.
      */
     limpiarMetadataGemini(texto) {
         const lineas = texto.split('\n');
@@ -402,15 +452,15 @@ const ChatbotRoamCleaners = {
 // ============================================================================
 
 /**
- * Definición centralizada de opciones de limpieza.
- * Para añadir una nueva opción:
+ * DefiniciÃ³n centralizada de opciones de limpieza.
+ * Para aÃ±adir una nueva opciÃ³n:
  * 1. Agregar un objeto a este array
  * 2. Ejecutar build.ps1
- * 3. Listo - el UI y la lógica lo detectan automáticamente
+ * 3. Listo - el UI y la lÃ³gica lo detectan automÃ¡ticamente
  */
 const OPCIONES_LIMPIEZA = [
     // ========================================================================
-    // OPCIONES GENÉRICAS (todos los chatbots)
+    // OPCIONES GENÃ‰RICAS (todos los chatbots)
     // ========================================================================
     {
         id: 'eliminar_imagenes',
@@ -433,6 +483,14 @@ const OPCIONES_LIMPIEZA = [
     // OPCIONES CLAUDE
     // ========================================================================
     {
+        id: 'eliminar_mcp_toolcalls_claude',
+        label: 'MCP Tool calls (Claude)',
+        chatbots: ['claude'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarMcpToolCallsClaude(texto); }
+    },
+    {
         id: 'eliminar_plaintext_claude',
         label: 'Bloques plaintext (Claude)',
         chatbots: ['claude'],
@@ -447,14 +505,6 @@ const OPCIONES_LIMPIEZA = [
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarToolCallsClaude(texto); }
-    },
-    {
-        id: 'eliminar_mcp_toolcalls_claude',
-        label: 'MCP Tool calls (Claude)',
-        chatbots: ['claude'],
-        defaultActivo: true,
-        aplicarA: 'respuesta',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarMcpToolCallsClaude(texto); }
     },
 
     // ========================================================================
@@ -513,7 +563,7 @@ const OPCIONES_LIMPIEZA = [
         label: 'Header Antigravity',
         chatbots: ['antigravity'],
         defaultActivo: true,
-        aplicarA: 'preproceso',  // Se aplica ANTES de extraer conversación
+        aplicarA: 'preproceso',  // Se aplica ANTES de extraer conversaciÃ³n
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarHeaderAntigravity(texto); }
     },
     {
@@ -765,7 +815,7 @@ const ChatbotRoamFormatter = {
 
 const ChatbotRoamProcessing = {
     // ========================================================================
-    // FUNCIÓN UNIFICADA DE EXTRACCIÓN
+    // FUNCIÃ“N UNIFICADA DE EXTRACCIÃ“N
     // ========================================================================
 
     /**
@@ -798,7 +848,7 @@ const ChatbotRoamProcessing = {
             marcadores.push({ tipo: 'RESPONSE', pos: match.index });
         }
 
-        // Ordenar por posición
+        // Ordenar por posiciÃ³n
         marcadores.sort((a, b) => a.pos - b.pos);
 
         // Extraer contenido entre marcadores
@@ -894,7 +944,7 @@ const ChatbotRoamProcessing = {
     },
 
     // ========================================================================
-    // LÓGICA DE PROCESAMIENTO PRINCIPAL
+    // LÃ“GICA DE PROCESAMIENTO PRINCIPAL
     // ========================================================================
 
     /**
@@ -909,12 +959,12 @@ const ChatbotRoamProcessing = {
             contenido = ChatbotRoamCleaners.eliminarHeaderAntigravity(contenido);
         }
 
-        // Eliminar imágenes ANTES de extraer (si está marcado)
+        // Eliminar imÃ¡genes ANTES de extraer (si estÃ¡ marcado)
         if (opciones.eliminar_imagenes) {
             contenido = ChatbotRoamCleaners.eliminarImagenesEmbedidas(contenido);
         }
 
-        // Extraer conversación
+        // Extraer conversaciÃ³n
         const conversacionRaw = this.extraerConversacionRaw(contenido);
 
         if (conversacionRaw.length === 0) {
@@ -966,13 +1016,13 @@ const ChatbotRoamProcessing = {
         // Aplicar cleaners del registro centralizado
         responseTemp = ChatbotRoamOpciones.aplicarLimpieza(responseTemp, opciones, 'respuesta');
 
-        // Limpiar formato básico
+        // Limpiar formato bÃ¡sico
         responseTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(responseTemp);
         return ChatbotRoamCleaners.limpiarContenido(responseTemp);
     },
 
     /**
-     * Detecta automáticamente el tipo de chatbot basándose en marcadores característicos.
+     * Detecta automÃ¡ticamente el tipo de chatbot basÃ¡ndose en marcadores caracterÃ­sticos.
      */
     detectarTipoChatbot(contenido) {
         // Detectar Antigravity PRIMERO (marcadores unicos)
@@ -999,7 +1049,7 @@ const ChatbotRoamProcessing = {
     },
 
     /**
-     * Devuelve las opciones preconfiguradas según el tipo de chatbot.
+     * Devuelve las opciones preconfiguradas segÃºn el tipo de chatbot.
      * Delega al registro centralizado en ChatbotRoamOpciones.
      */
     getPresetOpciones(tipo) {
@@ -1626,14 +1676,14 @@ const ChatbotRoamUI = {
     _modalContainer: null,
     _fileContent: null,
     _processedContent: null,
-    _originalProcessedContent: null,  // Para restaurar después de cortar
+    _originalProcessedContent: null,  // Para restaurar despuÃ©s de cortar
     _currentOpciones: null,
     _savedBlockUid: null,  // Guardar UID del bloque ANTES de abrir modal
 
-    // Estado de búsqueda incremental
+    // Estado de bÃºsqueda incremental
     _searchMatches: [],      // Posiciones de coincidencias
-    _currentMatchIndex: -1,  // Índice actual
-    _isCut: false,           // Si ya se cortó
+    _currentMatchIndex: -1,  // Ãndice actual
+    _isCut: false,           // Si ya se cortÃ³
     _boundEscHandler: null,  // Referencia al handler de ESC para cleanup
 
 
@@ -1819,7 +1869,7 @@ const ChatbotRoamUI = {
      * @returns {Object} - { valid: boolean, error: string|null }
      */
     _validateFile(file) {
-        // Validar tamaño
+        // Validar tamaÃ±o
         const maxSizeBytes = this.MAX_FILE_SIZE_MB * 1024 * 1024;
         if (file.size > maxSizeBytes) {
             return {
@@ -2005,7 +2055,7 @@ const ChatbotRoamUI = {
         if (content) {
             // Mostrar contenido completo para poder buscar
             preview.textContent = content;
-            const countInfo = numIntercambios !== undefined ? `${numIntercambios} intercambios · ` : '';
+            const countInfo = numIntercambios !== undefined ? `${numIntercambios} intercambios Â· ` : '';
             previewInfo.textContent = `${countInfo}${content.length.toLocaleString()} caracteres totales`;
             insertBtn.disabled = false;
         } else {
@@ -2018,7 +2068,7 @@ const ChatbotRoamUI = {
     },
 
     // ========================================================================
-    // BÚSQUEDA INCREMENTAL
+    // BÃšSQUEDA INCREMENTAL
     // ========================================================================
     _performSearch(query) {
         if (!this._originalProcessedContent || !query || query.length < 2) {
@@ -2096,7 +2146,7 @@ const ChatbotRoamUI = {
             html += `<mark class="${markClass}" ${markId}>${this._escapeHtml(content.substring(match.start, match.end))}</mark>`;
             lastEnd = match.end;
         }
-        // Texto después del último match
+        // Texto despuÃ©s del Ãºltimo match
         html += this._escapeHtml(content.substring(lastEnd));
 
         preview.innerHTML = html;
@@ -2142,11 +2192,11 @@ const ChatbotRoamUI = {
         const match = this._searchMatches[this._currentMatchIndex];
         const content = this._originalProcessedContent;
 
-        // Encontrar el inicio de la línea que contiene el match
+        // Encontrar el inicio de la lÃ­nea que contiene el match
         // Buscamos el "* " que indica un prompt
         let cutPosition = match.start;
 
-        // Buscar hacia atrás el inicio del prompt ("* " al inicio de línea o después de newline)
+        // Buscar hacia atrÃ¡s el inicio del prompt ("* " al inicio de lÃ­nea o despuÃ©s de newline)
         while (cutPosition > 0) {
             if (content.substring(cutPosition, cutPosition + 2) === '* ' &&
                 (cutPosition === 0 || content[cutPosition - 1] === '\n')) {
@@ -2155,11 +2205,11 @@ const ChatbotRoamUI = {
             cutPosition--;
         }
 
-        // Cortar desde esa posición
+        // Cortar desde esa posiciÃ³n
         this._processedContent = content.substring(cutPosition);
         this._isCut = true;
 
-        // Limpiar búsqueda y actualizar UI
+        // Limpiar bÃºsqueda y actualizar UI
         this._searchMatches = [];
         this._currentMatchIndex = -1;
 

@@ -148,16 +148,67 @@ const ChatbotRoamCleaners = {
 
     /**
      * Elimina bloques completos de MCP tool calls de Claude.
+     * Usa procesamiento iterativo para mayor robustez con contenido largo.
      */
     eliminarMcpToolCallsClaude(texto) {
-        // Paso 1: Eliminar bloques completos de MCP tool calls
-        texto = texto.replace(ChatbotRoamPatterns.MCP_TOOL_CALLS, '');
+        const BT4 = ChatbotRoamPatterns.BT4;
 
-        // Paso 2: Limpiar líneas residuales (nombres de herramientas sueltos)
+        // Patron para encontrar nombres de herramientas MCP
+        const patronNombre = /\*\*[\w-]+:[\w_]+\*\*/g;
+
+        // Encontrar todas las posiciones de herramientas MCP
+        const matches = [];
+        let match;
+        while ((match = patronNombre.exec(texto)) !== null) {
+            matches.push({ start: match.index, nombre: match[0] });
+        }
+
+        // Procesar en reversa para no afectar los indices
+        for (let i = matches.length - 1; i >= 0; i--) {
+            const { start, nombre } = matches[i];
+
+            // Buscar *Request* despues del nombre
+            const despuesNombre = texto.substring(start + nombre.length);
+            const posRequest = despuesNombre.indexOf('*Request*');
+            if (posRequest === -1 || posRequest > 50) continue; // Muy lejos, no es parte del bloque
+
+            // Buscar el primer bloque de codigo (BT4 + lang ... BT4)
+            const despuesRequest = despuesNombre.substring(posRequest + 9);
+            const posAbreCode1 = despuesRequest.indexOf(BT4);
+            if (posAbreCode1 === -1 || posAbreCode1 > 50) continue;
+
+            const despuesAbre1 = despuesRequest.substring(posAbreCode1 + 4);
+            const posCierraCode1 = despuesAbre1.indexOf(BT4);
+            if (posCierraCode1 === -1) continue;
+
+            // Buscar *Response* despues del primer bloque
+            const despuesCierra1 = despuesAbre1.substring(posCierraCode1 + 4);
+            const posResponse = despuesCierra1.indexOf('*Response*');
+            if (posResponse === -1 || posResponse > 50) continue;
+
+            // Buscar el segundo bloque de codigo
+            const despuesResponse = despuesCierra1.substring(posResponse + 10);
+            const posAbreCode2 = despuesResponse.indexOf(BT4);
+            if (posAbreCode2 === -1 || posAbreCode2 > 50) continue;
+
+            const despuesAbre2 = despuesResponse.substring(posAbreCode2 + 4);
+            const posCierraCode2 = despuesAbre2.indexOf(BT4);
+            if (posCierraCode2 === -1) continue;
+
+            // Calcular el fin del bloque completo
+            const finBloque = start + nombre.length + posRequest + 9 + posAbreCode1 + 4 +
+                posCierraCode1 + 4 + posResponse + 10 + posAbreCode2 + 4 +
+                posCierraCode2 + 4;
+
+            // Eliminar el bloque
+            texto = texto.substring(0, start) + texto.substring(finBloque);
+        }
+
+        // Limpiar lineas residuales (nombres sueltos que no matchearon el patron completo)
         const patronNombresResiduales = /^\*\*[\w-]+:[\w_]+\*\*\s*$/gm;
         texto = texto.replace(patronNombresResiduales, '');
 
-        // Paso 3: Limpiar *Request* y *Response* huérfanos
+        // Limpiar *Request* y *Response* huerfanos
         const lineas = texto.split('\n');
         const lineasLimpias = [];
 

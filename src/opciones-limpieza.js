@@ -35,6 +35,14 @@ const OPCIONES_LIMPIEZA = [
     // OPCIONES CLAUDE
     // ========================================================================
     {
+        id: 'eliminar_mcp_toolcalls_claude',
+        label: 'MCP Tool calls (Claude)',
+        chatbots: ['claude'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarMcpToolCallsClaude(texto); }
+    },
+    {
         id: 'eliminar_plaintext_claude',
         label: 'Bloques plaintext (Claude)',
         chatbots: ['claude'],
@@ -49,14 +57,6 @@ const OPCIONES_LIMPIEZA = [
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarToolCallsClaude(texto); }
-    },
-    {
-        id: 'eliminar_mcp_toolcalls_claude',
-        label: 'MCP Tool calls (Claude)',
-        chatbots: ['claude'],
-        defaultActivo: true,
-        aplicarA: 'respuesta',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarMcpToolCallsClaude(texto); }
     },
 
     // ========================================================================
