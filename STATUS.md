@@ -1,7 +1,7 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.1.0** | Build: 2026-01-02 01:02
+**v1.3.1** | Build: 2026-01-08 00:25
 
 ---
 
@@ -18,6 +18,7 @@
 - Búsqueda incremental en preview
 - Cortar desde posición encontrada
 - Loader para auto-update desde GitHub Pages
+- Editor de clasificación manual para corregir Prompt/Response (archivos MCP)
 
 ### 🔧 Estable pero sensible
 - Filtro MCP Tool Calls (historial de bugs, probar cambios)
@@ -29,6 +30,9 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-01-08 | v1.3.1: Botón "Invertir desde aquí" para corregir errores en cadena |
+| 2026-01-07 | v1.3.0: Editor de clasificación manual completo (reempl. detección automática) |
+| 2026-01-07 | v1.2.0: Detección de bloques mal clasificados (MCP) |
 | 2026-01-02 | Fix: MCP Tool Calls ahora se eliminan correctamente (reordenado cleaners) |
 | 2025-12-30 | Refactorización: opciones de limpieza centralizadas en `opciones-limpieza.js` |
 | 2025-12-30 | Agregado soporte para Antigravity (error handling con rollback) |

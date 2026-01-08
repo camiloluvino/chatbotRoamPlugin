@@ -362,6 +362,225 @@ const ChatbotRoamStyles = {
                 background: #e94560;
                 color: white;
             }
+
+            /* Editor de clasificación manual v2 */
+            .chatbot-roam-editor-panel {
+                background: rgba(255, 165, 0, 0.08);
+                border: 1px solid #FFA500;
+                border-radius: 8px;
+                padding: 16px;
+                margin-top: 16px;
+            }
+
+            .chatbot-roam-editor-header {
+                margin-bottom: 12px;
+            }
+
+            .chatbot-roam-editor-title {
+                display: block;
+                color: #FFA500;
+                font-weight: 600;
+                font-size: 14px;
+                margin-bottom: 4px;
+            }
+
+            .chatbot-roam-editor-subtitle {
+                color: #888;
+                font-size: 12px;
+            }
+
+            .chatbot-roam-editor-stats {
+                color: #aaa;
+                font-size: 11px;
+                margin-bottom: 10px;
+                padding: 6px 10px;
+                background: rgba(0, 0, 0, 0.2);
+                border-radius: 4px;
+            }
+
+            .chatbot-roam-editor-list {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+
+            .chatbot-roam-editor-item {
+                display: flex;
+                flex-direction: column;
+                padding: 8px 12px;
+                margin-bottom: 6px;
+                border-radius: 6px;
+                border-left: 4px solid;
+                position: relative;
+            }
+
+            .chatbot-roam-editor-item.prompt {
+                background: rgba(66, 133, 244, 0.15);
+                border-left-color: #4285F4;
+            }
+
+            .chatbot-roam-editor-item.response {
+                background: rgba(76, 175, 80, 0.15);
+                border-left-color: #4CAF50;
+            }
+
+            .chatbot-roam-editor-item.modified {
+                box-shadow: 0 0 8px rgba(255, 165, 0, 0.5);
+            }
+
+            .chatbot-roam-editor-item-header {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-bottom: 4px;
+            }
+
+            .chatbot-roam-editor-num {
+                color: #666;
+                font-size: 11px;
+                font-weight: 600;
+            }
+
+            .chatbot-roam-editor-icon {
+                font-size: 12px;
+            }
+
+            .chatbot-roam-editor-tipo {
+                font-weight: 600;
+                font-size: 11px;
+            }
+
+            .chatbot-roam-editor-item.prompt .chatbot-roam-editor-tipo {
+                color: #4285F4;
+            }
+
+            .chatbot-roam-editor-item.response .chatbot-roam-editor-tipo {
+                color: #4CAF50;
+            }
+
+            .chatbot-roam-editor-mcp {
+                background: #e94560;
+                color: white;
+                font-size: 9px;
+                padding: 2px 5px;
+                border-radius: 3px;
+                font-weight: 600;
+            }
+
+            .chatbot-roam-editor-line {
+                color: #666;
+                font-size: 10px;
+                margin-left: auto;
+            }
+
+            .chatbot-roam-editor-extracto {
+                color: #999;
+                font-size: 11px;
+                font-family: 'Consolas', 'Monaco', monospace;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                padding-right: 70px;
+            }
+
+            .chatbot-roam-editor-buttons {
+                position: absolute;
+                right: 8px;
+                top: 50%;
+                transform: translateY(-50%);
+                display: flex;
+                gap: 4px;
+            }
+
+            .chatbot-roam-editor-swap-btn,
+            .chatbot-roam-editor-chain-btn {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid #444;
+                color: #aaa;
+                width: 28px;
+                height: 28px;
+                border-radius: 4px;
+                font-size: 14px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .chatbot-roam-editor-swap-btn:hover {
+                background: #FFA500;
+                border-color: #FFA500;
+                color: white;
+            }
+
+            .chatbot-roam-editor-chain-btn {
+                font-size: 11px;
+                background: rgba(255, 165, 0, 0.15);
+                border-color: #FFA500;
+                color: #FFA500;
+            }
+
+            .chatbot-roam-editor-chain-btn:hover {
+                background: #e94560;
+                border-color: #e94560;
+                color: white;
+            }
+
+            .chatbot-roam-editor-actions {
+                display: flex;
+                gap: 10px;
+                margin-top: 12px;
+                justify-content: flex-end;
+            }
+
+            .chatbot-roam-editor-btn-continue {
+                background: #4CAF50;
+                border: none;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+
+            .chatbot-roam-editor-btn-continue:hover {
+                background: #45a049;
+            }
+
+            .chatbot-roam-editor-btn-skip {
+                background: transparent;
+                border: 1px solid #444;
+                color: #aaa;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 12px;
+                cursor: pointer;
+            }
+
+            .chatbot-roam-editor-btn-skip:hover {
+                border-color: #666;
+                color: #fff;
+            }
+
+            .chatbot-roam-editor-btn-restore {
+                background: transparent;
+                border: 1px solid #e94560;
+                color: #e94560;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 12px;
+                cursor: pointer;
+            }
+
+            .chatbot-roam-editor-btn-restore:hover:not(:disabled) {
+                background: #e94560;
+                color: white;
+            }
+
+            .chatbot-roam-editor-btn-restore:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
         `;
     }
 };

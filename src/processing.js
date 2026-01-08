@@ -133,6 +133,59 @@ const ChatbotRoamProcessing = {
         return pares;
     },
 
+    /**
+     * Extrae TODOS los bloques (Prompt y Response) del archivo con metadata.
+     * Para uso en el editor de clasificación manual.
+     * @param {string} contenido - Contenido raw del archivo
+     * @returns {Array} - [{pos, tipo, extracto, lineNumber}, ...]
+     */
+    extraerTodosLosBloques(contenido) {
+        const bloques = [];
+        const regex = /^## (Prompt|Response):/gm;
+        let match;
+
+        while ((match = regex.exec(contenido)) !== null) {
+            const posInicio = match.index;
+            const tipo = match[1]; // "Prompt" o "Response"
+
+            // Calcular número de línea
+            const lineNumber = contenido.substring(0, posInicio).split('\n').length;
+
+            // Encontrar el fin de este bloque (siguiente ## o fin de archivo)
+            const restoContenido = contenido.substring(posInicio);
+            const marcadorLen = match[0].length; // "## Prompt:" o "## Response:"
+            const siguienteBloque = restoContenido.substring(marcadorLen).search(/^## (?:Prompt|Response):/m);
+            const finBloque = siguienteBloque === -1
+                ? contenido.length
+                : posInicio + marcadorLen + siguienteBloque;
+
+            // Extraer contenido del bloque (skip header y timestamp)
+            const contenidoBloque = contenido.substring(posInicio, finBloque);
+            const lineas = contenidoBloque.split('\n').slice(2, 5);
+            const extracto = lineas.join(' ').substring(0, 100).trim();
+
+            // Detectar si tiene MCP tools (para marcar visualmente)
+            const tieneMCP = ChatbotRoamPatterns.MCP_TOOL_HEADER.test(contenidoBloque);
+
+            bloques.push({
+                pos: posInicio,
+                tipo: tipo,
+                lineNumber: lineNumber,
+                extracto: extracto || '(vacío)',
+                tieneMCP: tieneMCP
+            });
+        }
+
+        return bloques;
+    },
+
+    /**
+     * Detecta si un archivo tiene uso de MCP (para decidir si mostrar editor)
+     */
+    tieneUsoDeMCP(contenido) {
+        return ChatbotRoamPatterns.MCP_TOOL_HEADER.test(contenido);
+    },
+
     // ========================================================================
     // LÓGICA DE PROCESAMIENTO PRINCIPAL
     // ========================================================================

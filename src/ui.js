@@ -307,7 +307,14 @@ const ChatbotRoamUI = {
             dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML =
                 '<strong>' + file.name + '</strong><br>' + statusText;
 
-            this._processAndPreview();
+            // Detectar si el archivo tiene uso de MCP (para mostrar editor de clasificación)
+            const tieneMCP = ChatbotRoamProcessing.tieneUsoDeMCP(content);
+
+            if (tieneMCP) {
+                this._mostrarEditorClasificacion();
+            } else {
+                this._processAndPreview();
+            }
         };
 
         reader.onerror = () => {
@@ -315,6 +322,221 @@ const ChatbotRoamUI = {
         };
 
         reader.readAsText(file);
+    },
+
+    // ========================================================================
+    // EDITOR DE CLASIFICACIÓN MANUAL (v2)
+    // ========================================================================
+
+    // Estado del editor
+    _todosLosBloques: [],
+    _originalFileContent: null,
+    _bloquesModificados: new Set(),
+
+    /**
+     * Muestra el editor de clasificación con todos los bloques
+     */
+    _mostrarEditorClasificacion() {
+        // Guardar contenido original para posible restauración
+        this._originalFileContent = this._fileContent;
+        this._bloquesModificados = new Set();
+
+        // Extraer todos los bloques
+        this._todosLosBloques = ChatbotRoamProcessing.extraerTodosLosBloques(this._fileContent);
+
+        // Remover panel anterior si existe
+        const existente = this._modalContainer.querySelector('.chatbot-roam-editor-panel');
+        if (existente) existente.remove();
+
+        const panel = document.createElement('div');
+        panel.className = 'chatbot-roam-editor-panel';
+
+        // Generar HTML de items
+        const itemsHTML = this._todosLosBloques.map((bloque, idx) => {
+            const tipoClass = bloque.tipo === 'Prompt' ? 'prompt' : 'response';
+            const tipoIcon = bloque.tipo === 'Prompt' ? '🔵' : '🟢';
+            const mcpBadge = bloque.tieneMCP ? '<span class="chatbot-roam-editor-mcp">MCP</span>' : '';
+            const extractoCorto = bloque.extracto.substring(0, 70) + (bloque.extracto.length > 70 ? '...' : '');
+
+            return `
+                <div class="chatbot-roam-editor-item ${tipoClass}" data-idx="${idx}">
+                    <div class="chatbot-roam-editor-item-header">
+                        <span class="chatbot-roam-editor-num">[${idx + 1}]</span>
+                        <span class="chatbot-roam-editor-icon">${tipoIcon}</span>
+                        <span class="chatbot-roam-editor-tipo">${bloque.tipo.toUpperCase()}</span>
+                        ${mcpBadge}
+                        <span class="chatbot-roam-editor-line">Línea ${bloque.lineNumber}</span>
+                    </div>
+                    <div class="chatbot-roam-editor-extracto">${this._escapeHtml(extractoCorto)}</div>
+                    <div class="chatbot-roam-editor-buttons">
+                        <button class="chatbot-roam-editor-swap-btn" data-action="swap" data-idx="${idx}" title="Intercambiar este bloque">⇄</button>
+                        <button class="chatbot-roam-editor-chain-btn" data-action="chain" data-idx="${idx}" title="Invertir desde aquí hasta el final">↓↓</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        panel.innerHTML = `
+            <div class="chatbot-roam-editor-header">
+                <span class="chatbot-roam-editor-title">⚠️ REVISIÓN DE CLASIFICACIÓN</span>
+                <span class="chatbot-roam-editor-subtitle">Este archivo tiene MCP. Verifica que cada bloque esté correctamente clasificado.</span>
+            </div>
+            <div class="chatbot-roam-editor-stats">
+                Total: ${this._todosLosBloques.length} bloques | 
+                <span data-element="modified-count">Modificados: 0</span>
+            </div>
+            <div class="chatbot-roam-editor-list">
+                ${itemsHTML}
+            </div>
+            <div class="chatbot-roam-editor-actions">
+                <button class="chatbot-roam-editor-btn-continue" data-action="continue-editor">
+                    Continuar con procesamiento
+                </button>
+                <button class="chatbot-roam-editor-btn-skip" data-action="skip-editor">
+                    Omitir revisión
+                </button>
+                <button class="chatbot-roam-editor-btn-restore" data-action="restore-editor" disabled>
+                    Restaurar original
+                </button>
+            </div>
+        `;
+
+        // Insertar después del dropzone
+        const dropzone = this._modalContainer.querySelector('[data-action="dropzone"]');
+        dropzone.parentNode.insertBefore(panel, dropzone.nextSibling);
+
+        // Event listeners
+        panel.querySelectorAll('[data-action="swap"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = parseInt(e.target.dataset.idx);
+                this._intercambiarClasificacion(idx);
+            });
+        });
+
+        panel.querySelectorAll('[data-action="chain"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = parseInt(e.target.dataset.idx);
+                this._invertirDesdeAqui(idx);
+            });
+        });
+
+        panel.querySelector('[data-action="continue-editor"]').addEventListener('click', () => {
+            panel.remove();
+            this._processAndPreview();
+        });
+
+        panel.querySelector('[data-action="skip-editor"]').addEventListener('click', () => {
+            panel.remove();
+            this._processAndPreview();
+        });
+
+        panel.querySelector('[data-action="restore-editor"]').addEventListener('click', () => {
+            this._restaurarOriginal();
+        });
+    },
+
+    /**
+     * Intercambia la clasificación de un bloque (Prompt ↔ Response)
+     */
+    _intercambiarClasificacion(idx) {
+        if (idx < 0 || idx >= this._todosLosBloques.length) return;
+
+        const bloque = this._todosLosBloques[idx];
+        const nuevoTipo = bloque.tipo === 'Prompt' ? 'Response' : 'Prompt';
+        const marcadorViejo = `## ${bloque.tipo}:`;
+        const marcadorNuevo = `## ${nuevoTipo}:`;
+        const diffLen = marcadorNuevo.length - marcadorViejo.length; // +1 o -1
+
+        // Reemplazar en el contenido
+        const antes = this._fileContent.substring(0, bloque.pos);
+        const despues = this._fileContent.substring(bloque.pos + marcadorViejo.length);
+        this._fileContent = antes + marcadorNuevo + despues;
+
+        // Actualizar posiciones de bloques posteriores
+        for (let i = idx + 1; i < this._todosLosBloques.length; i++) {
+            this._todosLosBloques[i].pos += diffLen;
+        }
+
+        // Actualizar tipo del bloque
+        bloque.tipo = nuevoTipo;
+
+        // Marcar como modificado
+        if (this._bloquesModificados.has(idx)) {
+            this._bloquesModificados.delete(idx); // Si se intercambia de nuevo, vuelve al original
+        } else {
+            this._bloquesModificados.add(idx);
+        }
+
+        // Actualizar UI del item
+        this._actualizarItemEditor(idx);
+
+        // Actualizar contador
+        const countSpan = this._modalContainer.querySelector('[data-element="modified-count"]');
+        if (countSpan) {
+            countSpan.textContent = `Modificados: ${this._bloquesModificados.size}`;
+        }
+
+        // Habilitar botón restaurar si hay modificaciones
+        const restoreBtn = this._modalContainer.querySelector('[data-action="restore-editor"]');
+        if (restoreBtn) {
+            restoreBtn.disabled = this._bloquesModificados.size === 0;
+        }
+    },
+
+    /**
+     * Actualiza visualmente un item del editor después de intercambiar
+     */
+    _actualizarItemEditor(idx) {
+        const item = this._modalContainer.querySelector(`.chatbot-roam-editor-item[data-idx="${idx}"]`);
+        if (!item) return;
+
+        const bloque = this._todosLosBloques[idx];
+        const tipoClass = bloque.tipo === 'Prompt' ? 'prompt' : 'response';
+        const tipoIcon = bloque.tipo === 'Prompt' ? '🔵' : '🟢';
+
+        // Actualizar clases
+        item.classList.remove('prompt', 'response');
+        item.classList.add(tipoClass);
+
+        // Marcar como modificado visualmente
+        if (this._bloquesModificados.has(idx)) {
+            item.classList.add('modified');
+        } else {
+            item.classList.remove('modified');
+        }
+
+        // Actualizar icono y texto
+        item.querySelector('.chatbot-roam-editor-icon').textContent = tipoIcon;
+        item.querySelector('.chatbot-roam-editor-tipo').textContent = bloque.tipo.toUpperCase();
+    },
+
+    /**
+     * Restaura el contenido original antes de las modificaciones
+     */
+    _restaurarOriginal() {
+        if (!this._originalFileContent) return;
+
+        this._fileContent = this._originalFileContent;
+        this._bloquesModificados.clear();
+
+        // Re-renderizar el editor
+        this._mostrarEditorClasificacion();
+    },
+
+    /**
+     * Invierte todos los bloques desde idx hasta el final (para corregir errores en cadena)
+     */
+    _invertirDesdeAqui(idx) {
+        const restantes = this._todosLosBloques.length - idx;
+
+        if (!confirm(`¿Invertir ${restantes} bloques desde aquí hasta el final?`)) {
+            return;
+        }
+
+        // Procesar en orden DESCENDENTE para no corromper posiciones
+        for (let i = this._todosLosBloques.length - 1; i >= idx; i--) {
+            this._intercambiarClasificacion(i);
+        }
     },
 
     // ========================================================================

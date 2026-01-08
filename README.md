@@ -44,6 +44,22 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 | MCP Tool calls (Claude) | Elimina herramientas MCP |
 | Imágenes Base64 | Elimina imágenes embedidas |
 
+## 🔄 Editor de Clasificación (archivos MCP)
+
+Cuando importas un archivo que contiene llamadas MCP de Claude, el exportador de Chrome puede confundir qué mensajes son del usuario (Prompt) y cuáles son de Claude (Response). El plugin detecta esto y muestra un **Editor de Clasificación** antes de procesar:
+
+- **Lista visual** de todos los bloques con colores (🔵 Prompt / 🟢 Response)
+- **Botón [⇄]** para intercambiar un bloque individual
+- **Botón [↓↓]** para invertir desde ese punto hasta el final (para errores en cadena)
+- **Contador** de bloques modificados
+- **Restaurar original** si te equivocas
+
+### Uso típico:
+1. Arrastra el archivo → aparece el editor
+2. Identifica el primer bloque mal clasificado
+3. Si los siguientes también están invertidos, usa **[↓↓]** para corregir toda la cadena
+4. Click "Continuar" para procesar
+
 ## 🔧 Desarrollo
 
 ### Estructura

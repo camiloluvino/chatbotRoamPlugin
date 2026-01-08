@@ -41,6 +41,9 @@ const ChatbotRoamPatterns = {
     // MCP Tool calls (Claude con MCP)
     MCP_TOOL_CALLS: new RegExp("\\*\\*[\\w-]+:[\\w_]+\\*\\*[\\s\\n]*\\*Request\\*[\\s\\n]*" + BT4 + "(?:javascript|json|plaintext)[\\s\\S]*?" + BT4 + "[\\s\\n]*\\*Response\\*[\\s\\n]*" + BT4 + "(?:javascript|json|plaintext|text)[\\s\\S]*?" + BT4, "g"),
 
+    // MCP Tool Header (para detectar bloques mal clasificados)
+    MCP_TOOL_HEADER: /\*\*[\w-]+:[\w_]+\*\*/,
+
     // ANTIGRAVITY FORMAT
     ANTIGRAVITY_PROMPT_MARKER: /^### User Input$/gm,
     ANTIGRAVITY_RESPONSE_MARKER: /^### Planner Response$/gm,
