@@ -157,3 +157,33 @@ Archivos `.md` con marcadores:
 - [ ] Probado en Roam Research con un archivo de ejemplo
 - [ ] Comentarios actualizados si se modificó lógica compleja
 - [ ] README actualizado si se agregó funcionalidad nueva
+- [ ] **STATUS.md actualizado** (ver regla abajo)
+
+---
+
+## ⚠️ REGLA IMPERATIVA: Documentar Modificaciones
+
+> [!CAUTION]
+> **TODA modificación al código DEBE registrarse en `STATUS.md`**. No hay excepciones.
+
+### Qué hacer después de CUALQUIER cambio:
+
+1. **Actualizar `STATUS.md` → Historial Reciente** con:
+   - Fecha (`YYYY-MM-DD`)
+   - Descripción breve del cambio
+
+2. **Si el cambio amerita nueva versión**, actualizar:
+   - `STATUS.md` → Versión Actual
+   - `src/patterns.js` → `VERSION`
+   - `src/index.js` → `VERSION`
+   - `src/build.ps1` → `$version`
+
+### Ejemplo de entrada en Historial:
+```markdown
+| 2026-01-08 | Ampliado tamaño del modal para mejor visualización |
+```
+
+### Por qué es imperativo:
+- Sin registro, se pierde trazabilidad de cambios
+- Facilita debugging cuando algo deja de funcionar
+- El timestamp de `build.ps1` NO es suficiente (solo indica cuándo, no qué)

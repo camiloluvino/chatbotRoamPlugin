@@ -1,7 +1,7 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.3.1** | Build: 2026-01-08 00:25
+**v1.3.1** | Build: 2026-01-08 02:33
 
 ---
 
@@ -30,6 +30,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-01-08 | Ampliado tamaño del modal (700→900px) y alturas de preview/editor |
 | 2026-01-08 | v1.3.1: Botón "Invertir desde aquí" para corregir errores en cadena |
 | 2026-01-07 | v1.3.0: Editor de clasificación manual completo (reempl. detección automática) |
 | 2026-01-07 | v1.2.0: Detección de bloques mal clasificados (MCP) |

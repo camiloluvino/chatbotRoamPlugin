@@ -23,9 +23,9 @@ const ChatbotRoamStyles = {
             .chatbot-roam-modal {
                 background: #1a1a2e;
                 border-radius: 12px;
-                width: 700px;
+                width: 900px;
                 max-width: 90vw;
-                max-height: 85vh;
+                max-height: 90vh;
                 overflow: hidden;
                 box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
                 display: flex;
@@ -174,7 +174,7 @@ const ChatbotRoamStyles = {
                 border: 1px solid #30363d;
                 border-radius: 8px;
                 padding: 12px;
-                max-height: 200px;
+                max-height: 250px;
                 overflow-y: auto;
                 font-family: 'Consolas', 'Monaco', monospace;
                 font-size: 12px;
@@ -399,7 +399,7 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-editor-list {
-                max-height: 300px;
+                max-height: 400px;
                 overflow-y: auto;
             }
 
