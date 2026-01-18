@@ -149,6 +149,18 @@ const OPCIONES_LIMPIEZA = [
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarTimestampHoraSuelta(texto); }
+    },
+
+    // ========================================================================
+    // CONVERSIÓN DE FORMATO
+    // ========================================================================
+    {
+        id: 'convertir_tablas_roam',
+        label: 'Convertir tablas a Roam',
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.convertirTablasMarkdownARoam(texto); }
     }
 ];
 

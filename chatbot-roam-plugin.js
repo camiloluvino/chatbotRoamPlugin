@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.3.1
+// CHATBOT ROAM PLUGIN v1.3.2
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-01-08 02:33:18
+// Generated: 2026-01-18 04:14:37
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -14,7 +14,7 @@ const BT4 = String.fromCharCode(96, 96, 96, 96);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.1.0",
+    VERSION: "1.3.2",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -444,6 +444,134 @@ const ChatbotRoamCleaners = {
         }
 
         return lineasLimpias.join('\n');
+    },
+
+    // ========================================================================
+    // CONVERSIÃ“N DE TABLAS MARKDOWN A ROAM
+    // ========================================================================
+
+    /**
+     * Convierte tablas Markdown a formato de tablas Roam.
+     * 
+     * Input Markdown:
+     * | Header1 | Header2 | Header3 |
+     * |---------|---------|---------|
+     * | Cell1   | Cell2   | Cell3   |
+     * 
+     * Output Roam:
+     * {{[[table]]}}
+     *     - Header1
+     *         - Header2
+     *             - Header3
+     *     - Cell1
+     *         - Cell2
+     *             - Cell3
+     */
+    convertirTablasMarkdownARoam(texto) {
+        const lineas = texto.split('\n');
+        const resultado = [];
+        let i = 0;
+
+        while (i < lineas.length) {
+            const linea = lineas[i];
+            const lineaStripped = linea.trim();
+
+            // Detectar posible inicio de tabla (lÃ­nea que empieza y termina con |)
+            if (this._esLineaTablaMarkdown(lineaStripped)) {
+                // Verificar si la siguiente lÃ­nea es un separador de tabla
+                const siguienteLinea = i + 1 < lineas.length ? lineas[i + 1].trim() : '';
+
+                if (this._esSeparadorTabla(siguienteLinea)) {
+                    // Es una tabla vÃ¡lida - extraer todas las lÃ­neas de la tabla
+                    const tablaLineas = [];
+                    tablaLineas.push(lineaStripped); // Header
+
+                    // Saltar el separador (no lo incluimos en la salida)
+                    let j = i + 2;
+
+                    // Recolectar filas de datos
+                    while (j < lineas.length && this._esLineaTablaMarkdown(lineas[j].trim())) {
+                        tablaLineas.push(lineas[j].trim());
+                        j++;
+                    }
+
+                    // Convertir a formato Roam
+                    const tablaRoam = this._convertirTablaARoam(tablaLineas);
+                    resultado.push(...tablaRoam);
+
+                    i = j; // Saltar las lÃ­neas procesadas
+                    continue;
+                }
+            }
+
+            // No es una tabla - mantener la lÃ­nea original
+            resultado.push(linea);
+            i++;
+        }
+
+        return resultado.join('\n');
+    },
+
+    /**
+     * Detecta si una lÃ­nea es parte de una tabla Markdown (empieza y termina con |)
+     * @private
+     */
+    _esLineaTablaMarkdown(lineaStripped) {
+        return lineaStripped.startsWith('|') && lineaStripped.endsWith('|') && lineaStripped.length > 2;
+    },
+
+    /**
+     * Detecta si una lÃ­nea es un separador de tabla Markdown (|---|---|)
+     * @private
+     */
+    _esSeparadorTabla(lineaStripped) {
+        if (!lineaStripped.startsWith('|') || !lineaStripped.endsWith('|')) return false;
+        // Separador tiene formato: |---|---| o |:---|:---:| etc.
+        const sinPipes = lineaStripped.slice(1, -1);
+        // Cada celda debe ser solo guiones, dos puntos opcionales, y espacios
+        const celdas = sinPipes.split('|');
+        return celdas.every(celda => /^[\s:-]+$/.test(celda) && celda.includes('-'));
+    },
+
+    /**
+     * Extrae las celdas de una lÃ­nea de tabla Markdown
+     * @private
+     */
+    _extraerCeldasTabla(lineaStripped) {
+        // Quitar pipes inicial y final, luego split por |
+        const sinPipes = lineaStripped.slice(1, -1);
+        return sinPipes.split('|').map(celda => celda.trim());
+    },
+
+    /**
+     * Convierte un array de lÃ­neas de tabla Markdown a formato Roam
+     * @private
+     */
+    _convertirTablaARoam(tablaLineas) {
+        if (tablaLineas.length === 0) return [];
+
+        const resultado = [];
+        const INDENT = '    '; // 4 espacios por nivel
+
+        // Primera lÃ­nea: marcador de tabla Roam
+        resultado.push('{{[[table]]}}');
+
+        // Procesar cada fila (la primera es headers, las demÃ¡s son datos)
+        for (const linea of tablaLineas) {
+            const celdas = this._extraerCeldasTabla(linea);
+
+            if (celdas.length === 0) continue;
+
+            // Generar la estructura anidada para esta fila
+            // Cada columna se anida un nivel mÃ¡s profundo
+            for (let col = 0; col < celdas.length; col++) {
+                const indent = INDENT.repeat(col + 1); // +1 porque el primer nivel es hijo de {{[[table]]}}
+                const celda = celdas[col] || ''; // Celda vacÃ­a si no hay contenido
+                resultado.push(indent + '- ' + celda);
+            }
+        }
+
+        return resultado;
     }
 };
 
@@ -600,6 +728,18 @@ const OPCIONES_LIMPIEZA = [
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarTimestampHoraSuelta(texto); }
+    },
+
+    // ========================================================================
+    // CONVERSIÃ“N DE FORMATO
+    // ========================================================================
+    {
+        id: 'convertir_tablas_roam',
+        label: 'Convertir tablas a Roam',
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.convertirTablasMarkdownARoam(texto); }
     }
 ];
 
@@ -694,7 +834,7 @@ const ChatbotRoamFormatter = {
 
     /**
      * Formatea una respuesta limpia para estructura de bloques Roam
-     * Maneja headings markdown, listas, bloques de codigo y texto normal
+     * Maneja headings markdown, listas, bloques de codigo, tablas Roam y texto normal
      * 
      * @param {string} responseLimpio - Texto de respuesta ya limpiado
      * @returns {Array<string>} - Lineas formateadas con indentacion correcta
@@ -707,6 +847,7 @@ const ChatbotRoamFormatter = {
         var enBloqueCodigo = false;
         var codigoBuffer = [];
         var bajoHeading = false;
+        var enTablaRoam = false;
 
         // Definir backtick directamente para evitar problemas de resolucion
         var BACKTICK = String.fromCharCode(96);
@@ -715,7 +856,41 @@ const ChatbotRoamFormatter = {
             var linea = lineasResponse[j];
             var lineaStripped = linea.trim();
 
-            // Detectar inicio/fin de bloque de codigo (3+ backticks)
+            // ================================================================
+            // DETECCIÃ“N DE TABLA ROAM
+            // ================================================================
+            if (lineaStripped === '{{[[table]]}}') {
+                enTablaRoam = true;
+                var indentTabla = bajoHeading ? this.INDENT_HEADING : this.INDENT_BASE;
+                resultado.push(indentTabla + lineaStripped);
+                continue;
+            }
+
+            // Si estamos dentro de una tabla Roam
+            if (enTablaRoam) {
+                // LÃ­nea vacÃ­a = fin de tabla
+                if (!lineaStripped) {
+                    enTablaRoam = false;
+                    resultado.push('');
+                    continue;
+                }
+
+                // LÃ­nea de tabla (tiene indentaciÃ³n y empieza con "- ")
+                if (linea.match(/^\s+- /)) {
+                    var indentTabla = bajoHeading ? this.INDENT_HEADING : this.INDENT_BASE;
+                    // Preservar la indentaciÃ³n original de la lÃ­nea de tabla
+                    resultado.push(indentTabla + linea);
+                    continue;
+                } else {
+                    // LÃ­nea que no es parte de tabla = salir de tabla
+                    enTablaRoam = false;
+                    // NO hacer continue, procesar esta lÃ­nea normalmente abajo
+                }
+            }
+
+            // ================================================================
+            // DETECCIÃ“N DE BLOQUE DE CÃ“DIGO
+            // ================================================================
             var esLineaCodigo = this._isCodeBlockDelimiter(lineaStripped, BACKTICK);
 
             if (esLineaCodigo) {
@@ -739,6 +914,10 @@ const ChatbotRoamFormatter = {
                 codigoBuffer.push(linea);
                 continue;
             }
+
+            // ================================================================
+            // PROCESAMIENTO NORMAL
+            // ================================================================
 
             // Linea vacia
             if (!lineaStripped) {
@@ -1713,7 +1892,8 @@ const ChatbotRoamParser = {
     /**
      * Convierte lineas en estructura jerarquica de bloques
      * Maneja bloques de codigo marcados con [CODE]
-     * Soporta 3 niveles: prompt -> respuesta/heading -> contenido bajo heading
+     * Maneja tablas Roam con anidacion profunda
+     * Soporta multiples niveles: prompt -> respuesta/heading/tabla -> contenido
      */
     parseToBlockStructure(lineas) {
         var result = [];
@@ -1734,6 +1914,30 @@ const ChatbotRoamParser = {
                     children: []
                 };
                 currentHeading = null;  // Reset heading al cambiar de prompt
+                continue;
+            }
+
+            // ================================================================
+            // NUEVO: Detectar tabla Roam y procesar estructura completa
+            // ================================================================
+            if (linea.trim() === '{{[[table]]}}' && currentPrompt) {
+                // Recolectar todas las lÃ­neas hijas de la tabla
+                var tablaLineas = [];
+                var j = i + 1;
+                while (j < lineas.length && lineas[j].match(/^\s+- /)) {
+                    tablaLineas.push(lineas[j]);
+                    j++;
+                }
+
+                // Construir estructura jerÃ¡rquica de la tabla
+                var bloqueTabla = {
+                    text: '{{[[table]]}}',
+                    children: this._parseIndentedBlocks(tablaLineas, 8)
+                };
+
+                currentPrompt.children.push(bloqueTabla);
+                currentHeading = null;  // Reset heading despuÃ©s de tabla
+                i = j - 1;  // Saltar las lÃ­neas procesadas
                 continue;
             }
 
@@ -1817,6 +2021,48 @@ const ChatbotRoamParser = {
         // Agregar ultimo prompt
         if (currentPrompt) {
             result.push(currentPrompt);
+        }
+
+        return result;
+    },
+
+    /**
+     * Convierte lÃ­neas indentadas en estructura anidada de bloques
+     * Usado para parsear tablas Roam y otros contenidos con anidaciÃ³n profunda
+     * 
+     * @param {string[]} lineas - LÃ­neas con formato "    - texto"
+     * @param {number} baseIndent - Nivel base de indentaciÃ³n (espacios)
+     * @returns {Object[]} - Estructura de bloques anidados
+     */
+    _parseIndentedBlocks(lineas, baseIndent) {
+        if (lineas.length === 0) return [];
+
+        var result = [];
+        var stack = [{ indent: baseIndent - 4, children: result }];  // Nivel virtual padre
+
+        for (var i = 0; i < lineas.length; i++) {
+            var linea = lineas[i];
+
+            // Contar espacios de indentaciÃ³n
+            var indent = 0;
+            while (indent < linea.length && linea[indent] === ' ') indent++;
+
+            // Extraer texto (quitar "- " al inicio)
+            var texto = linea.substring(indent).replace(/^- /, '').trim();
+            if (!texto) continue;
+
+            var nuevoBloque = { text: texto, children: [] };
+
+            // Encontrar el padre correcto basÃ¡ndose en la indentaciÃ³n
+            while (stack.length > 1 && stack[stack.length - 1].indent >= indent) {
+                stack.pop();
+            }
+
+            // Agregar como hijo del padre actual
+            stack[stack.length - 1].children.push(nuevoBloque);
+
+            // Agregar a la pila para posibles hijos
+            stack.push({ indent: indent, children: nuevoBloque.children });
         }
 
         return result;
@@ -2805,7 +3051,7 @@ const ChatbotRoamUI = {
 // Main entry point - registers commands with Roam
 
 const ChatbotRoamPlugin = {
-    VERSION: "1.1.0",
+    VERSION: "1.3.2",
 
     // Lista de comandos registrados (para cleanup en recargas)
     _registeredCommands: [

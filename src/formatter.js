@@ -10,7 +10,7 @@ const ChatbotRoamFormatter = {
 
     /**
      * Formatea una respuesta limpia para estructura de bloques Roam
-     * Maneja headings markdown, listas, bloques de codigo y texto normal
+     * Maneja headings markdown, listas, bloques de codigo, tablas Roam y texto normal
      * 
      * @param {string} responseLimpio - Texto de respuesta ya limpiado
      * @returns {Array<string>} - Lineas formateadas con indentacion correcta
@@ -23,6 +23,7 @@ const ChatbotRoamFormatter = {
         var enBloqueCodigo = false;
         var codigoBuffer = [];
         var bajoHeading = false;
+        var enTablaRoam = false;
 
         // Definir backtick directamente para evitar problemas de resolucion
         var BACKTICK = String.fromCharCode(96);
@@ -31,7 +32,41 @@ const ChatbotRoamFormatter = {
             var linea = lineasResponse[j];
             var lineaStripped = linea.trim();
 
-            // Detectar inicio/fin de bloque de codigo (3+ backticks)
+            // ================================================================
+            // DETECCIÓN DE TABLA ROAM
+            // ================================================================
+            if (lineaStripped === '{{[[table]]}}') {
+                enTablaRoam = true;
+                var indentTabla = bajoHeading ? this.INDENT_HEADING : this.INDENT_BASE;
+                resultado.push(indentTabla + lineaStripped);
+                continue;
+            }
+
+            // Si estamos dentro de una tabla Roam
+            if (enTablaRoam) {
+                // Línea vacía = fin de tabla
+                if (!lineaStripped) {
+                    enTablaRoam = false;
+                    resultado.push('');
+                    continue;
+                }
+
+                // Línea de tabla (tiene indentación y empieza con "- ")
+                if (linea.match(/^\s+- /)) {
+                    var indentTabla = bajoHeading ? this.INDENT_HEADING : this.INDENT_BASE;
+                    // Preservar la indentación original de la línea de tabla
+                    resultado.push(indentTabla + linea);
+                    continue;
+                } else {
+                    // Línea que no es parte de tabla = salir de tabla
+                    enTablaRoam = false;
+                    // NO hacer continue, procesar esta línea normalmente abajo
+                }
+            }
+
+            // ================================================================
+            // DETECCIÓN DE BLOQUE DE CÓDIGO
+            // ================================================================
             var esLineaCodigo = this._isCodeBlockDelimiter(lineaStripped, BACKTICK);
 
             if (esLineaCodigo) {
@@ -55,6 +90,10 @@ const ChatbotRoamFormatter = {
                 codigoBuffer.push(linea);
                 continue;
             }
+
+            // ================================================================
+            // PROCESAMIENTO NORMAL
+            // ================================================================
 
             // Linea vacia
             if (!lineaStripped) {

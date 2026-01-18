@@ -371,5 +371,133 @@ const ChatbotRoamCleaners = {
         }
 
         return lineasLimpias.join('\n');
+    },
+
+    // ========================================================================
+    // CONVERSIÓN DE TABLAS MARKDOWN A ROAM
+    // ========================================================================
+
+    /**
+     * Convierte tablas Markdown a formato de tablas Roam.
+     * 
+     * Input Markdown:
+     * | Header1 | Header2 | Header3 |
+     * |---------|---------|---------|
+     * | Cell1   | Cell2   | Cell3   |
+     * 
+     * Output Roam:
+     * {{[[table]]}}
+     *     - Header1
+     *         - Header2
+     *             - Header3
+     *     - Cell1
+     *         - Cell2
+     *             - Cell3
+     */
+    convertirTablasMarkdownARoam(texto) {
+        const lineas = texto.split('\n');
+        const resultado = [];
+        let i = 0;
+
+        while (i < lineas.length) {
+            const linea = lineas[i];
+            const lineaStripped = linea.trim();
+
+            // Detectar posible inicio de tabla (línea que empieza y termina con |)
+            if (this._esLineaTablaMarkdown(lineaStripped)) {
+                // Verificar si la siguiente línea es un separador de tabla
+                const siguienteLinea = i + 1 < lineas.length ? lineas[i + 1].trim() : '';
+
+                if (this._esSeparadorTabla(siguienteLinea)) {
+                    // Es una tabla válida - extraer todas las líneas de la tabla
+                    const tablaLineas = [];
+                    tablaLineas.push(lineaStripped); // Header
+
+                    // Saltar el separador (no lo incluimos en la salida)
+                    let j = i + 2;
+
+                    // Recolectar filas de datos
+                    while (j < lineas.length && this._esLineaTablaMarkdown(lineas[j].trim())) {
+                        tablaLineas.push(lineas[j].trim());
+                        j++;
+                    }
+
+                    // Convertir a formato Roam
+                    const tablaRoam = this._convertirTablaARoam(tablaLineas);
+                    resultado.push(...tablaRoam);
+
+                    i = j; // Saltar las líneas procesadas
+                    continue;
+                }
+            }
+
+            // No es una tabla - mantener la línea original
+            resultado.push(linea);
+            i++;
+        }
+
+        return resultado.join('\n');
+    },
+
+    /**
+     * Detecta si una línea es parte de una tabla Markdown (empieza y termina con |)
+     * @private
+     */
+    _esLineaTablaMarkdown(lineaStripped) {
+        return lineaStripped.startsWith('|') && lineaStripped.endsWith('|') && lineaStripped.length > 2;
+    },
+
+    /**
+     * Detecta si una línea es un separador de tabla Markdown (|---|---|)
+     * @private
+     */
+    _esSeparadorTabla(lineaStripped) {
+        if (!lineaStripped.startsWith('|') || !lineaStripped.endsWith('|')) return false;
+        // Separador tiene formato: |---|---| o |:---|:---:| etc.
+        const sinPipes = lineaStripped.slice(1, -1);
+        // Cada celda debe ser solo guiones, dos puntos opcionales, y espacios
+        const celdas = sinPipes.split('|');
+        return celdas.every(celda => /^[\s:-]+$/.test(celda) && celda.includes('-'));
+    },
+
+    /**
+     * Extrae las celdas de una línea de tabla Markdown
+     * @private
+     */
+    _extraerCeldasTabla(lineaStripped) {
+        // Quitar pipes inicial y final, luego split por |
+        const sinPipes = lineaStripped.slice(1, -1);
+        return sinPipes.split('|').map(celda => celda.trim());
+    },
+
+    /**
+     * Convierte un array de líneas de tabla Markdown a formato Roam
+     * @private
+     */
+    _convertirTablaARoam(tablaLineas) {
+        if (tablaLineas.length === 0) return [];
+
+        const resultado = [];
+        const INDENT = '    '; // 4 espacios por nivel
+
+        // Primera línea: marcador de tabla Roam
+        resultado.push('{{[[table]]}}');
+
+        // Procesar cada fila (la primera es headers, las demás son datos)
+        for (const linea of tablaLineas) {
+            const celdas = this._extraerCeldasTabla(linea);
+
+            if (celdas.length === 0) continue;
+
+            // Generar la estructura anidada para esta fila
+            // Cada columna se anida un nivel más profundo
+            for (let col = 0; col < celdas.length; col++) {
+                const indent = INDENT.repeat(col + 1); // +1 porque el primer nivel es hijo de {{[[table]]}}
+                const celda = celdas[col] || ''; // Celda vacía si no hay contenido
+                resultado.push(indent + '- ' + celda);
+            }
+        }
+
+        return resultado;
     }
 };

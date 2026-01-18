@@ -1,7 +1,7 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.3.1** | Build: 2026-01-08 02:33
+**v1.3.2** | Build: 2026-01-18
 
 ---
 
@@ -15,6 +15,7 @@
 - Inserción jerárquica en Roam
 - Preservación de bloques de código
 - Indentación bajo headings markdown (#, ##, ###)
+- **Conversión de tablas Markdown a formato nativo Roam**
 - Búsqueda incremental en preview
 - Cortar desde posición encontrada
 - Loader para auto-update desde GitHub Pages
@@ -30,6 +31,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-01-18 | v1.3.2: Fix conversión de tablas - `parser.js` ahora soporta anidación profunda |
 | 2026-01-08 | Ampliado tamaño del modal (700→900px) y alturas de preview/editor |
 | 2026-01-08 | v1.3.1: Botón "Invertir desde aquí" para corregir errores en cadena |
 | 2026-01-07 | v1.3.0: Editor de clasificación manual completo (reempl. detección automática) |

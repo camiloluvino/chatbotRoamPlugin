@@ -1,0 +1,74 @@
+- ok, perfecto, parte con la fase 1
+    - 14/1/2026, 9:00:57 p.m.
+    - Voy a hacer un mapeo sistemático del material disponible en ambos grafos para cada horizonte. Empiezo buscando los nodos formalizados relevantes.
+    - Ahora busco más material sobre el horizonte de malestar/bienestar en ambos grafos:
+    - Ahora busco más sobre el material disponible para ambos horizontes:
+    - Ahora tengo suficiente información para hacer el mapeo. Déjame sintetizar:
+    - ---
+    - ## FASE 1: Mapeo del Material Disponible por Horizonte
+    - ### HORIZONTE A: Cohesión Social / Solidaridad Informal / Lazo Social
+        - **Estado del material en grafo teson (núcleo):**
+        - | Nodo | Tipo | Grado de desarrollo |
+        - |------|------|---------------------|
+        - | CLM - "problema de la comunidad" | Desarrollado | Alto - tiene sub-CLMs sobre erosión y reconfiguración con múltiples EVD |
+        - | CLM - línea de erosión | Desarrollado | Alto - 5 EVD (Bauman, Lipovetsky, Han, Putnam, Spencer & Pahl) |
+        - | CLM - línea de reconfiguración | Desarrollado | Alto - EVD de Spencer & Pahl, Wellman, Bellotti |
+        - | CLM - La amistad permite indagar solidaridad informal | Parcial | Tiene EVD de Spencer & Pahl y Bellotti, pero varios EVD pendientes (Wellman, PNUD, Lechner, Araujo) solo como texto |
+        - | EVD - Wellman community question | Formalizado | Alto |
+        - | EVD - Spencer & Pahl solidaridades ocultas | Formalizado | Alto |
+        - **Conceptos clave disponibles:**
+        - - "Problema de la comunidad" (Wellman)
+        - - "Solidaridades ocultas" (Spencer & Pahl)
+        - - "Comunidades personales" (Spencer & Pahl)
+        - - Debate erosión vs. reconfiguración
+        - - Capital social (Putnam)
+        - **Qué tipo de información necesitarías para aportar a este horizonte:**
+        - - Prácticas concretas de apoyo mutuo entre amigos
+        - - Extensión y composición de redes de amistad
+        - - Frecuencia y tipos de intercambio de recursos
+        - - Patrones agregables que permitan decir algo sobre "el estado del lazo social"
+        - ---
+    - ### HORIZONTE B: Malestar/Bienestar Subjetivo / Experiencia Afectiva
+        - **Estado del material en grafo teson (núcleo):**
+        - | Nodo | Tipo | Grado de desarrollo |
+        - |------|------|---------------------|
+        - | CLM - La amistad permite explorar malestares y bienestar subjetivo | Muy bajo | Solo tiene referencia a Mary Holmes en bitácora, EVD pendientes |
+        - **Estado del material en grafo teson_taller (reserva):**
+        - | Nodo | Tipo | Contenido |
+        - |------|------|-----------|
+        - | CLM [[Luvino]] - malestares relacionales como sufrimiento social | Desarrollado | Conecta malestares con fuerzas sociales: desigualdad, lógicas jerárquicas, "fantasma del abuso" |
+        - | CLM - Sociabilidad chilena con malestares relacionales | Muy desarrollado | 4 EVD (PNUD x2, Araujo, Lechner) + análisis de Claude |
+        - | EVD - PNUD sociabilidad trabada | Formalizado | Alto |
+        - | EVD - PNUD desigualdad del trato | Formalizado | Alto |
+        - | EVD - Araujo irritaciones relacionales | Formalizado | Alto |
+        - | EVD - Lechner miedo al otro | Formalizado | Alto |
+        - **Conceptos clave disponibles:**
+        - - "Malestares relacionales" (tu concepto)
+        - - "Sufrimiento social" (Das, Kleinman)
+        - - "Sociabilidad trabada" (PNUD)
+        - - "Irritaciones relacionales" (Araujo)
+        - - "Miedo al otro" (Lechner)
+        - - "Optimismo cruel" (Berlant) - mencionado pero no formalizado
+        - - "Bienestar subjetivo" (PNUD 2012)
+        - **Qué tipo de información tu diseño puede capturar:**
+        - - Narrativas sobre experiencias de amistad (satisfactorias, problemáticas)
+        - - Expectativas y frustraciones en relaciones de amistad
+        - - Repertorios para evaluar y posicionarse afectivamente ante los vínculos
+        - - Tensiones entre lo deseado y lo obtenido en las relaciones
+        - ---
+    - ### SÍNTESIS COMPARATIVA
+        - | Dimensión | Horizonte Cohesión | Horizonte Malestar/Bienestar |
+        - |-----------|-------------------|------------------------------|
+        - | **Material en teson (núcleo)** | Muy desarrollado | Muy poco desarrollado |
+        - | **Material en teson_taller** | Disperso | Bastante desarrollado |
+        - | **Compatibilidad con tu diseño** | Baja (no captura prácticas de apoyo ni redes) | Alta (diseñado para capturar narrativas afectivas) |
+        - | **Conexión con cotutela** | Lejana | Directa (antropología médica, sufrimiento) |
+        - | **Conceptualización propia** | No hay CLM [[Luvino]] | Sí hay CLM [[Luvino]] sobre malestares como sufrimiento social |
+        - ---
+    - ### OBSERVACIONES CRÍTICAS
+        - **1. Asimetría notable:** El grafo teson tiene el horizonte de cohesión muy desarrollado (problema de la comunidad, erosión/reconfiguración) pero el horizonte de malestar/bienestar casi vacío. En cambio, en teson_taller tienes material muy rico sobre malestares relacionales en Chile que no ha sido transferido.
+        - **2. Tu conceptualización propia:** El CLM donde articulas malestares relacionales como expresión de sufrimiento social es un nodo teóricamente denso que conecta directamente con la antropología médica y con tu director Francisco Ortega. Este nodo no está en el grafo núcleo.
+        - **3. El "doble horizonte" está planteado como simétrico pero no lo es:** En la formulación actual ("indagar solidaridad informal Y explorar malestares") ambos aparecen como equivalentes. Pero tu diseño metodológico está mucho más equipado para el segundo que para el primero.
+        - **4. Materiales específicos sobre el contexto chileno:** El CLM sobre "sociabilidad chilena con malestares relacionales" tiene 4 EVD formalizados con contenido muy rico (PNUD, Araujo, Lechner). Este material te permitiría interpretar hallazgos empíricos sobre Chile en clave de malestar. No hay material equivalente para Uruguay.
+        - ---
+        - ¿Quieres que pasemos a la Fase 2 donde evaluamos en detalle la compatibilidad con tu diseño metodológico, o prefieres que profundicemos en algún aspecto de este mapeo?

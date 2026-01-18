@@ -7,7 +7,8 @@ const ChatbotRoamParser = {
     /**
      * Convierte lineas en estructura jerarquica de bloques
      * Maneja bloques de codigo marcados con [CODE]
-     * Soporta 3 niveles: prompt -> respuesta/heading -> contenido bajo heading
+     * Maneja tablas Roam con anidacion profunda
+     * Soporta multiples niveles: prompt -> respuesta/heading/tabla -> contenido
      */
     parseToBlockStructure(lineas) {
         var result = [];
@@ -28,6 +29,30 @@ const ChatbotRoamParser = {
                     children: []
                 };
                 currentHeading = null;  // Reset heading al cambiar de prompt
+                continue;
+            }
+
+            // ================================================================
+            // NUEVO: Detectar tabla Roam y procesar estructura completa
+            // ================================================================
+            if (linea.trim() === '{{[[table]]}}' && currentPrompt) {
+                // Recolectar todas las líneas hijas de la tabla
+                var tablaLineas = [];
+                var j = i + 1;
+                while (j < lineas.length && lineas[j].match(/^\s+- /)) {
+                    tablaLineas.push(lineas[j]);
+                    j++;
+                }
+
+                // Construir estructura jerárquica de la tabla
+                var bloqueTabla = {
+                    text: '{{[[table]]}}',
+                    children: this._parseIndentedBlocks(tablaLineas, 8)
+                };
+
+                currentPrompt.children.push(bloqueTabla);
+                currentHeading = null;  // Reset heading después de tabla
+                i = j - 1;  // Saltar las líneas procesadas
                 continue;
             }
 
@@ -111,6 +136,48 @@ const ChatbotRoamParser = {
         // Agregar ultimo prompt
         if (currentPrompt) {
             result.push(currentPrompt);
+        }
+
+        return result;
+    },
+
+    /**
+     * Convierte líneas indentadas en estructura anidada de bloques
+     * Usado para parsear tablas Roam y otros contenidos con anidación profunda
+     * 
+     * @param {string[]} lineas - Líneas con formato "    - texto"
+     * @param {number} baseIndent - Nivel base de indentación (espacios)
+     * @returns {Object[]} - Estructura de bloques anidados
+     */
+    _parseIndentedBlocks(lineas, baseIndent) {
+        if (lineas.length === 0) return [];
+
+        var result = [];
+        var stack = [{ indent: baseIndent - 4, children: result }];  // Nivel virtual padre
+
+        for (var i = 0; i < lineas.length; i++) {
+            var linea = lineas[i];
+
+            // Contar espacios de indentación
+            var indent = 0;
+            while (indent < linea.length && linea[indent] === ' ') indent++;
+
+            // Extraer texto (quitar "- " al inicio)
+            var texto = linea.substring(indent).replace(/^- /, '').trim();
+            if (!texto) continue;
+
+            var nuevoBloque = { text: texto, children: [] };
+
+            // Encontrar el padre correcto basándose en la indentación
+            while (stack.length > 1 && stack[stack.length - 1].indent >= indent) {
+                stack.pop();
+            }
+
+            // Agregar como hijo del padre actual
+            stack[stack.length - 1].children.push(nuevoBloque);
+
+            // Agregar a la pila para posibles hijos
+            stack.push({ indent: indent, children: nuevoBloque.children });
         }
 
         return result;

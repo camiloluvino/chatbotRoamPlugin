@@ -125,6 +125,18 @@ Archivos `.md` con marcadores:
 | 0 (con `* `) | Prompt | Pregunta del usuario |
 | 4 | Respuesta | Contenido nivel 1 |
 | 8 | Bajo heading | Contenido bajo `#`, `##`, `###` |
+| 4, 8, 12, 16... | Tabla Roam | `{{[[table]]}}` con columnas anidadas |
+
+### Flujo de datos del pipeline
+```
+cleaners.js → formatter.js → parser.js → inserter.js
+```
+
+> [!IMPORTANT]
+> **Testing E2E obligatorio**: Cuando se modifica cualquier módulo del pipeline, probar el flujo COMPLETO hasta `parser.js`. Tests unitarios que pasan en módulos individuales NO garantizan que el sistema funcione end-to-end.
+
+#### Tablas Roam
+Las tablas Markdown se convierten a formato Roam en `cleaners.js` y mantienen su estructura anidada. `parser.js` tiene lógica especial para detectar `{{[[table]]}}` y construir la jerarquía de columnas usando `_parseIndentedBlocks()`.
 
 ---
 
