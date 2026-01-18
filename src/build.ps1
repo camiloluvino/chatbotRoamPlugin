@@ -29,7 +29,7 @@ $header = @"
 "@
 
 # Build
-Write-Host "Building Chatbot Roam Plugin v$version..." -ForegroundColor Cyan
+Write-Host "Building Chatbot Roam Plugin v1.3.3..." -ForegroundColor Cyan
 
 $content = $header
 

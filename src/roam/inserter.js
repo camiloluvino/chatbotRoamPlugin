@@ -5,6 +5,10 @@
 // ============================================================================
 
 const ChatbotRoamInserter = {
+    // Configuracion de batching
+    BATCH_SIZE: 50,
+    BATCH_DELAY_MS: 50,
+
     /**
      * Elimina bloques por sus UIDs (para rollback en caso de error)
      * @param {Array<string>} uids - Array de UIDs a eliminar
@@ -13,7 +17,11 @@ const ChatbotRoamInserter = {
      */
     async _rollbackBlocks(uids) {
         let deleted = 0;
-        for (const uid of uids) {
+        console.warn('Rollback: Iniciando eliminacion de ' + uids.length + ' bloques...');
+
+        // Eliminar en orden inverso para evitar problemas con padres/hijos
+        for (let i = uids.length - 1; i >= 0; i--) {
+            const uid = uids[i];
             try {
                 await window.roamAlphaAPI.data.block.delete({ block: { uid: uid } });
                 deleted++;
@@ -26,36 +34,50 @@ const ChatbotRoamInserter = {
     },
 
     /**
-     * Inserta bloques recursivamente en Roam con soporte de rollback
+     * Utilidad para esperar (promisified timeout)
+     */
+    _delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    },
+
+    /**
+     * Inserta bloques recursivamente en Roam con soporte de rollback y batching
      * Si ocurre un error, automaticamente elimina los bloques ya insertados
      * 
      * @param {string} parentUid - UID del bloque padre
      * @param {Array} bloques - Array de bloques a insertar
      * @param {number} startOrder - Orden inicial para los bloques
+     * @param {Function} onProgress - Callback opcional (insertedCount, total) => void
      * @returns {Promise<Object>} - { success, insertedBlocks, insertedCount, error, rolledBackCount }
      */
-    async insertBlocksRecursively(parentUid, bloques, startOrder) {
-        const allInsertedUids = [];
+    async insertBlocksRecursively(parentUid, bloques, startOrder, onProgress) {
+        // Estado GLOBAL de insercion para este proceso
+        // Pasado por referencia a todas las llamadas recursivas
+        const context = {
+            allInsertedUids: [],
+            totalOpsEstimate: this._estimateTotalBlocks(bloques),
+            opsCount: 0
+        };
 
         try {
-            const result = await this._insertBlocksInternal(parentUid, bloques, startOrder, allInsertedUids);
+            const result = await this._insertBlocksInternal(parentUid, bloques, startOrder, context, onProgress);
             return {
                 success: true,
                 insertedBlocks: result,
-                insertedCount: allInsertedUids.length,
+                insertedCount: context.allInsertedUids.length,
                 error: null,
                 rolledBackCount: 0
             };
         } catch (error) {
-            // Error durante insercion - hacer rollback
-            console.error('Error durante insercion, iniciando rollback de ' + allInsertedUids.length + ' bloques...');
-            const rolledBack = await this._rollbackBlocks(allInsertedUids);
-            console.log('Rollback completado: ' + rolledBack + '/' + allInsertedUids.length + ' bloques eliminados');
+            // Error durante insercion - hacer rollback GLOBAL
+            console.error('Error durante insercion, iniciando rollback de ' + context.allInsertedUids.length + ' bloques...');
+            const rolledBack = await this._rollbackBlocks(context.allInsertedUids);
+            console.log('Rollback completado: ' + rolledBack + '/' + context.allInsertedUids.length + ' bloques eliminados');
 
             return {
                 success: false,
                 insertedBlocks: [],
-                insertedCount: allInsertedUids.length,
+                insertedCount: context.allInsertedUids.length,
                 error: error.message,
                 rolledBackCount: rolledBack
             };
@@ -63,13 +85,33 @@ const ChatbotRoamInserter = {
     },
 
     /**
-     * Logica interna de insercion recursiva
+     * Estima el total de bloques a insertar para el progreso
+     */
+    _estimateTotalBlocks(bloques) {
+        let count = 0;
+        for (const b of bloques) {
+            count++;
+            if (b.children && b.children.length > 0) {
+                count += this._estimateTotalBlocks(b.children);
+            }
+        }
+        return count;
+    },
+
+    /**
+     * Logica interna de insercion recursiva con batching
      * @private
      */
-    async _insertBlocksInternal(parentUid, bloques, startOrder, allInsertedUids) {
+    async _insertBlocksInternal(parentUid, bloques, startOrder, context, onProgress) {
         const insertedBlocks = [];
 
         for (let i = 0; i < bloques.length; i++) {
+            // Check batch limit
+            if (context.opsCount > 0 && context.opsCount % this.BATCH_SIZE === 0) {
+                // Yield al UI thread
+                await this._delay(this.BATCH_DELAY_MS);
+            }
+
             const bloque = bloques[i];
             const blockUid = window.roamAlphaAPI.util.generateUID();
             let texto = bloque.text;
@@ -87,25 +129,32 @@ const ChatbotRoamInserter = {
                 texto = texto.substring(2).trim();
             }
 
-            // Crear bloque con o sin heading
+            // Crear bloque
             const blockData = {
                 location: { "parent-uid": parentUid, order: startOrder + i },
                 block: { uid: blockUid, string: texto }
             };
 
-            // Agregar heading si corresponde
             if (headingLevel > 0) {
                 blockData.block.heading = headingLevel;
             }
 
-            // Intentar insertar
+            // Insertar
             await window.roamAlphaAPI.data.block.create(blockData);
-            allInsertedUids.push(blockUid);
+
+            // Actualizar estado global
+            context.allInsertedUids.push(blockUid);
             insertedBlocks.push(blockUid);
+            context.opsCount++;
+
+            // Reportar progreso
+            if (onProgress && context.opsCount % 10 === 0) {
+                onProgress(context.opsCount, context.totalOpsEstimate);
+            }
 
             // Insertar hijos recursivamente
             if (bloque.children && bloque.children.length > 0) {
-                const childBlocks = await this._insertBlocksInternal(blockUid, bloque.children, 0, allInsertedUids);
+                const childBlocks = await this._insertBlocksInternal(blockUid, bloque.children, 0, context, onProgress);
                 insertedBlocks.push(...childBlocks);
             }
         }

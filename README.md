@@ -12,6 +12,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 - ⚡ **Inserción directa** - Inserta como hijo del bloque seleccionado
 - 💻 **Preserva code blocks** - Los bloques de código se insertan correctamente formateados
 - 📐 **Indentación bajo headings** - El contenido bajo headings markdown (`#`, `##`, `###`) se anida automáticamente
+- 🚀 **Alto Rendimiento (v1.3.3)** - Procesamiento asíncrono y por lotes para importar archivos gigantes sin congelar el navegador.
 
 ## 🚀 Instalación
 

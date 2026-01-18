@@ -43,8 +43,8 @@ index.js → Registra comando "Importar Conversacion de Chatbot"
     → Drag & drop archivo .md
     → Detecta tipo chatbot → Aplica preset
     → ¿Tiene MCP? → Sí: Editor de Clasificación
-    → ChatbotRoamProcessing.procesarConOpcionesIndividuales()
-    → Preview → Insertar en Roam
+    → ChatbotRoamProcessing.procesarConOpcionesIndividuales() [ASYNC]
+    → Preview → Insertar en Roam [BATCHED]
 ```
 
 ---
@@ -129,7 +129,7 @@ Archivos `.md` con marcadores:
 
 ### Flujo de datos del pipeline
 ```
-cleaners.js → formatter.js → parser.js → inserter.js
+cleaners.js → formatter.js → parser.js → inserter.js (Recursivo + Batching + Rollback)
 ```
 
 > [!IMPORTANT]

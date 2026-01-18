@@ -192,11 +192,12 @@ const ChatbotRoamProcessing = {
 
     /**
      * Procesa el archivo aplicando las opciones de limpieza seleccionadas individualmente.
+     * Async para evitar congelar el UI en archivos grandes.
      * @param {string} contenido - El contenido del archivo .md
      * @param {Object} opciones - Objeto con las opciones de limpieza
-     * @returns {Object} - { resultado: string, numIntercambios: number }
+     * @returns {Promise<Object>} - { resultado: string, numIntercambios: number }
      */
-    procesarConOpcionesIndividuales(contenido, opciones) {
+    async procesarConOpcionesIndividuales(contenido, opciones) {
         // Eliminar header Antigravity ANTES de procesar
         if (opciones.eliminar_header_antigravity) {
             contenido = ChatbotRoamCleaners.eliminarHeaderAntigravity(contenido);
@@ -217,7 +218,14 @@ const ChatbotRoamProcessing = {
         // Procesar cada par de prompt/respuesta
         const resultado = [];
 
-        for (const { prompt: rawPrompt, response: rawResponse } of conversacionRaw) {
+        for (let i = 0; i < conversacionRaw.length; i++) {
+            // Yield al main thread cada 20 items para mantener UI responsiva
+            if (i > 0 && i % 20 === 0) {
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+
+            const { prompt: rawPrompt, response: rawResponse } = conversacionRaw[i];
+
             // --- LIMPIAR PROMPT ---
             let promptLimpio = this._limpiarPrompt(rawPrompt, opciones);
 

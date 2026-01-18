@@ -1,7 +1,7 @@
 // CHATBOT ROAM PLUGIN v1.3.2
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-01-18 04:14:37
+// Generated: 2026-01-18 13:33:37
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -14,7 +14,7 @@ const BT4 = String.fromCharCode(96, 96, 96, 96);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.3.2",
+    VERSION: "1.3.3",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -1184,11 +1184,12 @@ const ChatbotRoamProcessing = {
 
     /**
      * Procesa el archivo aplicando las opciones de limpieza seleccionadas individualmente.
+     * Async para evitar congelar el UI en archivos grandes.
      * @param {string} contenido - El contenido del archivo .md
      * @param {Object} opciones - Objeto con las opciones de limpieza
-     * @returns {Object} - { resultado: string, numIntercambios: number }
+     * @returns {Promise<Object>} - { resultado: string, numIntercambios: number }
      */
-    procesarConOpcionesIndividuales(contenido, opciones) {
+    async procesarConOpcionesIndividuales(contenido, opciones) {
         // Eliminar header Antigravity ANTES de procesar
         if (opciones.eliminar_header_antigravity) {
             contenido = ChatbotRoamCleaners.eliminarHeaderAntigravity(contenido);
@@ -1209,7 +1210,14 @@ const ChatbotRoamProcessing = {
         // Procesar cada par de prompt/respuesta
         const resultado = [];
 
-        for (const { prompt: rawPrompt, response: rawResponse } of conversacionRaw) {
+        for (let i = 0; i < conversacionRaw.length; i++) {
+            // Yield al main thread cada 20 items para mantener UI responsiva
+            if (i > 0 && i % 20 === 0) {
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+
+            const { prompt: rawPrompt, response: rawResponse } = conversacionRaw[i];
+
             // --- LIMPIAR PROMPT ---
             let promptLimpio = this._limpiarPrompt(rawPrompt, opciones);
 
@@ -2078,6 +2086,10 @@ const ChatbotRoamParser = {
 // ============================================================================
 
 const ChatbotRoamInserter = {
+    // Configuracion de batching
+    BATCH_SIZE: 50,
+    BATCH_DELAY_MS: 50,
+
     /**
      * Elimina bloques por sus UIDs (para rollback en caso de error)
      * @param {Array<string>} uids - Array de UIDs a eliminar
@@ -2086,7 +2098,11 @@ const ChatbotRoamInserter = {
      */
     async _rollbackBlocks(uids) {
         let deleted = 0;
-        for (const uid of uids) {
+        console.warn('Rollback: Iniciando eliminacion de ' + uids.length + ' bloques...');
+
+        // Eliminar en orden inverso para evitar problemas con padres/hijos
+        for (let i = uids.length - 1; i >= 0; i--) {
+            const uid = uids[i];
             try {
                 await window.roamAlphaAPI.data.block.delete({ block: { uid: uid } });
                 deleted++;
@@ -2099,36 +2115,50 @@ const ChatbotRoamInserter = {
     },
 
     /**
-     * Inserta bloques recursivamente en Roam con soporte de rollback
+     * Utilidad para esperar (promisified timeout)
+     */
+    _delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    },
+
+    /**
+     * Inserta bloques recursivamente en Roam con soporte de rollback y batching
      * Si ocurre un error, automaticamente elimina los bloques ya insertados
      * 
      * @param {string} parentUid - UID del bloque padre
      * @param {Array} bloques - Array de bloques a insertar
      * @param {number} startOrder - Orden inicial para los bloques
+     * @param {Function} onProgress - Callback opcional (insertedCount, total) => void
      * @returns {Promise<Object>} - { success, insertedBlocks, insertedCount, error, rolledBackCount }
      */
-    async insertBlocksRecursively(parentUid, bloques, startOrder) {
-        const allInsertedUids = [];
+    async insertBlocksRecursively(parentUid, bloques, startOrder, onProgress) {
+        // Estado GLOBAL de insercion para este proceso
+        // Pasado por referencia a todas las llamadas recursivas
+        const context = {
+            allInsertedUids: [],
+            totalOpsEstimate: this._estimateTotalBlocks(bloques),
+            opsCount: 0
+        };
 
         try {
-            const result = await this._insertBlocksInternal(parentUid, bloques, startOrder, allInsertedUids);
+            const result = await this._insertBlocksInternal(parentUid, bloques, startOrder, context, onProgress);
             return {
                 success: true,
                 insertedBlocks: result,
-                insertedCount: allInsertedUids.length,
+                insertedCount: context.allInsertedUids.length,
                 error: null,
                 rolledBackCount: 0
             };
         } catch (error) {
-            // Error durante insercion - hacer rollback
-            console.error('Error durante insercion, iniciando rollback de ' + allInsertedUids.length + ' bloques...');
-            const rolledBack = await this._rollbackBlocks(allInsertedUids);
-            console.log('Rollback completado: ' + rolledBack + '/' + allInsertedUids.length + ' bloques eliminados');
+            // Error durante insercion - hacer rollback GLOBAL
+            console.error('Error durante insercion, iniciando rollback de ' + context.allInsertedUids.length + ' bloques...');
+            const rolledBack = await this._rollbackBlocks(context.allInsertedUids);
+            console.log('Rollback completado: ' + rolledBack + '/' + context.allInsertedUids.length + ' bloques eliminados');
 
             return {
                 success: false,
                 insertedBlocks: [],
-                insertedCount: allInsertedUids.length,
+                insertedCount: context.allInsertedUids.length,
                 error: error.message,
                 rolledBackCount: rolledBack
             };
@@ -2136,13 +2166,33 @@ const ChatbotRoamInserter = {
     },
 
     /**
-     * Logica interna de insercion recursiva
+     * Estima el total de bloques a insertar para el progreso
+     */
+    _estimateTotalBlocks(bloques) {
+        let count = 0;
+        for (const b of bloques) {
+            count++;
+            if (b.children && b.children.length > 0) {
+                count += this._estimateTotalBlocks(b.children);
+            }
+        }
+        return count;
+    },
+
+    /**
+     * Logica interna de insercion recursiva con batching
      * @private
      */
-    async _insertBlocksInternal(parentUid, bloques, startOrder, allInsertedUids) {
+    async _insertBlocksInternal(parentUid, bloques, startOrder, context, onProgress) {
         const insertedBlocks = [];
 
         for (let i = 0; i < bloques.length; i++) {
+            // Check batch limit
+            if (context.opsCount > 0 && context.opsCount % this.BATCH_SIZE === 0) {
+                // Yield al UI thread
+                await this._delay(this.BATCH_DELAY_MS);
+            }
+
             const bloque = bloques[i];
             const blockUid = window.roamAlphaAPI.util.generateUID();
             let texto = bloque.text;
@@ -2160,25 +2210,32 @@ const ChatbotRoamInserter = {
                 texto = texto.substring(2).trim();
             }
 
-            // Crear bloque con o sin heading
+            // Crear bloque
             const blockData = {
                 location: { "parent-uid": parentUid, order: startOrder + i },
                 block: { uid: blockUid, string: texto }
             };
 
-            // Agregar heading si corresponde
             if (headingLevel > 0) {
                 blockData.block.heading = headingLevel;
             }
 
-            // Intentar insertar
+            // Insertar
             await window.roamAlphaAPI.data.block.create(blockData);
-            allInsertedUids.push(blockUid);
+
+            // Actualizar estado global
+            context.allInsertedUids.push(blockUid);
             insertedBlocks.push(blockUid);
+            context.opsCount++;
+
+            // Reportar progreso
+            if (onProgress && context.opsCount % 10 === 0) {
+                onProgress(context.opsCount, context.totalOpsEstimate);
+            }
 
             // Insertar hijos recursivamente
             if (bloque.children && bloque.children.length > 0) {
-                const childBlocks = await this._insertBlocksInternal(blockUid, bloque.children, 0, allInsertedUids);
+                const childBlocks = await this._insertBlocksInternal(blockUid, bloque.children, 0, context, onProgress);
                 insertedBlocks.push(...childBlocks);
             }
         }
@@ -2769,25 +2826,58 @@ const ChatbotRoamUI = {
     // ========================================================================
     // PROCESSING & PREVIEW
     // ========================================================================
-    _processAndPreview() {
-        const { resultado, numIntercambios } = ChatbotRoamProcessing.procesarConOpcionesIndividuales(
-            this._fileContent,
-            this._currentOpciones
-        );
+    async _processAndPreview() {
+        // Mostrar estado de carga
+        const preview = this._modalContainer.querySelector('[data-element="preview"]');
+        const insertBtn = this._modalContainer.querySelector('[data-action="insert"]');
 
-        this._processedContent = resultado;
-        this._originalProcessedContent = resultado;  // Guardar original
-        this._isCut = false;
-        this._searchMatches = [];
-        this._currentMatchIndex = -1;
+        preview.innerHTML = '<span style="color: #4CAF50;">Procesando archivo... por favor espera</span>';
+        insertBtn.disabled = true;
 
-        // Reset search UI
-        const searchInput = this._modalContainer.querySelector('[data-element="search-input"]');
-        const cutIndicator = this._modalContainer.querySelector('[data-element="cut-indicator"]');
-        if (searchInput) searchInput.value = '';
-        if (cutIndicator) cutIndicator.textContent = '';
+        // Bloquear checkboxes
+        this._toggleInputs(false);
 
-        this._updatePreview(resultado, numIntercambios);
+        try {
+            // Dar tiempo al UI para renderizar el mensaje de carga
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            const { resultado, numIntercambios } = await ChatbotRoamProcessing.procesarConOpcionesIndividuales(
+                this._fileContent,
+                this._currentOpciones
+            );
+
+            this._processedContent = resultado;
+            this._originalProcessedContent = resultado;  // Guardar original
+            this._isCut = false;
+            this._searchMatches = [];
+            this._currentMatchIndex = -1;
+
+            // Reset search UI
+            const searchInput = this._modalContainer.querySelector('[data-element="search-input"]');
+            const cutIndicator = this._modalContainer.querySelector('[data-element="cut-indicator"]');
+            if (searchInput) searchInput.value = '';
+            if (cutIndicator) cutIndicator.textContent = '';
+
+            this._updatePreview(resultado, numIntercambios);
+        } catch (error) {
+            console.error(error);
+            preview.innerHTML = '<span style="color: #e94560;">Error al procesar: ' + error.message + '</span>';
+        } finally {
+            this._toggleInputs(true);
+        }
+    },
+
+    /**
+     * Habilita/deshabilita inputs durante procesamiento
+     */
+    _toggleInputs(enabled) {
+        const checkboxes = this._modalContainer.querySelectorAll('input[type="checkbox"]');
+        const presets = this._modalContainer.querySelectorAll('.chatbot-roam-preset-btn');
+        const fileInput = this._modalContainer.querySelector('.chatbot-roam-hidden-input');
+
+        checkboxes.forEach(cb => cb.disabled = !enabled);
+        presets.forEach(btn => btn.disabled = !enabled);
+        if (fileInput) fileInput.disabled = !enabled;
     },
 
     _updatePreview(content, numIntercambios) {
@@ -2989,34 +3079,46 @@ const ChatbotRoamUI = {
         const bloques = ChatbotRoamParser.parseToBlockStructure(lineas);
 
         if (bloques.length === 0) {
-            alert('No se encontraron bloques para insertar.');
+            alert('No se generaron bloques para insertar.');
             return;
         }
 
-        // Insertar bloques recursivamente (usa modulo ChatbotRoamInserter)
-        const result = await ChatbotRoamInserter.insertBlocksRecursively(parentUid, bloques, 0);
+        // Feedback UI
+        const insertBtn = this._modalContainer.querySelector('[data-action="insert"]');
+        const originalText = insertBtn.textContent;
+        insertBtn.disabled = true;
+        insertBtn.textContent = 'Insertando... (0%)';
+        this._toggleInputs(false);
+
+        // Insertar usando el Inserter con soporte de rollback y batching
+        const result = await ChatbotRoamInserter.insertBlocksRecursively(parentUid, bloques, 0, (count, total) => {
+            // Actualizar porcentaje
+            const percent = Math.round((count / total) * 100);
+            insertBtn.textContent = `Insertando... (${percent}%)`;
+        });
 
         if (result.success) {
-            // Insercion exitosa
+            // Cerrar modal tras exito
             this.closeModal();
-            console.log('Conversacion insertada en Roam: ' + result.insertedCount + ' bloques creados');
+
+            // Notificar al usuario (podriamos usar un toast de Roam si existiera API publica, por ahora alert o nada)
+            console.log(`Chatbot Roam Plugin: ${result.insertedCount} bloques insertados correctamente.`);
         } else {
-            // Error con rollback
-            let mensaje = 'Error al insertar en Roam:\n\n' + result.error;
-
+            // Mostrar error y rollback info
+            let msg = 'Error al insertar bloques: ' + result.error;
             if (result.rolledBackCount > 0) {
-                mensaje += '\n\nSe revirtieron ' + result.rolledBackCount + ' bloques que se habian insertado antes del error.';
-            } else if (result.insertedCount > 0) {
-                mensaje += '\n\nAdvertencia: ' + result.insertedCount + ' bloques fueron insertados antes del error pero no se pudieron revertir.';
+                msg += '\n\nSe realizo un ROLLBACK automatico eliminando ' + result.rolledBackCount + ' bloques parciales.';
+            } else {
+                msg += '\n\nNo se insertaron bloques (limpio).';
             }
+            alert(msg);
 
-            console.error('Error insertando en Roam:', result);
-            alert(mensaje);
+            // Restaurar UI
+            insertBtn.disabled = false;
+            insertBtn.textContent = originalText;
+            this._toggleInputs(true);
         }
     },
-
-
-
     // CLOSE MODAL
     closeModal() {
         const savedUid = this._savedBlockUid;
@@ -3051,7 +3153,7 @@ const ChatbotRoamUI = {
 // Main entry point - registers commands with Roam
 
 const ChatbotRoamPlugin = {
-    VERSION: "1.3.2",
+    VERSION: "1.3.3",
 
     // Lista de comandos registrados (para cleanup en recargas)
     _registeredCommands: [
@@ -3080,7 +3182,7 @@ const ChatbotRoamPlugin = {
             "default-hotkey": "ctrl-shift-i"
         });
 
-        console.log("Chatbot Roam Plugin v" + this.VERSION + " cargado.");
+        console.log('Chatbot Roam Plugin v1.3.3 loaded');
         console.log('   Usa Ctrl+Shift+I o busca "Importar Conversacion" en el command palette.');
     }
 };

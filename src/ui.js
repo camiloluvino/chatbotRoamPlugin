@@ -578,25 +578,58 @@ const ChatbotRoamUI = {
     // ========================================================================
     // PROCESSING & PREVIEW
     // ========================================================================
-    _processAndPreview() {
-        const { resultado, numIntercambios } = ChatbotRoamProcessing.procesarConOpcionesIndividuales(
-            this._fileContent,
-            this._currentOpciones
-        );
+    async _processAndPreview() {
+        // Mostrar estado de carga
+        const preview = this._modalContainer.querySelector('[data-element="preview"]');
+        const insertBtn = this._modalContainer.querySelector('[data-action="insert"]');
 
-        this._processedContent = resultado;
-        this._originalProcessedContent = resultado;  // Guardar original
-        this._isCut = false;
-        this._searchMatches = [];
-        this._currentMatchIndex = -1;
+        preview.innerHTML = '<span style="color: #4CAF50;">Procesando archivo... por favor espera</span>';
+        insertBtn.disabled = true;
 
-        // Reset search UI
-        const searchInput = this._modalContainer.querySelector('[data-element="search-input"]');
-        const cutIndicator = this._modalContainer.querySelector('[data-element="cut-indicator"]');
-        if (searchInput) searchInput.value = '';
-        if (cutIndicator) cutIndicator.textContent = '';
+        // Bloquear checkboxes
+        this._toggleInputs(false);
 
-        this._updatePreview(resultado, numIntercambios);
+        try {
+            // Dar tiempo al UI para renderizar el mensaje de carga
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            const { resultado, numIntercambios } = await ChatbotRoamProcessing.procesarConOpcionesIndividuales(
+                this._fileContent,
+                this._currentOpciones
+            );
+
+            this._processedContent = resultado;
+            this._originalProcessedContent = resultado;  // Guardar original
+            this._isCut = false;
+            this._searchMatches = [];
+            this._currentMatchIndex = -1;
+
+            // Reset search UI
+            const searchInput = this._modalContainer.querySelector('[data-element="search-input"]');
+            const cutIndicator = this._modalContainer.querySelector('[data-element="cut-indicator"]');
+            if (searchInput) searchInput.value = '';
+            if (cutIndicator) cutIndicator.textContent = '';
+
+            this._updatePreview(resultado, numIntercambios);
+        } catch (error) {
+            console.error(error);
+            preview.innerHTML = '<span style="color: #e94560;">Error al procesar: ' + error.message + '</span>';
+        } finally {
+            this._toggleInputs(true);
+        }
+    },
+
+    /**
+     * Habilita/deshabilita inputs durante procesamiento
+     */
+    _toggleInputs(enabled) {
+        const checkboxes = this._modalContainer.querySelectorAll('input[type="checkbox"]');
+        const presets = this._modalContainer.querySelectorAll('.chatbot-roam-preset-btn');
+        const fileInput = this._modalContainer.querySelector('.chatbot-roam-hidden-input');
+
+        checkboxes.forEach(cb => cb.disabled = !enabled);
+        presets.forEach(btn => btn.disabled = !enabled);
+        if (fileInput) fileInput.disabled = !enabled;
     },
 
     _updatePreview(content, numIntercambios) {
@@ -798,34 +831,46 @@ const ChatbotRoamUI = {
         const bloques = ChatbotRoamParser.parseToBlockStructure(lineas);
 
         if (bloques.length === 0) {
-            alert('No se encontraron bloques para insertar.');
+            alert('No se generaron bloques para insertar.');
             return;
         }
 
-        // Insertar bloques recursivamente (usa modulo ChatbotRoamInserter)
-        const result = await ChatbotRoamInserter.insertBlocksRecursively(parentUid, bloques, 0);
+        // Feedback UI
+        const insertBtn = this._modalContainer.querySelector('[data-action="insert"]');
+        const originalText = insertBtn.textContent;
+        insertBtn.disabled = true;
+        insertBtn.textContent = 'Insertando... (0%)';
+        this._toggleInputs(false);
+
+        // Insertar usando el Inserter con soporte de rollback y batching
+        const result = await ChatbotRoamInserter.insertBlocksRecursively(parentUid, bloques, 0, (count, total) => {
+            // Actualizar porcentaje
+            const percent = Math.round((count / total) * 100);
+            insertBtn.textContent = `Insertando... (${percent}%)`;
+        });
 
         if (result.success) {
-            // Insercion exitosa
+            // Cerrar modal tras exito
             this.closeModal();
-            console.log('Conversacion insertada en Roam: ' + result.insertedCount + ' bloques creados');
+
+            // Notificar al usuario (podriamos usar un toast de Roam si existiera API publica, por ahora alert o nada)
+            console.log(`Chatbot Roam Plugin: ${result.insertedCount} bloques insertados correctamente.`);
         } else {
-            // Error con rollback
-            let mensaje = 'Error al insertar en Roam:\n\n' + result.error;
-
+            // Mostrar error y rollback info
+            let msg = 'Error al insertar bloques: ' + result.error;
             if (result.rolledBackCount > 0) {
-                mensaje += '\n\nSe revirtieron ' + result.rolledBackCount + ' bloques que se habian insertado antes del error.';
-            } else if (result.insertedCount > 0) {
-                mensaje += '\n\nAdvertencia: ' + result.insertedCount + ' bloques fueron insertados antes del error pero no se pudieron revertir.';
+                msg += '\n\nSe realizo un ROLLBACK automatico eliminando ' + result.rolledBackCount + ' bloques parciales.';
+            } else {
+                msg += '\n\nNo se insertaron bloques (limpio).';
             }
+            alert(msg);
 
-            console.error('Error insertando en Roam:', result);
-            alert(mensaje);
+            // Restaurar UI
+            insertBtn.disabled = false;
+            insertBtn.textContent = originalText;
+            this._toggleInputs(true);
         }
     },
-
-
-
     // CLOSE MODAL
     closeModal() {
         const savedUid = this._savedBlockUid;

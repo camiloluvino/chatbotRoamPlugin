@@ -17,13 +17,23 @@
 - Indentación bajo headings markdown (#, ##, ###)
 - **Conversión de tablas Markdown a formato nativo Roam**
 - Búsqueda incremental en preview
-- Cortar desde posición encontrada
-- Loader para auto-update desde GitHub Pages
-- Editor de clasificación manual para corregir Prompt/Response (archivos MCP)
+# Estado del Proyecto: Chatbot Roam Plugin
 
-### 🔧 Estable pero sensible
-- Filtro MCP Tool Calls (historial de bugs, probar cambios)
-- Parsing de bloques de código multilínea
+**Versión Actual:** v1.3.3
+**Última Actualización:** 18/01/2026
+
+## 🚀 Estado
+- **Funcionalidad:** Estable
+- **Pruebas:** Pendiente validación manual de batching y asyncUI.
+
+## 📋 Cambios Recientes
+- **v1.3.3:**
+  - **Critical Stability:** Implementado procesamiento asíncrono para evitar bloqueos del navegador en archivos grandes.
+  - **Batch Insertion:** Inserción de bloques por lotes (50 bloques/50ms) para prevenir crashes en Roam y sobrecarga de API.
+  - **Async UI:** Indicadores de carga ("Procesando...", "Insertando X%") y bloqueo de interfaz durante operaciones pesadas.
+  - **Rollback Global:** Mejora en la robustez del mecanismo de rollback para soportar múltiples lotes.
+- **v1.3.2:** Fix conversión de tablas Markdown a Roam.
+- **v1.3.1:** Editor de Clasificación Manual para MCP.
 
 ---
 
@@ -31,6 +41,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-01-18 | v1.3.3: Implementado procesamiento asíncrono y batch insertion para estabilidad. |
 | 2026-01-18 | v1.3.2: Fix conversión de tablas - `parser.js` ahora soporta anidación profunda |
 | 2026-01-08 | Ampliado tamaño del modal (700→900px) y alturas de preview/editor |
 | 2026-01-08 | v1.3.1: Botón "Invertir desde aquí" para corregir errores en cadena |
