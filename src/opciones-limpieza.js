@@ -15,6 +15,14 @@ const OPCIONES_LIMPIEZA = [
     // OPCIONES GENÉRICAS (todos los chatbots)
     // ========================================================================
     {
+        id: 'revisar_clasificacion',
+        label: 'Revisar clasificación (Prompt/Response)',
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity'],
+        defaultActivo: false,
+        aplicarA: 'none', // No modifica el texto, es solo un flag UI
+        cleaner: function (texto) { return texto; }
+    },
+    {
         id: 'eliminar_imagenes',
         label: 'Imagenes Base64',
         chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity'],

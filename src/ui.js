@@ -307,10 +307,15 @@ const ChatbotRoamUI = {
             dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML =
                 '<strong>' + file.name + '</strong><br>' + statusText;
 
-            // Mostrar siempre el Editor de Clasificación para que el usuario pueda
-            // verificar que Prompt/Response estén correctamente asignados.
-            // Esto evita problemas donde el exportador confunde la clasificación.
-            this._mostrarEditorClasificacion();
+            // Verificar si el usuario desea revisar la clasificación manualmente
+            // O si detectamos un patrón MCP y queremos sugerirlo (opcional, por ahora estrictamente manual)
+            const revisarManual = this._currentOpciones['revisar_clasificacion'];
+
+            if (revisarManual) {
+                this._mostrarEditorClasificacion();
+            } else {
+                this._processAndPreview();
+            }
         };
 
         reader.onerror = () => {

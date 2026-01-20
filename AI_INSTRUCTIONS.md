@@ -42,7 +42,7 @@ index.js → Registra comando "Importar Conversacion de Chatbot"
   → ChatbotRoamUI.openModal()
     → Drag & drop archivo .md
     → Detecta tipo chatbot → Aplica preset
-    → Editor de Clasificación (Revisión Manual)
+    → ¿Opción "Revisar Clasificación" activa? → Sí: Editor de Clasificación
     → ChatbotRoamProcessing.procesarConOpcionesIndividuales() [ASYNC]
     → Preview → Insertar en Roam [BATCHED]
 ```
@@ -162,7 +162,7 @@ Las tablas Markdown se convierten a formato Roam en `cleaners.js` y mantienen su
 
 5. **Encoding UTF-8**: Problemas históricos con caracteres especiales (flechas →, acentos). El build usa UTF-8 sin BOM.
 
-6. **Editor de Clasificación**: Interfaz que aparece siempre para permitir corregir manualmente la clasificación Prompt/Response antes de procesar. Botón [⇄] intercambia uno, botón [↓↓] invierte desde ese punto (para errores en cadena).
+6. **Editor de Clasificación**: Opcional (checkbox "Revisar clasificación"). Permite corregir manualmente la clasificación Prompt/Response antes de procesar. Botón [⇄] intercambia uno, botón [↓↓] invierte desde ese punto.
 
 ### Checklist pre-commit
 - [ ] El código compila sin errores (`build.ps1` ejecuta correctamente)

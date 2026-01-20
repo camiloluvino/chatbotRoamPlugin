@@ -45,21 +45,15 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 | MCP Tool calls (Claude) | Elimina herramientas MCP |
 | Imágenes Base64 | Elimina imágenes embedidas |
 
-## 🔄 Editor de Clasificación
+## 🔄 Editor de Clasificación (Opcional)
 
-Cuando importas una conversación, el exportador de Chrome a veces puede confundir qué mensajes son del usuario (Prompt) y cuáles son del chatbot (Response). El plugin ahora muestra siempre un **Editor de Clasificación** para revisión manual antes de procesar:
+Algunos exportadores pueden invertir el orden de los mensajes (confundir Prompt con Response). Para verificar esto manualmente antes de procesar:
 
-- **Lista visual** de todos los bloques con colores (🔵 Prompt / 🟢 Response)
-- **Botón [⇄]** para intercambiar un bloque individual
-- **Botón [↓↓]** para invertir desde ese punto hasta el final (para errores en cadena)
-- **Contador** de bloques modificados
-- **Restaurar original** si te equivocas
+1. Marca la opción **"Revisar clasificación (Prompt/Response)"** en el modal.
+2. Arrastra tu archivo.
+3. Se abrirá el **Editor de Clasificación** donde podrás verificar y corregir visualmente.
+4. Si encuentras errores, usa los botones **[⇄]** o **[↓↓]** para corregirlos.
 
-### Uso típico:
-1. Arrastra el archivo → aparece el editor
-2. Verifica si la secuencia Prompt/Response es correcta
-3. Si los bloques están invertidos, usa **[↓↓]** para corregir toda la cadena
-4. Click "Continuar" para procesar
 
 ## 🔧 Desarrollo
 
