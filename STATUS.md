@@ -1,7 +1,7 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.3.5** | Build: 2026-01-20
+**v1.3.6** | Build: 2026-01-20
 
 ---
 
@@ -41,6 +41,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-01-20 | v1.3.6: Fix: La opción "Revisar clasificación" ahora se respeta al cargar archivo (no se sobrescribe por presets). |
 | 2026-01-20 | v1.3.5: Editor de Clasificación ahora es una opción manual ("Revisar clasificación") desactivada por defecto. |
 | 2026-01-20 | v1.3.4: Editor de Clasificación ahora aparece siempre (no solo con MCP) |
 | 2026-01-18 | v1.3.3: Implementado procesamiento asíncrono y batch insertion para estabilidad. |

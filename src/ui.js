@@ -288,9 +288,21 @@ const ChatbotRoamUI = {
 
             this._fileContent = content;
 
+            // Guardar intención del usuario sobre la revisión manual
+            // (porque _applyPreset reseteará esto a false)
+            const intencionRevisar = this._currentOpciones['revisar_clasificacion'];
+
             // Detectar tipo de chatbot y aplicar preset
             const tipo = ChatbotRoamProcessing.detectarTipoChatbot(this._fileContent);
             this._applyPreset(tipo);
+
+            // Restaurar intención de revisar si estaba activa
+            if (intencionRevisar) {
+                this._currentOpciones['revisar_clasificacion'] = true;
+                // Actualizar visualmente el checkbox que _applyPreset desmarcó
+                const chk = this._modalContainer.querySelector('[data-option="revisar_clasificacion"]');
+                if (chk) chk.checked = true;
+            }
 
             // Actualizar dropzone visual
             const dropzone = this._modalContainer.querySelector('[data-action="dropzone"]');
