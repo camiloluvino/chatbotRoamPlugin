@@ -42,7 +42,7 @@ index.js → Registra comando "Importar Conversacion de Chatbot"
   → ChatbotRoamUI.openModal()
     → Drag & drop archivo .md
     → Detecta tipo chatbot → Aplica preset
-    → ¿Tiene MCP? → Sí: Editor de Clasificación
+    → Editor de Clasificación (Revisión Manual)
     → ChatbotRoamProcessing.procesarConOpcionesIndividuales() [ASYNC]
     → Preview → Insertar en Roam [BATCHED]
 ```
@@ -162,7 +162,7 @@ Las tablas Markdown se convierten a formato Roam en `cleaners.js` y mantienen su
 
 5. **Encoding UTF-8**: Problemas históricos con caracteres especiales (flechas →, acentos). El build usa UTF-8 sin BOM.
 
-6. **Editor de Clasificación**: Cuando hay MCP, el exportador Chrome puede invertir Prompt/Response. El editor permite corregir manualmente antes de procesar. Botón [⇄] intercambia uno, botón [↓↓] invierte desde ese punto (para errores en cadena).
+6. **Editor de Clasificación**: Interfaz que aparece siempre para permitir corregir manualmente la clasificación Prompt/Response antes de procesar. Botón [⇄] intercambia uno, botón [↓↓] invierte desde ese punto (para errores en cadena).
 
 ### Checklist pre-commit
 - [ ] El código compila sin errores (`build.ps1` ejecuta correctamente)

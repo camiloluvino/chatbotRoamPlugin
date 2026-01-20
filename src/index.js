@@ -2,7 +2,7 @@
 // Main entry point - registers commands with Roam
 
 const ChatbotRoamPlugin = {
-    VERSION: "1.3.3",
+    VERSION: "1.3.4",
 
     // Lista de comandos registrados (para cleanup en recargas)
     _registeredCommands: [
@@ -31,7 +31,7 @@ const ChatbotRoamPlugin = {
             "default-hotkey": "ctrl-shift-i"
         });
 
-        console.log('Chatbot Roam Plugin v1.3.3 loaded');
+        console.log('Chatbot Roam Plugin v1.3.4 loaded');
         console.log('   Usa Ctrl+Shift+I o busca "Importar Conversacion" en el command palette.');
     }
 };

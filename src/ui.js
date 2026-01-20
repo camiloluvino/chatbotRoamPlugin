@@ -307,14 +307,10 @@ const ChatbotRoamUI = {
             dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML =
                 '<strong>' + file.name + '</strong><br>' + statusText;
 
-            // Detectar si el archivo tiene uso de MCP (para mostrar editor de clasificación)
-            const tieneMCP = ChatbotRoamProcessing.tieneUsoDeMCP(content);
-
-            if (tieneMCP) {
-                this._mostrarEditorClasificacion();
-            } else {
-                this._processAndPreview();
-            }
+            // Mostrar siempre el Editor de Clasificación para que el usuario pueda
+            // verificar que Prompt/Response estén correctamente asignados.
+            // Esto evita problemas donde el exportador confunde la clasificación.
+            this._mostrarEditorClasificacion();
         };
 
         reader.onerror = () => {
@@ -379,7 +375,7 @@ const ChatbotRoamUI = {
         panel.innerHTML = `
             <div class="chatbot-roam-editor-header">
                 <span class="chatbot-roam-editor-title">⚠️ REVISIÓN DE CLASIFICACIÓN</span>
-                <span class="chatbot-roam-editor-subtitle">Este archivo tiene MCP. Verifica que cada bloque esté correctamente clasificado.</span>
+                <span class="chatbot-roam-editor-subtitle">Verifica que cada bloque esté correctamente clasificado como Prompt o Response.</span>
             </div>
             <div class="chatbot-roam-editor-stats">
                 Total: ${this._todosLosBloques.length} bloques | 

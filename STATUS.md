@@ -1,7 +1,7 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.3.2** | Build: 2026-01-18
+**v1.3.4** | Build: 2026-01-20
 
 ---
 
@@ -41,6 +41,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-01-20 | v1.3.4: Editor de Clasificación ahora aparece siempre (no solo con MCP) |
 | 2026-01-18 | v1.3.3: Implementado procesamiento asíncrono y batch insertion para estabilidad. |
 | 2026-01-18 | v1.3.2: Fix conversión de tablas - `parser.js` ahora soporta anidación profunda |
 | 2026-01-08 | Ampliado tamaño del modal (700→900px) y alturas de preview/editor |
