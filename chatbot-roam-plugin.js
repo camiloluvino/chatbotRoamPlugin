@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.3.5
+// CHATBOT ROAM PLUGIN v1.3.6
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-01-20 16:06:42
+// Generated: 2026-01-20 16:09:00
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -14,7 +14,7 @@ const BT4 = String.fromCharCode(96, 96, 96, 96);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.3.5",
+    VERSION: "1.3.6",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -3174,7 +3174,7 @@ const ChatbotRoamUI = {
 // Main entry point - registers commands with Roam
 
 const ChatbotRoamPlugin = {
-    VERSION: "1.3.5",
+    VERSION: "1.3.6",
 
     // Lista de comandos registrados (para cleanup en recargas)
     _registeredCommands: [
@@ -3203,7 +3203,7 @@ const ChatbotRoamPlugin = {
             "default-hotkey": "ctrl-shift-i"
         });
 
-        console.log('Chatbot Roam Plugin v1.3.5 loaded');
+        console.log('Chatbot Roam Plugin v1.3.6 loaded');
         console.log('   Usa Ctrl+Shift+I o busca "Importar Conversacion" en el command palette.');
     }
 };
