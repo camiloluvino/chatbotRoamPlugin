@@ -5,7 +5,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 ## ✨ Características
 
 - 📁 **Drag & Drop** - Arrastra archivos .md directamente al modal
-- 🤖 **Multi-chatbot** - Soporta Claude, ChatGPT, Google Gemini y Antigravity
+- 🤖 **Multi-chatbot** - Soporta Claude, ChatGPT, Google Gemini, Antigravity y NotebookLM
 - 🔍 **Auto-detección** - Detecta el tipo de chatbot y aplica el preset correspondiente
 - 🎛️ **15 opciones de limpieza** - Configura exactamente qué limpiar
 - 👁️ **Vista previa** - Previsualiza el resultado antes de insertar
@@ -44,6 +44,8 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 | Adjuntos Gemini | Limpia símbolo `>` de adjuntos |
 | MCP Tool calls (Claude) | Elimina herramientas MCP |
 | Imágenes Base64 | Elimina imágenes embedidas |
+| Header NotebookLM | Elimina YAML y título exportado |
+| Timestamps NotebookLM | Elimina timestamps de sección |
 
 ## 🔄 Editor de Clasificación (Opcional)
 

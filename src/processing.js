@@ -14,16 +14,23 @@ const ChatbotRoamProcessing = {
     extraerConversacionRaw(contenido, skipTimestamp = true) {
         const marcadores = [];
 
-        // Detectar formato Antigravity
+        // Detectar formato especial
+        // NotebookLM uses Chinese markers: 用户 (user) and 助手 (assistant)
+        const esNotebookLM = ChatbotRoamPatterns.isNotebookLM(contenido);
         const esAntigravity = ChatbotRoamPatterns.DETECT_ANTIGRAVITY.test(contenido);
 
         // Usar marcadores segun formato
-        const promptPattern = esAntigravity
-            ? ChatbotRoamPatterns.ANTIGRAVITY_PROMPT_MARKER
-            : ChatbotRoamPatterns.PROMPT_MARKER;
-        const responsePattern = esAntigravity
-            ? ChatbotRoamPatterns.ANTIGRAVITY_RESPONSE_MARKER
-            : ChatbotRoamPatterns.RESPONSE_MARKER;
+        let promptPattern, responsePattern;
+        if (esNotebookLM) {
+            promptPattern = ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_MARKER;
+            responsePattern = ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_MARKER;
+        } else if (esAntigravity) {
+            promptPattern = ChatbotRoamPatterns.ANTIGRAVITY_PROMPT_MARKER;
+            responsePattern = ChatbotRoamPatterns.ANTIGRAVITY_RESPONSE_MARKER;
+        } else {
+            promptPattern = ChatbotRoamPatterns.PROMPT_MARKER;
+            responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER;
+        }
 
         // Encontrar todos los prompts
         let match;
@@ -276,7 +283,12 @@ const ChatbotRoamProcessing = {
      * Detecta automáticamente el tipo de chatbot basándose en marcadores característicos.
      */
     detectarTipoChatbot(contenido) {
-        // Detectar Antigravity PRIMERO (marcadores unicos)
+        // Detectar NotebookLM PRIMERO (marcadores chinos: 用户/助手)
+        if (ChatbotRoamPatterns.isNotebookLM(contenido)) {
+            return 'notebooklm';
+        }
+
+        // Detectar Antigravity (marcadores unicos)
         const esAntigravity = ChatbotRoamPatterns.DETECT_ANTIGRAVITY.test(contenido);
         if (esAntigravity) {
             return 'antigravity';

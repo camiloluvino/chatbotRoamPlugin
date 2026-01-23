@@ -374,6 +374,32 @@ const ChatbotRoamCleaners = {
     },
 
     // ========================================================================
+    // LIMPIEZA NOTEBOOKLM
+    // ========================================================================
+
+    /**
+     * Elimina el header YAML y título de NotebookLM
+     * Formato: ---\nexported: ...\nsource: NotebookLM\n---\n# Título\n导出时间: ...\n---
+     */
+    eliminarHeaderNotebookLM(texto) {
+        // Eliminar bloque YAML (---...---)
+        texto = texto.replace(/^---[\s\S]*?---\n*/m, '');
+        // Eliminar título # y línea de exportación china
+        texto = texto.replace(/^# [^\n]+\n+导出时间:[^\n]+\n+---+\n*/m, '');
+        // Limpiar separadores --- sueltos
+        texto = texto.replace(/^---+\s*\n/gm, '');
+        return texto;
+    },
+
+    /**
+     * Elimina timestamps de sección como "## 🕒 Today • 3:06 PM"
+     */
+    eliminarTimestampNotebookLM(texto) {
+        // Eliminar líneas tipo "## 🕒 Today • 3:06 PM" o similares
+        return texto.replace(/^## [^\n]*(?:Today|Yesterday|AM|PM)[^\n]*\n*/gm, '');
+    },
+
+    // ========================================================================
     // CONVERSIÓN DE TABLAS MARKDOWN A ROAM
     // ========================================================================
 

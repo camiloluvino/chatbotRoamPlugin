@@ -1,39 +1,36 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.3.6** | Build: 2026-01-20
+**v1.3.7** | Build: 2026-01-23
 
 ---
+
+## 🚀 Estado
+- **Funcionalidad:** Estable
+- **Pruebas:** NotebookLM validado con archivo de usuario (soporte UTF-8 completo).
 
 ## Estado de Funcionalidades
 
 ### ✅ Funcionando
 - Drag & drop de archivos .md
-- Auto-detección de tipo de chatbot (Claude, ChatGPT, Gemini, Antigravity)
-- 15 opciones de limpieza configurables (registro centralizado)
+- Auto-detección de tipo de chatbot (Claude, ChatGPT, Gemini, Antigravity, **NotebookLM**)
+- 17 opciones de limpieza configurables (registro centralizado)
 - Vista previa antes de insertar
 - Inserción jerárquica en Roam
 - Preservación de bloques de código
 - Indentación bajo headings markdown (#, ##, ###)
-- **Conversión de tablas Markdown a formato nativo Roam**
+- Conversión de tablas Markdown a formato nativo Roam
 - Búsqueda incremental en preview
-# Estado del Proyecto: Chatbot Roam Plugin
-
-**Versión Actual:** v1.3.3
-**Última Actualización:** 18/01/2026
-
-## 🚀 Estado
-- **Funcionalidad:** Estable
-- **Pruebas:** Pendiente validación manual de batching y asyncUI.
+- Editor de Clasificación Manual (v1.3.6)
+- Procesamiento asíncrono y por lotes (v1.3.3)
 
 ## 📋 Cambios Recientes
-- **v1.3.3:**
-  - **Critical Stability:** Implementado procesamiento asíncrono para evitar bloqueos del navegador en archivos grandes.
-  - **Batch Insertion:** Inserción de bloques por lotes (50 bloques/50ms) para prevenir crashes en Roam y sobrecarga de API.
-  - **Async UI:** Indicadores de carga ("Procesando...", "Insertando X%") y bloqueo de interfaz durante operaciones pesadas.
-  - **Rollback Global:** Mejora en la robustez del mecanismo de rollback para soportar múltiples lotes.
-- **v1.3.2:** Fix conversión de tablas Markdown a Roam.
-- **v1.3.1:** Editor de Clasificación Manual para MCP.
+- **v1.3.7:**
+  - **Soporte NotebookLM:** Parsing completo de exportaciones de NotebookLM (incluyendo marcadores en chino).
+  - **Encoding Fix:** Solución definitiva para caracteres Unicode usando `String.fromCodePoint` para evitar corrupción en build.
+  - **UI Update:** Botón de preset y validación actualizada.
+- **v1.3.6:** Fix: La opción "Revisar clasificación" ahora se respeta al cargar archivo.
+- **v1.3.3:** Implementado procesamiento asíncrono y batch insertion.
 
 ---
 
@@ -41,8 +38,9 @@
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-01-20 | v1.3.6: Fix: La opción "Revisar clasificación" ahora se respeta al cargar archivo (no se sobrescribe por presets). |
-| 2026-01-20 | v1.3.5: Editor de Clasificación ahora es una opción manual ("Revisar clasificación") desactivada por defecto. |
+| 2026-01-23 | v1.3.7: Soporte NotebookLM + Fix encoding UTF-8 en build (`String.fromCodePoint`) |
+| 2026-01-20 | v1.3.6: Fix: La opción "Revisar clasificación" ahora se respeta al cargar archivo |
+| 2026-01-20 | v1.3.5: Editor de Clasificación ahora es una opción manual ("Revisar clasificación") desactivada por defecto |
 | 2026-01-20 | v1.3.4: Editor de Clasificación ahora aparece siempre (no solo con MCP) |
 | 2026-01-18 | v1.3.3: Implementado procesamiento asíncrono y batch insertion para estabilidad. |
 | 2026-01-18 | v1.3.2: Fix conversión de tablas - `parser.js` ahora soporta anidación profunda |

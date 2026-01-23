@@ -6,9 +6,17 @@
 const BT3 = String.fromCharCode(96, 96, 96);
 const BT4 = String.fromCharCode(96, 96, 96, 96);
 
+// Helper: NotebookLM markers (generated at runtime to avoid encoding issues)
+// Person emoji: U+1F9D1, Robot emoji: U+1F916
+// Chinese: 用户 (user) = U+7528 U+6237, 助手 (assistant) = U+52A9 U+624B
+const NOTEBOOKLM_PERSON = String.fromCodePoint(0x1F9D1);
+const NOTEBOOKLM_ROBOT = String.fromCodePoint(0x1F916);
+const NOTEBOOKLM_USER = String.fromCharCode(0x7528, 0x6237);
+const NOTEBOOKLM_ASSISTANT = String.fromCharCode(0x52A9, 0x624B);
+
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.3.6",
+    VERSION: "1.3.7",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -53,6 +61,12 @@ const ChatbotRoamPatterns = {
     CCI_LINKS: /\(cci:\d+:\/\/file:\/\/\/[^)]+\)/g,
     TIMESTAMP_HORA_SUELTA: /^\d{1,2}:\d{2}\s+[ap]\.m\.$/,
 
+    // NOTEBOOKLM FORMAT - Using runtime-generated constants
+    NOTEBOOKLM_PROMPT_MARKER: null,    // Initialized below
+    NOTEBOOKLM_RESPONSE_MARKER: null,  // Initialized below
+    NOTEBOOKLM_PROMPT_STR: null,       // For string matching
+    NOTEBOOKLM_RESPONSE_STR: null,     // For string matching
+
     // DETECCION DE TIPO DE CHATBOT
     DETECT_ANTIGRAVITY: /^### (?:User Input|Planner Response)$/m,
     DETECT_CLAUDE_TOOLS: /\*\*\w+\*\*\s*\*Request\*/,
@@ -60,5 +74,17 @@ const ChatbotRoamPatterns = {
 
     // Helper getters for backtick strings
     get BT3() { return BT3; },
-    get BT4() { return BT4; }
+    get BT4() { return BT4; },
+
+    // Helper for NotebookLM detection
+    isNotebookLM(content) {
+        return content.includes(this.NOTEBOOKLM_PROMPT_STR) ||
+            content.includes(this.NOTEBOOKLM_RESPONSE_STR);
+    }
 };
+
+// Initialize NotebookLM patterns after object creation (using runtime-generated strings)
+ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR = '### ' + NOTEBOOKLM_PERSON + ' **' + NOTEBOOKLM_USER + '**';
+ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR = '### ' + NOTEBOOKLM_ROBOT + ' **' + NOTEBOOKLM_ASSISTANT + '**';
+ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_MARKER = new RegExp('^' + ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'gm');
+ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_MARKER = new RegExp('^' + ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'gm');

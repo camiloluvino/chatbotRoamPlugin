@@ -17,7 +17,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'revisar_clasificacion',
         label: 'Revisar clasificación (Prompt/Response)',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
         defaultActivo: false,
         aplicarA: 'none', // No modifica el texto, es solo un flag UI
         cleaner: function (texto) { return texto; }
@@ -25,7 +25,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'eliminar_imagenes',
         label: 'Imagenes Base64',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
         defaultActivo: true,
         aplicarA: 'ambos',
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarImagenesEmbedidas(texto); }
@@ -33,7 +33,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'eliminar_metadata',
         label: 'Timestamps y referencias',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
         defaultActivo: false,
         aplicarA: 'ambos',
         cleaner: function (texto) { return ChatbotRoamCleaners.limpiarMetadataGenerico(texto); }
@@ -160,12 +160,32 @@ const OPCIONES_LIMPIEZA = [
     },
 
     // ========================================================================
+    // OPCIONES NOTEBOOKLM
+    // ========================================================================
+    {
+        id: 'eliminar_header_notebooklm',
+        label: 'Header NotebookLM (YAML + título)',
+        chatbots: ['notebooklm'],
+        defaultActivo: true,
+        aplicarA: 'preproceso',
+        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarHeaderNotebookLM(texto); }
+    },
+    {
+        id: 'eliminar_timestamp_notebooklm',
+        label: 'Timestamps de sección (Today, etc.)',
+        chatbots: ['notebooklm'],
+        defaultActivo: true,
+        aplicarA: 'preproceso',
+        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarTimestampNotebookLM(texto); }
+    },
+
+    // ========================================================================
     // CONVERSIÓN DE FORMATO
     // ========================================================================
     {
         id: 'convertir_tablas_roam',
         label: 'Convertir tablas a Roam',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.convertirTablasMarkdownARoam(texto); }

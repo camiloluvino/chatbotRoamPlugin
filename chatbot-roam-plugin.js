@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.3.6
+// CHATBOT ROAM PLUGIN v1.3.7
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-01-20 16:09:00
+// Generated: 2026-01-23 02:36:17
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -12,9 +12,17 @@
 const BT3 = String.fromCharCode(96, 96, 96);
 const BT4 = String.fromCharCode(96, 96, 96, 96);
 
+// Helper: NotebookLM markers (generated at runtime to avoid encoding issues)
+// Person emoji: U+1F9D1, Robot emoji: U+1F916
+// Chinese: ç”¨æˆ· (user) = U+7528 U+6237, åŠ©æ‰‹ (assistant) = U+52A9 U+624B
+const NOTEBOOKLM_PERSON = String.fromCodePoint(0x1F9D1);
+const NOTEBOOKLM_ROBOT = String.fromCodePoint(0x1F916);
+const NOTEBOOKLM_USER = String.fromCharCode(0x7528, 0x6237);
+const NOTEBOOKLM_ASSISTANT = String.fromCharCode(0x52A9, 0x624B);
+
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.3.6",
+    VERSION: "1.3.7",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -59,6 +67,12 @@ const ChatbotRoamPatterns = {
     CCI_LINKS: /\(cci:\d+:\/\/file:\/\/\/[^)]+\)/g,
     TIMESTAMP_HORA_SUELTA: /^\d{1,2}:\d{2}\s+[ap]\.m\.$/,
 
+    // NOTEBOOKLM FORMAT - Using runtime-generated constants
+    NOTEBOOKLM_PROMPT_MARKER: null,    // Initialized below
+    NOTEBOOKLM_RESPONSE_MARKER: null,  // Initialized below
+    NOTEBOOKLM_PROMPT_STR: null,       // For string matching
+    NOTEBOOKLM_RESPONSE_STR: null,     // For string matching
+
     // DETECCION DE TIPO DE CHATBOT
     DETECT_ANTIGRAVITY: /^### (?:User Input|Planner Response)$/m,
     DETECT_CLAUDE_TOOLS: /\*\*\w+\*\*\s*\*Request\*/,
@@ -66,8 +80,20 @@ const ChatbotRoamPatterns = {
 
     // Helper getters for backtick strings
     get BT3() { return BT3; },
-    get BT4() { return BT4; }
+    get BT4() { return BT4; },
+
+    // Helper for NotebookLM detection
+    isNotebookLM(content) {
+        return content.includes(this.NOTEBOOKLM_PROMPT_STR) ||
+            content.includes(this.NOTEBOOKLM_RESPONSE_STR);
+    }
 };
+
+// Initialize NotebookLM patterns after object creation (using runtime-generated strings)
+ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR = '### ' + NOTEBOOKLM_PERSON + ' **' + NOTEBOOKLM_USER + '**';
+ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR = '### ' + NOTEBOOKLM_ROBOT + ' **' + NOTEBOOKLM_ASSISTANT + '**';
+ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_MARKER = new RegExp('^' + ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'gm');
+ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_MARKER = new RegExp('^' + ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'gm');
 
 
 // --- cleaners.js ---
@@ -78,20 +104,20 @@ const ChatbotRoamPatterns = {
 
 const ChatbotRoamCleaners = {
     // ========================================================================
-    // FUNCIONES DE LIMPIEZA GENÉRICAS
+    // FUNCIONES DE LIMPIEZA GENÃ‰RICAS
     // ========================================================================
 
     /**
-     * Elimina las líneas de Markdown que contienen imágenes Base64.
+     * Elimina las lÃ­neas de Markdown que contienen imÃ¡genes Base64.
      */
     eliminarImagenesEmbedidas(texto) {
-        // Patrón 1: Imágenes completas con paréntesis de cierre
+        // PatrÃ³n 1: ImÃ¡genes completas con parÃ©ntesis de cierre
         texto = texto.replace(ChatbotRoamPatterns.IMAGEN_COMPLETA, '');
 
-        // Patrón 2: Imágenes truncadas
+        // PatrÃ³n 2: ImÃ¡genes truncadas
         texto = texto.replace(ChatbotRoamPatterns.IMAGEN_TRUNCADA, '');
 
-        // Patrón 3: Limpiar líneas que solo contienen restos de Base64
+        // PatrÃ³n 3: Limpiar lÃ­neas que solo contienen restos de Base64
         const lineas = texto.split('\n');
         const lineasLimpias = [];
 
@@ -111,7 +137,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Limpia líneas vacías excesivas y espacios al inicio/fin.
+     * Limpia lÃ­neas vacÃ­as excesivas y espacios al inicio/fin.
      */
     limpiarContenido(texto) {
         texto = texto.replace(ChatbotRoamPatterns.LINEAS_VACIAS_EXCESIVAS, '\n\n');
@@ -119,7 +145,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Limpia etiquetas de lenguaje de bloques de código pero PRESERVA los delimitadores.
+     * Limpia etiquetas de lenguaje de bloques de cÃ³digo pero PRESERVA los delimitadores.
      */
     limpiarFormatoMarkdownBasico(texto) {
         texto = texto.replace(ChatbotRoamPatterns.CODIGO_CUATRO_BACKTICKS, ChatbotRoamPatterns.BT4);
@@ -128,11 +154,11 @@ const ChatbotRoamCleaners = {
     },
 
     // ========================================================================
-    // LIMPIEZA GENÉRICA / CHATGPT
+    // LIMPIEZA GENÃ‰RICA / CHATGPT
     // ========================================================================
 
     /**
-     * Elimina los logs de herramientas de búsqueda como 'project_knowledge_search'.
+     * Elimina los logs de herramientas de bÃºsqueda como 'project_knowledge_search'.
      */
     eliminarToolLogsGenerico(texto) {
         if (!texto.includes('**project_knowledge_search**')) {
@@ -166,7 +192,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Elimina líneas de metadata como fechas y '> File:'.
+     * Elimina lÃ­neas de metadata como fechas y '> File:'.
      */
     limpiarMetadataGenerico(texto) {
         const lineas = texto.split('\n');
@@ -197,15 +223,15 @@ const ChatbotRoamCleaners = {
      * Elimina los bloques completos de herramientas de Claude.
      */
     eliminarToolCallsClaude(texto) {
-        // Patrón completo
+        // PatrÃ³n completo
         texto = texto.replace(ChatbotRoamPatterns.TOOL_CALLS_COMPLETO, '');
-        // Patrón simple
+        // PatrÃ³n simple
         texto = texto.replace(ChatbotRoamPatterns.TOOL_CALLS_SIMPLE, '');
         return texto;
     },
 
     /**
-     * Elimina líneas que comienzan con 'Thought:'.
+     * Elimina lÃ­neas que comienzan con 'Thought:'.
      */
     eliminarThoughtLinesClaude(texto) {
         const lineas = texto.split('\n');
@@ -295,7 +321,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Elimina metadata específica de Claude.
+     * Elimina metadata especÃ­fica de Claude.
      */
     limpiarMetadataClaude(texto) {
         const lineas = texto.split('\n');
@@ -317,7 +343,7 @@ const ChatbotRoamCleaners = {
     // ========================================================================
 
     /**
-     * Elimina bloques de 'Thinking:' específicos de Gemini.
+     * Elimina bloques de 'Thinking:' especÃ­ficos de Gemini.
      */
     eliminarThinkingGemini(texto) {
         const lineas = texto.split('\n');
@@ -349,7 +375,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Elimina el símbolo '>' de líneas de adjuntos de Gemini.
+     * Elimina el sÃ­mbolo '>' de lÃ­neas de adjuntos de Gemini.
      */
     eliminarAdjuntosGemini(texto) {
         const lineas = texto.split('\n');
@@ -376,7 +402,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Elimina metadata específica de Gemini.
+     * Elimina metadata especÃ­fica de Gemini.
      */
     limpiarMetadataGemini(texto) {
         const lineas = texto.split('\n');
@@ -447,7 +473,33 @@ const ChatbotRoamCleaners = {
     },
 
     // ========================================================================
-    // CONVERSIÓN DE TABLAS MARKDOWN A ROAM
+    // LIMPIEZA NOTEBOOKLM
+    // ========================================================================
+
+    /**
+     * Elimina el header YAML y tÃ­tulo de NotebookLM
+     * Formato: ---\nexported: ...\nsource: NotebookLM\n---\n# TÃ­tulo\nå¯¼å‡ºæ—¶é—´: ...\n---
+     */
+    eliminarHeaderNotebookLM(texto) {
+        // Eliminar bloque YAML (---...---)
+        texto = texto.replace(/^---[\s\S]*?---\n*/m, '');
+        // Eliminar tÃ­tulo # y lÃ­nea de exportaciÃ³n china
+        texto = texto.replace(/^# [^\n]+\n+å¯¼å‡ºæ—¶é—´:[^\n]+\n+---+\n*/m, '');
+        // Limpiar separadores --- sueltos
+        texto = texto.replace(/^---+\s*\n/gm, '');
+        return texto;
+    },
+
+    /**
+     * Elimina timestamps de secciÃ³n como "## ðŸ•’ Today â€¢ 3:06 PM"
+     */
+    eliminarTimestampNotebookLM(texto) {
+        // Eliminar lÃ­neas tipo "## ðŸ•’ Today â€¢ 3:06 PM" o similares
+        return texto.replace(/^## [^\n]*(?:Today|Yesterday|AM|PM)[^\n]*\n*/gm, '');
+    },
+
+    // ========================================================================
+    // CONVERSIÃ“N DE TABLAS MARKDOWN A ROAM
     // ========================================================================
 
     /**
@@ -476,13 +528,13 @@ const ChatbotRoamCleaners = {
             const linea = lineas[i];
             const lineaStripped = linea.trim();
 
-            // Detectar posible inicio de tabla (línea que empieza y termina con |)
+            // Detectar posible inicio de tabla (lÃ­nea que empieza y termina con |)
             if (this._esLineaTablaMarkdown(lineaStripped)) {
-                // Verificar si la siguiente línea es un separador de tabla
+                // Verificar si la siguiente lÃ­nea es un separador de tabla
                 const siguienteLinea = i + 1 < lineas.length ? lineas[i + 1].trim() : '';
 
                 if (this._esSeparadorTabla(siguienteLinea)) {
-                    // Es una tabla válida - extraer todas las líneas de la tabla
+                    // Es una tabla vÃ¡lida - extraer todas las lÃ­neas de la tabla
                     const tablaLineas = [];
                     tablaLineas.push(lineaStripped); // Header
 
@@ -499,12 +551,12 @@ const ChatbotRoamCleaners = {
                     const tablaRoam = this._convertirTablaARoam(tablaLineas);
                     resultado.push(...tablaRoam);
 
-                    i = j; // Saltar las líneas procesadas
+                    i = j; // Saltar las lÃ­neas procesadas
                     continue;
                 }
             }
 
-            // No es una tabla - mantener la línea original
+            // No es una tabla - mantener la lÃ­nea original
             resultado.push(linea);
             i++;
         }
@@ -513,7 +565,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Detecta si una línea es parte de una tabla Markdown (empieza y termina con |)
+     * Detecta si una lÃ­nea es parte de una tabla Markdown (empieza y termina con |)
      * @private
      */
     _esLineaTablaMarkdown(lineaStripped) {
@@ -521,7 +573,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Detecta si una línea es un separador de tabla Markdown (|---|---|)
+     * Detecta si una lÃ­nea es un separador de tabla Markdown (|---|---|)
      * @private
      */
     _esSeparadorTabla(lineaStripped) {
@@ -534,7 +586,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Extrae las celdas de una línea de tabla Markdown
+     * Extrae las celdas de una lÃ­nea de tabla Markdown
      * @private
      */
     _extraerCeldasTabla(lineaStripped) {
@@ -544,7 +596,7 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Convierte un array de líneas de tabla Markdown a formato Roam
+     * Convierte un array de lÃ­neas de tabla Markdown a formato Roam
      * @private
      */
     _convertirTablaARoam(tablaLineas) {
@@ -553,20 +605,20 @@ const ChatbotRoamCleaners = {
         const resultado = [];
         const INDENT = '    '; // 4 espacios por nivel
 
-        // Primera línea: marcador de tabla Roam
+        // Primera lÃ­nea: marcador de tabla Roam
         resultado.push('{{[[table]]}}');
 
-        // Procesar cada fila (la primera es headers, las demás son datos)
+        // Procesar cada fila (la primera es headers, las demÃ¡s son datos)
         for (const linea of tablaLineas) {
             const celdas = this._extraerCeldasTabla(linea);
 
             if (celdas.length === 0) continue;
 
             // Generar la estructura anidada para esta fila
-            // Cada columna se anida un nivel más profundo
+            // Cada columna se anida un nivel mÃ¡s profundo
             for (let col = 0; col < celdas.length; col++) {
                 const indent = INDENT.repeat(col + 1); // +1 porque el primer nivel es hijo de {{[[table]]}}
-                const celda = celdas[col] || ''; // Celda vacía si no hay contenido
+                const celda = celdas[col] || ''; // Celda vacÃ­a si no hay contenido
                 resultado.push(indent + '- ' + celda);
             }
         }
@@ -583,20 +635,20 @@ const ChatbotRoamCleaners = {
 // ============================================================================
 
 /**
- * Definición centralizada de opciones de limpieza.
- * Para añadir una nueva opción:
+ * DefiniciÃ³n centralizada de opciones de limpieza.
+ * Para aÃ±adir una nueva opciÃ³n:
  * 1. Agregar un objeto a este array
  * 2. Ejecutar build.ps1
- * 3. Listo - el UI y la lógica lo detectan automáticamente
+ * 3. Listo - el UI y la lÃ³gica lo detectan automÃ¡ticamente
  */
 const OPCIONES_LIMPIEZA = [
     // ========================================================================
-    // OPCIONES GENÉRICAS (todos los chatbots)
+    // OPCIONES GENÃ‰RICAS (todos los chatbots)
     // ========================================================================
     {
         id: 'revisar_clasificacion',
-        label: 'Revisar clasificación (Prompt/Response)',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity'],
+        label: 'Revisar clasificaciÃ³n (Prompt/Response)',
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
         defaultActivo: false,
         aplicarA: 'none', // No modifica el texto, es solo un flag UI
         cleaner: function (texto) { return texto; }
@@ -604,7 +656,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'eliminar_imagenes',
         label: 'Imagenes Base64',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
         defaultActivo: true,
         aplicarA: 'ambos',
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarImagenesEmbedidas(texto); }
@@ -612,7 +664,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'eliminar_metadata',
         label: 'Timestamps y referencias',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
         defaultActivo: false,
         aplicarA: 'ambos',
         cleaner: function (texto) { return ChatbotRoamCleaners.limpiarMetadataGenerico(texto); }
@@ -702,7 +754,7 @@ const OPCIONES_LIMPIEZA = [
         label: 'Header Antigravity',
         chatbots: ['antigravity'],
         defaultActivo: true,
-        aplicarA: 'preproceso',  // Se aplica ANTES de extraer conversación
+        aplicarA: 'preproceso',  // Se aplica ANTES de extraer conversaciÃ³n
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarHeaderAntigravity(texto); }
     },
     {
@@ -739,12 +791,32 @@ const OPCIONES_LIMPIEZA = [
     },
 
     // ========================================================================
-    // CONVERSIÓN DE FORMATO
+    // OPCIONES NOTEBOOKLM
+    // ========================================================================
+    {
+        id: 'eliminar_header_notebooklm',
+        label: 'Header NotebookLM (YAML + tÃ­tulo)',
+        chatbots: ['notebooklm'],
+        defaultActivo: true,
+        aplicarA: 'preproceso',
+        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarHeaderNotebookLM(texto); }
+    },
+    {
+        id: 'eliminar_timestamp_notebooklm',
+        label: 'Timestamps de secciÃ³n (Today, etc.)',
+        chatbots: ['notebooklm'],
+        defaultActivo: true,
+        aplicarA: 'preproceso',
+        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarTimestampNotebookLM(texto); }
+    },
+
+    // ========================================================================
+    // CONVERSIÃ“N DE FORMATO
     // ========================================================================
     {
         id: 'convertir_tablas_roam',
         label: 'Convertir tablas a Roam',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.convertirTablasMarkdownARoam(texto); }
@@ -865,7 +937,7 @@ const ChatbotRoamFormatter = {
             var lineaStripped = linea.trim();
 
             // ================================================================
-            // DETECCIÓN DE TABLA ROAM
+            // DETECCIÃ“N DE TABLA ROAM
             // ================================================================
             if (lineaStripped === '{{[[table]]}}') {
                 enTablaRoam = true;
@@ -876,28 +948,28 @@ const ChatbotRoamFormatter = {
 
             // Si estamos dentro de una tabla Roam
             if (enTablaRoam) {
-                // Línea vacía = fin de tabla
+                // LÃ­nea vacÃ­a = fin de tabla
                 if (!lineaStripped) {
                     enTablaRoam = false;
                     resultado.push('');
                     continue;
                 }
 
-                // Línea de tabla (tiene indentación y empieza con "- ")
+                // LÃ­nea de tabla (tiene indentaciÃ³n y empieza con "- ")
                 if (linea.match(/^\s+- /)) {
                     var indentTabla = bajoHeading ? this.INDENT_HEADING : this.INDENT_BASE;
-                    // Preservar la indentación original de la línea de tabla
+                    // Preservar la indentaciÃ³n original de la lÃ­nea de tabla
                     resultado.push(indentTabla + linea);
                     continue;
                 } else {
-                    // Línea que no es parte de tabla = salir de tabla
+                    // LÃ­nea que no es parte de tabla = salir de tabla
                     enTablaRoam = false;
-                    // NO hacer continue, procesar esta línea normalmente abajo
+                    // NO hacer continue, procesar esta lÃ­nea normalmente abajo
                 }
             }
 
             // ================================================================
-            // DETECCIÓN DE BLOQUE DE CÓDIGO
+            // DETECCIÃ“N DE BLOQUE DE CÃ“DIGO
             // ================================================================
             var esLineaCodigo = this._isCodeBlockDelimiter(lineaStripped, BACKTICK);
 
@@ -1005,7 +1077,7 @@ const ChatbotRoamFormatter = {
 
 const ChatbotRoamProcessing = {
     // ========================================================================
-    // FUNCIÓN UNIFICADA DE EXTRACCIÓN
+    // FUNCIÃ“N UNIFICADA DE EXTRACCIÃ“N
     // ========================================================================
 
     /**
@@ -1014,16 +1086,23 @@ const ChatbotRoamProcessing = {
     extraerConversacionRaw(contenido, skipTimestamp = true) {
         const marcadores = [];
 
-        // Detectar formato Antigravity
+        // Detectar formato especial
+        // NotebookLM uses Chinese markers: ç”¨æˆ· (user) and åŠ©æ‰‹ (assistant)
+        const esNotebookLM = ChatbotRoamPatterns.isNotebookLM(contenido);
         const esAntigravity = ChatbotRoamPatterns.DETECT_ANTIGRAVITY.test(contenido);
 
         // Usar marcadores segun formato
-        const promptPattern = esAntigravity
-            ? ChatbotRoamPatterns.ANTIGRAVITY_PROMPT_MARKER
-            : ChatbotRoamPatterns.PROMPT_MARKER;
-        const responsePattern = esAntigravity
-            ? ChatbotRoamPatterns.ANTIGRAVITY_RESPONSE_MARKER
-            : ChatbotRoamPatterns.RESPONSE_MARKER;
+        let promptPattern, responsePattern;
+        if (esNotebookLM) {
+            promptPattern = ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_MARKER;
+            responsePattern = ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_MARKER;
+        } else if (esAntigravity) {
+            promptPattern = ChatbotRoamPatterns.ANTIGRAVITY_PROMPT_MARKER;
+            responsePattern = ChatbotRoamPatterns.ANTIGRAVITY_RESPONSE_MARKER;
+        } else {
+            promptPattern = ChatbotRoamPatterns.PROMPT_MARKER;
+            responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER;
+        }
 
         // Encontrar todos los prompts
         let match;
@@ -1038,7 +1117,7 @@ const ChatbotRoamProcessing = {
             marcadores.push({ tipo: 'RESPONSE', pos: match.index });
         }
 
-        // Ordenar por posición
+        // Ordenar por posiciÃ³n
         marcadores.sort((a, b) => a.pos - b.pos);
 
         // Extraer contenido entre marcadores
@@ -1135,7 +1214,7 @@ const ChatbotRoamProcessing = {
 
     /**
      * Extrae TODOS los bloques (Prompt y Response) del archivo con metadata.
-     * Para uso en el editor de clasificación manual.
+     * Para uso en el editor de clasificaciÃ³n manual.
      * @param {string} contenido - Contenido raw del archivo
      * @returns {Array} - [{pos, tipo, extracto, lineNumber}, ...]
      */
@@ -1148,7 +1227,7 @@ const ChatbotRoamProcessing = {
             const posInicio = match.index;
             const tipo = match[1]; // "Prompt" o "Response"
 
-            // Calcular número de línea
+            // Calcular nÃºmero de lÃ­nea
             const lineNumber = contenido.substring(0, posInicio).split('\n').length;
 
             // Encontrar el fin de este bloque (siguiente ## o fin de archivo)
@@ -1171,7 +1250,7 @@ const ChatbotRoamProcessing = {
                 pos: posInicio,
                 tipo: tipo,
                 lineNumber: lineNumber,
-                extracto: extracto || '(vacío)',
+                extracto: extracto || '(vacÃ­o)',
                 tieneMCP: tieneMCP
             });
         }
@@ -1187,7 +1266,7 @@ const ChatbotRoamProcessing = {
     },
 
     // ========================================================================
-    // LÓGICA DE PROCESAMIENTO PRINCIPAL
+    // LÃ“GICA DE PROCESAMIENTO PRINCIPAL
     // ========================================================================
 
     /**
@@ -1203,12 +1282,12 @@ const ChatbotRoamProcessing = {
             contenido = ChatbotRoamCleaners.eliminarHeaderAntigravity(contenido);
         }
 
-        // Eliminar imágenes ANTES de extraer (si está marcado)
+        // Eliminar imÃ¡genes ANTES de extraer (si estÃ¡ marcado)
         if (opciones.eliminar_imagenes) {
             contenido = ChatbotRoamCleaners.eliminarImagenesEmbedidas(contenido);
         }
 
-        // Extraer conversación
+        // Extraer conversaciÃ³n
         const conversacionRaw = this.extraerConversacionRaw(contenido);
 
         if (conversacionRaw.length === 0) {
@@ -1267,16 +1346,21 @@ const ChatbotRoamProcessing = {
         // Aplicar cleaners del registro centralizado
         responseTemp = ChatbotRoamOpciones.aplicarLimpieza(responseTemp, opciones, 'respuesta');
 
-        // Limpiar formato básico
+        // Limpiar formato bÃ¡sico
         responseTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(responseTemp);
         return ChatbotRoamCleaners.limpiarContenido(responseTemp);
     },
 
     /**
-     * Detecta automáticamente el tipo de chatbot basándose en marcadores característicos.
+     * Detecta automÃ¡ticamente el tipo de chatbot basÃ¡ndose en marcadores caracterÃ­sticos.
      */
     detectarTipoChatbot(contenido) {
-        // Detectar Antigravity PRIMERO (marcadores unicos)
+        // Detectar NotebookLM PRIMERO (marcadores chinos: ç”¨æˆ·/åŠ©æ‰‹)
+        if (ChatbotRoamPatterns.isNotebookLM(contenido)) {
+            return 'notebooklm';
+        }
+
+        // Detectar Antigravity (marcadores unicos)
         const esAntigravity = ChatbotRoamPatterns.DETECT_ANTIGRAVITY.test(contenido);
         if (esAntigravity) {
             return 'antigravity';
@@ -1300,7 +1384,7 @@ const ChatbotRoamProcessing = {
     },
 
     /**
-     * Devuelve las opciones preconfiguradas según el tipo de chatbot.
+     * Devuelve las opciones preconfiguradas segÃºn el tipo de chatbot.
      * Delega al registro centralizado en ChatbotRoamOpciones.
      */
     getPresetOpciones(tipo) {
@@ -1675,7 +1759,7 @@ const ChatbotRoamStyles = {
                 color: white;
             }
 
-            /* Editor de clasificación manual v2 */
+            /* Editor de clasificaciÃ³n manual v2 */
             .chatbot-roam-editor-panel {
                 background: rgba(255, 165, 0, 0.08);
                 border: 1px solid #FFA500;
@@ -1898,7 +1982,7 @@ const ChatbotRoamStyles = {
 };
 
 
-// --- roam\parser.js ---
+// --- roam/parser.js ---
 // ============================================================================
 // CHATBOT ROAM PLUGIN - ROAM PARSER
 // Converts lines into hierarchical block structure for Roam
@@ -1937,7 +2021,7 @@ const ChatbotRoamParser = {
             // NUEVO: Detectar tabla Roam y procesar estructura completa
             // ================================================================
             if (linea.trim() === '{{[[table]]}}' && currentPrompt) {
-                // Recolectar todas las líneas hijas de la tabla
+                // Recolectar todas las lÃ­neas hijas de la tabla
                 var tablaLineas = [];
                 var j = i + 1;
                 while (j < lineas.length && lineas[j].match(/^\s+- /)) {
@@ -1945,15 +2029,15 @@ const ChatbotRoamParser = {
                     j++;
                 }
 
-                // Construir estructura jerárquica de la tabla
+                // Construir estructura jerÃ¡rquica de la tabla
                 var bloqueTabla = {
                     text: '{{[[table]]}}',
                     children: this._parseIndentedBlocks(tablaLineas, 8)
                 };
 
                 currentPrompt.children.push(bloqueTabla);
-                currentHeading = null;  // Reset heading después de tabla
-                i = j - 1;  // Saltar las líneas procesadas
+                currentHeading = null;  // Reset heading despuÃ©s de tabla
+                i = j - 1;  // Saltar las lÃ­neas procesadas
                 continue;
             }
 
@@ -2043,11 +2127,11 @@ const ChatbotRoamParser = {
     },
 
     /**
-     * Convierte líneas indentadas en estructura anidada de bloques
-     * Usado para parsear tablas Roam y otros contenidos con anidación profunda
+     * Convierte lÃ­neas indentadas en estructura anidada de bloques
+     * Usado para parsear tablas Roam y otros contenidos con anidaciÃ³n profunda
      * 
-     * @param {string[]} lineas - Líneas con formato "    - texto"
-     * @param {number} baseIndent - Nivel base de indentación (espacios)
+     * @param {string[]} lineas - LÃ­neas con formato "    - texto"
+     * @param {number} baseIndent - Nivel base de indentaciÃ³n (espacios)
      * @returns {Object[]} - Estructura de bloques anidados
      */
     _parseIndentedBlocks(lineas, baseIndent) {
@@ -2059,7 +2143,7 @@ const ChatbotRoamParser = {
         for (var i = 0; i < lineas.length; i++) {
             var linea = lineas[i];
 
-            // Contar espacios de indentación
+            // Contar espacios de indentaciÃ³n
             var indent = 0;
             while (indent < linea.length && linea[indent] === ' ') indent++;
 
@@ -2069,7 +2153,7 @@ const ChatbotRoamParser = {
 
             var nuevoBloque = { text: texto, children: [] };
 
-            // Encontrar el padre correcto basándose en la indentación
+            // Encontrar el padre correcto basÃ¡ndose en la indentaciÃ³n
             while (stack.length > 1 && stack[stack.length - 1].indent >= indent) {
                 stack.pop();
             }
@@ -2086,7 +2170,7 @@ const ChatbotRoamParser = {
 };
 
 
-// --- roam\inserter.js ---
+// --- roam/inserter.js ---
 // ============================================================================
 // CHATBOT ROAM PLUGIN - ROAM INSERTER
 // Handles block insertion into Roam using the Roam Alpha API
@@ -2262,14 +2346,14 @@ const ChatbotRoamUI = {
     _modalContainer: null,
     _fileContent: null,
     _processedContent: null,
-    _originalProcessedContent: null,  // Para restaurar después de cortar
+    _originalProcessedContent: null,  // Para restaurar despuÃ©s de cortar
     _currentOpciones: null,
     _savedBlockUid: null,  // Guardar UID del bloque ANTES de abrir modal
 
-    // Estado de búsqueda incremental
+    // Estado de bÃºsqueda incremental
     _searchMatches: [],      // Posiciones de coincidencias
-    _currentMatchIndex: -1,  // Índice actual
-    _isCut: false,           // Si ya se cortó
+    _currentMatchIndex: -1,  // Ãndice actual
+    _isCut: false,           // Si ya se cortÃ³
     _boundEscHandler: null,  // Referencia al handler de ESC para cleanup
 
 
@@ -2334,6 +2418,7 @@ const ChatbotRoamUI = {
             '<button class="chatbot-roam-preset-btn" data-preset="chatgpt">ChatGPT</button>' +
             '<button class="chatbot-roam-preset-btn" data-preset="gemini">Gemini</button>' +
             '<button class="chatbot-roam-preset-btn" data-preset="antigravity">Antigravity</button>' +
+            '<button class="chatbot-roam-preset-btn" data-preset="notebooklm">NotebookLM</button>' +
             '<button class="chatbot-roam-preset-btn" data-preset="limpiar">Limpiar todo</button>' +
             '</div>' +
             '<div class="chatbot-roam-section-title">IMPORTACION INCREMENTAL</div>' +
@@ -2455,7 +2540,7 @@ const ChatbotRoamUI = {
      * @returns {Object} - { valid: boolean, error: string|null }
      */
     _validateFile(file) {
-        // Validar tamaño
+        // Validar tamaÃ±o
         const maxSizeBytes = this.MAX_FILE_SIZE_MB * 1024 * 1024;
         if (file.size > maxSizeBytes) {
             return {
@@ -2487,14 +2572,19 @@ const ChatbotRoamUI = {
             return { valid: false, error: 'El archivo esta vacio.', warning: null };
         }
 
-        // Verificar marcadores de conversacion (incluye Antigravity)
-        const tienePrompt = content.includes('## Prompt:') || content.includes('### User Input');
-        const tieneResponse = content.includes('## Response:') || content.includes('### Planner Response');
+        // Verificar marcadores de conversacion (incluye Antigravity y NotebookLM)
+        // NotebookLM uses Chinese: ðŸ§‘ ç”¨æˆ· (user) and ðŸ¤– åŠ©æ‰‹ (assistant)
+        const tienePrompt = content.includes('## Prompt:') ||
+            content.includes('### User Input') ||
+            (ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR && content.includes(ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR));
+        const tieneResponse = content.includes('## Response:') ||
+            content.includes('### Planner Response') ||
+            (ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR && content.includes(ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR));
 
         if (!tienePrompt && !tieneResponse) {
             return {
                 valid: false,
-                error: 'El archivo no parece ser una conversacion exportada. No se encontraron marcadores "## Prompt:" ni "## Response:".',
+                error: 'El archivo no parece ser una conversacion exportada. No se encontraron marcadores de conversacion.',
                 warning: null
             };
         }
@@ -2544,18 +2634,18 @@ const ChatbotRoamUI = {
 
             this._fileContent = content;
 
-            // Guardar intención del usuario sobre la revisión manual
-            // (porque _applyPreset reseteará esto a false)
+            // Guardar intenciÃ³n del usuario sobre la revisiÃ³n manual
+            // (porque _applyPreset resetearÃ¡ esto a false)
             const intencionRevisar = this._currentOpciones['revisar_clasificacion'];
 
             // Detectar tipo de chatbot y aplicar preset
             const tipo = ChatbotRoamProcessing.detectarTipoChatbot(this._fileContent);
             this._applyPreset(tipo);
 
-            // Restaurar intención de revisar si estaba activa
+            // Restaurar intenciÃ³n de revisar si estaba activa
             if (intencionRevisar) {
                 this._currentOpciones['revisar_clasificacion'] = true;
-                // Actualizar visualmente el checkbox que _applyPreset desmarcó
+                // Actualizar visualmente el checkbox que _applyPreset desmarcÃ³
                 const chk = this._modalContainer.querySelector('[data-option="revisar_clasificacion"]');
                 if (chk) chk.checked = true;
             }
@@ -2575,8 +2665,8 @@ const ChatbotRoamUI = {
             dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML =
                 '<strong>' + file.name + '</strong><br>' + statusText;
 
-            // Verificar si el usuario desea revisar la clasificación manualmente
-            // O si detectamos un patrón MCP y queremos sugerirlo (opcional, por ahora estrictamente manual)
+            // Verificar si el usuario desea revisar la clasificaciÃ³n manualmente
+            // O si detectamos un patrÃ³n MCP y queremos sugerirlo (opcional, por ahora estrictamente manual)
             const revisarManual = this._currentOpciones['revisar_clasificacion'];
 
             if (revisarManual) {
@@ -2594,7 +2684,7 @@ const ChatbotRoamUI = {
     },
 
     // ========================================================================
-    // EDITOR DE CLASIFICACIÓN MANUAL (v2)
+    // EDITOR DE CLASIFICACIÃ“N MANUAL (v2)
     // ========================================================================
 
     // Estado del editor
@@ -2603,10 +2693,10 @@ const ChatbotRoamUI = {
     _bloquesModificados: new Set(),
 
     /**
-     * Muestra el editor de clasificación con todos los bloques
+     * Muestra el editor de clasificaciÃ³n con todos los bloques
      */
     _mostrarEditorClasificacion() {
-        // Guardar contenido original para posible restauración
+        // Guardar contenido original para posible restauraciÃ³n
         this._originalFileContent = this._fileContent;
         this._bloquesModificados = new Set();
 
@@ -2623,7 +2713,7 @@ const ChatbotRoamUI = {
         // Generar HTML de items
         const itemsHTML = this._todosLosBloques.map((bloque, idx) => {
             const tipoClass = bloque.tipo === 'Prompt' ? 'prompt' : 'response';
-            const tipoIcon = bloque.tipo === 'Prompt' ? '🔵' : '🟢';
+            const tipoIcon = bloque.tipo === 'Prompt' ? 'ðŸ”µ' : 'ðŸŸ¢';
             const mcpBadge = bloque.tieneMCP ? '<span class="chatbot-roam-editor-mcp">MCP</span>' : '';
             const extractoCorto = bloque.extracto.substring(0, 70) + (bloque.extracto.length > 70 ? '...' : '');
 
@@ -2634,12 +2724,12 @@ const ChatbotRoamUI = {
                         <span class="chatbot-roam-editor-icon">${tipoIcon}</span>
                         <span class="chatbot-roam-editor-tipo">${bloque.tipo.toUpperCase()}</span>
                         ${mcpBadge}
-                        <span class="chatbot-roam-editor-line">Línea ${bloque.lineNumber}</span>
+                        <span class="chatbot-roam-editor-line">LÃ­nea ${bloque.lineNumber}</span>
                     </div>
                     <div class="chatbot-roam-editor-extracto">${this._escapeHtml(extractoCorto)}</div>
                     <div class="chatbot-roam-editor-buttons">
-                        <button class="chatbot-roam-editor-swap-btn" data-action="swap" data-idx="${idx}" title="Intercambiar este bloque">⇄</button>
-                        <button class="chatbot-roam-editor-chain-btn" data-action="chain" data-idx="${idx}" title="Invertir desde aquí hasta el final">↓↓</button>
+                        <button class="chatbot-roam-editor-swap-btn" data-action="swap" data-idx="${idx}" title="Intercambiar este bloque">â‡„</button>
+                        <button class="chatbot-roam-editor-chain-btn" data-action="chain" data-idx="${idx}" title="Invertir desde aquÃ­ hasta el final">â†“â†“</button>
                     </div>
                 </div>
             `;
@@ -2647,8 +2737,8 @@ const ChatbotRoamUI = {
 
         panel.innerHTML = `
             <div class="chatbot-roam-editor-header">
-                <span class="chatbot-roam-editor-title">⚠️ REVISIÓN DE CLASIFICACIÓN</span>
-                <span class="chatbot-roam-editor-subtitle">Verifica que cada bloque esté correctamente clasificado como Prompt o Response.</span>
+                <span class="chatbot-roam-editor-title">âš ï¸ REVISIÃ“N DE CLASIFICACIÃ“N</span>
+                <span class="chatbot-roam-editor-subtitle">Verifica que cada bloque estÃ© correctamente clasificado como Prompt o Response.</span>
             </div>
             <div class="chatbot-roam-editor-stats">
                 Total: ${this._todosLosBloques.length} bloques | 
@@ -2662,7 +2752,7 @@ const ChatbotRoamUI = {
                     Continuar con procesamiento
                 </button>
                 <button class="chatbot-roam-editor-btn-skip" data-action="skip-editor">
-                    Omitir revisión
+                    Omitir revisiÃ³n
                 </button>
                 <button class="chatbot-roam-editor-btn-restore" data-action="restore-editor" disabled>
                     Restaurar original
@@ -2670,7 +2760,7 @@ const ChatbotRoamUI = {
             </div>
         `;
 
-        // Insertar después del dropzone
+        // Insertar despuÃ©s del dropzone
         const dropzone = this._modalContainer.querySelector('[data-action="dropzone"]');
         dropzone.parentNode.insertBefore(panel, dropzone.nextSibling);
 
@@ -2705,7 +2795,7 @@ const ChatbotRoamUI = {
     },
 
     /**
-     * Intercambia la clasificación de un bloque (Prompt ↔ Response)
+     * Intercambia la clasificaciÃ³n de un bloque (Prompt â†” Response)
      */
     _intercambiarClasificacion(idx) {
         if (idx < 0 || idx >= this._todosLosBloques.length) return;
@@ -2745,7 +2835,7 @@ const ChatbotRoamUI = {
             countSpan.textContent = `Modificados: ${this._bloquesModificados.size}`;
         }
 
-        // Habilitar botón restaurar si hay modificaciones
+        // Habilitar botÃ³n restaurar si hay modificaciones
         const restoreBtn = this._modalContainer.querySelector('[data-action="restore-editor"]');
         if (restoreBtn) {
             restoreBtn.disabled = this._bloquesModificados.size === 0;
@@ -2753,7 +2843,7 @@ const ChatbotRoamUI = {
     },
 
     /**
-     * Actualiza visualmente un item del editor después de intercambiar
+     * Actualiza visualmente un item del editor despuÃ©s de intercambiar
      */
     _actualizarItemEditor(idx) {
         const item = this._modalContainer.querySelector(`.chatbot-roam-editor-item[data-idx="${idx}"]`);
@@ -2761,7 +2851,7 @@ const ChatbotRoamUI = {
 
         const bloque = this._todosLosBloques[idx];
         const tipoClass = bloque.tipo === 'Prompt' ? 'prompt' : 'response';
-        const tipoIcon = bloque.tipo === 'Prompt' ? '🔵' : '🟢';
+        const tipoIcon = bloque.tipo === 'Prompt' ? 'ðŸ”µ' : 'ðŸŸ¢';
 
         // Actualizar clases
         item.classList.remove('prompt', 'response');
@@ -2798,7 +2888,7 @@ const ChatbotRoamUI = {
     _invertirDesdeAqui(idx) {
         const restantes = this._todosLosBloques.length - idx;
 
-        if (!confirm(`¿Invertir ${restantes} bloques desde aquí hasta el final?`)) {
+        if (!confirm(`Â¿Invertir ${restantes} bloques desde aquÃ­ hasta el final?`)) {
             return;
         }
 
@@ -2909,7 +2999,7 @@ const ChatbotRoamUI = {
         if (content) {
             // Mostrar contenido completo para poder buscar
             preview.textContent = content;
-            const countInfo = numIntercambios !== undefined ? `${numIntercambios} intercambios · ` : '';
+            const countInfo = numIntercambios !== undefined ? `${numIntercambios} intercambios Â· ` : '';
             previewInfo.textContent = `${countInfo}${content.length.toLocaleString()} caracteres totales`;
             insertBtn.disabled = false;
         } else {
@@ -2922,7 +3012,7 @@ const ChatbotRoamUI = {
     },
 
     // ========================================================================
-    // BÚSQUEDA INCREMENTAL
+    // BÃšSQUEDA INCREMENTAL
     // ========================================================================
     _performSearch(query) {
         if (!this._originalProcessedContent || !query || query.length < 2) {
@@ -3000,7 +3090,7 @@ const ChatbotRoamUI = {
             html += `<mark class="${markClass}" ${markId}>${this._escapeHtml(content.substring(match.start, match.end))}</mark>`;
             lastEnd = match.end;
         }
-        // Texto después del último match
+        // Texto despuÃ©s del Ãºltimo match
         html += this._escapeHtml(content.substring(lastEnd));
 
         preview.innerHTML = html;
@@ -3046,11 +3136,11 @@ const ChatbotRoamUI = {
         const match = this._searchMatches[this._currentMatchIndex];
         const content = this._originalProcessedContent;
 
-        // Encontrar el inicio de la línea que contiene el match
+        // Encontrar el inicio de la lÃ­nea que contiene el match
         // Buscamos el "* " que indica un prompt
         let cutPosition = match.start;
 
-        // Buscar hacia atrás el inicio del prompt ("* " al inicio de línea o después de newline)
+        // Buscar hacia atrÃ¡s el inicio del prompt ("* " al inicio de lÃ­nea o despuÃ©s de newline)
         while (cutPosition > 0) {
             if (content.substring(cutPosition, cutPosition + 2) === '* ' &&
                 (cutPosition === 0 || content[cutPosition - 1] === '\n')) {
@@ -3059,11 +3149,11 @@ const ChatbotRoamUI = {
             cutPosition--;
         }
 
-        // Cortar desde esa posición
+        // Cortar desde esa posiciÃ³n
         this._processedContent = content.substring(cutPosition);
         this._isCut = true;
 
-        // Limpiar búsqueda y actualizar UI
+        // Limpiar bÃºsqueda y actualizar UI
         this._searchMatches = [];
         this._currentMatchIndex = -1;
 

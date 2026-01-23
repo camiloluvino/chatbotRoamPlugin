@@ -78,6 +78,7 @@ const ChatbotRoamUI = {
             '<button class="chatbot-roam-preset-btn" data-preset="chatgpt">ChatGPT</button>' +
             '<button class="chatbot-roam-preset-btn" data-preset="gemini">Gemini</button>' +
             '<button class="chatbot-roam-preset-btn" data-preset="antigravity">Antigravity</button>' +
+            '<button class="chatbot-roam-preset-btn" data-preset="notebooklm">NotebookLM</button>' +
             '<button class="chatbot-roam-preset-btn" data-preset="limpiar">Limpiar todo</button>' +
             '</div>' +
             '<div class="chatbot-roam-section-title">IMPORTACION INCREMENTAL</div>' +
@@ -231,14 +232,19 @@ const ChatbotRoamUI = {
             return { valid: false, error: 'El archivo esta vacio.', warning: null };
         }
 
-        // Verificar marcadores de conversacion (incluye Antigravity)
-        const tienePrompt = content.includes('## Prompt:') || content.includes('### User Input');
-        const tieneResponse = content.includes('## Response:') || content.includes('### Planner Response');
+        // Verificar marcadores de conversacion (incluye Antigravity y NotebookLM)
+        // NotebookLM uses Chinese: 🧑 用户 (user) and 🤖 助手 (assistant)
+        const tienePrompt = content.includes('## Prompt:') ||
+            content.includes('### User Input') ||
+            (ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR && content.includes(ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR));
+        const tieneResponse = content.includes('## Response:') ||
+            content.includes('### Planner Response') ||
+            (ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR && content.includes(ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR));
 
         if (!tienePrompt && !tieneResponse) {
             return {
                 valid: false,
-                error: 'El archivo no parece ser una conversacion exportada. No se encontraron marcadores "## Prompt:" ni "## Response:".',
+                error: 'El archivo no parece ser una conversacion exportada. No se encontraron marcadores de conversacion.',
                 warning: null
             };
         }
