@@ -16,7 +16,7 @@ const OPCIONES_LIMPIEZA = [
     // ========================================================================
     {
         id: 'revisar_clasificacion',
-        label: 'Revisar clasificación (Prompt/Response)',
+        label: 'Revisar clasificaci\u00f3n (Prompt/Response)',
         chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
         defaultActivo: false,
         aplicarA: 'none', // No modifica el texto, es solo un flag UI
@@ -80,7 +80,7 @@ const OPCIONES_LIMPIEZA = [
     },
     {
         id: 'eliminar_logs_chatgpt',
-        label: 'Logs de busqueda',
+        label: 'Logs de b\u00fasqueda',
         chatbots: ['chatgpt'],
         defaultActivo: true,
         aplicarA: 'respuesta',
@@ -164,7 +164,7 @@ const OPCIONES_LIMPIEZA = [
     // ========================================================================
     {
         id: 'eliminar_header_notebooklm',
-        label: 'Header NotebookLM (YAML + título)',
+        label: 'Header NotebookLM (YAML + t\u00edtulo)',
         chatbots: ['notebooklm'],
         defaultActivo: true,
         aplicarA: 'preproceso',
@@ -172,7 +172,7 @@ const OPCIONES_LIMPIEZA = [
     },
     {
         id: 'eliminar_timestamp_notebooklm',
-        label: 'Timestamps de sección (Today, etc.)',
+        label: 'Timestamps de secci\u00f3n (Today, etc.)',
         chatbots: ['notebooklm'],
         defaultActivo: true,
         aplicarA: 'preproceso',
@@ -181,7 +181,7 @@ const OPCIONES_LIMPIEZA = [
 
     {
         id: 'normalizar_vinetas_notebooklm',
-        label: 'Normalizar viñetas (•, ◦)',
+        label: 'Normalizar vi\u00f1etas (\u2022, \u25e6)',
         chatbots: ['notebooklm'],
         defaultActivo: true,
         aplicarA: 'respuesta',

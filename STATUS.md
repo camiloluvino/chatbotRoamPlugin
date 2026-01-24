@@ -27,7 +27,8 @@
 ## 📋 Cambios Recientes
 - **v1.3.7:**
   - **Soporte NotebookLM:** Parsing completo de exportaciones de NotebookLM (incluyendo marcadores en chino).
-  - **Encoding Fix:** Solución definitiva para caracteres Unicode usando `String.fromCodePoint` para evitar corrupción en build.
+  - **Encoding Fix:** Solución definitiva para caracteres Unicode usando `String.fromCodePoint` y cargando fuentes con `-Encoding UTF8` en el script de build.
+  - **Robustez UI:** Uso de escapes Unicode (`\u00f3`, etc.) en etiquetas para evitar mangling en entornos Roam.
   - **Bullet Fix:** Normalización de viñetas de NotebookLM (•, ◦) para listados anidados correctos.
   - **UI Update:** Botón de preset y validación actualizada.
 - **v1.3.6:** Fix: La opción "Revisar clasificación" ahora se respeta al cargar archivo.
@@ -39,7 +40,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-01-24 | v1.3.7: Soporte NotebookLM + Fix encoding UTF-8 + Fix bullets (•, ◦) |
+| 2026-01-24 | v1.3.7: Soporte NotebookLM + Fix encoding UTF-8 (build.ps1) + Unicode escapes en UI |
 | 2026-01-20 | v1.3.6: Fix: La opción "Revisar clasificación" ahora se respeta al cargar archivo |
 | 2026-01-20 | v1.3.5: Editor de Clasificación ahora es una opción manual ("Revisar clasificación") desactivada por defecto |
 | 2026-01-20 | v1.3.4: Editor de Clasificación ahora aparece siempre (no solo con MCP) |

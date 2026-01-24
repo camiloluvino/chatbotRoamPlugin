@@ -160,7 +160,10 @@ Las tablas Markdown se convierten a formato Roam en `cleaners.js` y mantienen su
 
 4. **Marcador `[CODE]` y `{{NL}}`**: Sistema frágil para preservar bloques de código multilínea.
 
-5. **Encoding UTF-8**: Problemas históricos con caracteres especiales (flechas →, acentos). El build usa UTF-8 sin BOM.
+5. **Encoding UTF-8**: Problemas históricos con caracteres especiales. 
+   - **Regla**: El build DEBE leer fuentes con `-Encoding UTF8`.
+   - **Mejor práctica**: Para etiquetas de UI visibles, usar escapes Unicode (ej: `\u00f3` para `ó`) para máxima robustez en Roam.
+   - **Emojis**: Usar `String.fromCodePoint(0xXXXXX)` en lugar de literales si es posible.
 
 6. **Editor de Clasificación**: Opcional (checkbox "Revisar clasificación"). Permite corregir manualmente la clasificación Prompt/Response antes de procesar. Botón [⇄] intercambia uno, botón [↓↓] invierte desde ese punto.
 
