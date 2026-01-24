@@ -179,6 +179,15 @@ const OPCIONES_LIMPIEZA = [
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarTimestampNotebookLM(texto); }
     },
 
+    {
+        id: 'normalizar_vinetas_notebooklm',
+        label: 'Normalizar viñetas (•, ◦)',
+        chatbots: ['notebooklm'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.normalizarVinetasNotebookLM(texto); }
+    },
+
     // ========================================================================
     // CONVERSIÓN DE FORMATO
     // ========================================================================

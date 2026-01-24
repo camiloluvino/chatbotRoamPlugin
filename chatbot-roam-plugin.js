@@ -1,7 +1,7 @@
 // CHATBOT ROAM PLUGIN v1.3.7
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-01-23 02:36:17
+// Generated: 2026-01-24 14:32:18
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -624,7 +624,25 @@ const ChatbotRoamCleaners = {
         }
 
         return resultado;
-    }
+    },
+    /**
+     * Normaliza las viÃ±etas de NotebookLM (\u2022, \u25E6) para asegurar saltos de lÃ­nea y formato correcto.
+     */
+    normalizarVinetasNotebookLM(texto) {
+        // 1. Reemplazar viÃ±eta sÃ³lida "\u2022 " por salto + guiÃ³n "- "
+        // Se usa \n- para garantizar que quede en su propia lÃ­nea
+        texto = texto.replace(/\u2022 /g, '\n- ');
+
+        // 2. Reemplazar viÃ±eta hueca "\u25E6 " por salto + indentaciÃ³n + guiÃ³n
+        // Se asume nivel 1 de indentaciÃ³n (4 espacios)
+        texto = texto.replace(/\u25E6 /g, '\n    - ');
+
+        // Limpieza de posibles saltos dobles introducidos si ya habÃ­a saltos
+        texto = texto.replace(/\n\n- /g, '\n- ');
+        texto = texto.replace(/\n\n    - /g, '\n    - ');
+
+        return texto;
+    },
 };
 
 
@@ -808,6 +826,15 @@ const OPCIONES_LIMPIEZA = [
         defaultActivo: true,
         aplicarA: 'preproceso',
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarTimestampNotebookLM(texto); }
+    },
+
+    {
+        id: 'normalizar_vinetas_notebooklm',
+        label: 'Normalizar viÃ±etas (â€¢, â—¦)',
+        chatbots: ['notebooklm'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.normalizarVinetasNotebookLM(texto); }
     },
 
     // ========================================================================
@@ -3264,7 +3291,7 @@ const ChatbotRoamUI = {
 // Main entry point - registers commands with Roam
 
 const ChatbotRoamPlugin = {
-    VERSION: "1.3.6",
+    VERSION: "1.3.7",
 
     // Lista de comandos registrados (para cleanup en recargas)
     _registeredCommands: [
@@ -3293,7 +3320,7 @@ const ChatbotRoamPlugin = {
             "default-hotkey": "ctrl-shift-i"
         });
 
-        console.log('Chatbot Roam Plugin v1.3.6 loaded');
+        console.log('Chatbot Roam Plugin v1.3.7 loaded');
         console.log('   Usa Ctrl+Shift+I o busca "Importar Conversacion" en el command palette.');
     }
 };

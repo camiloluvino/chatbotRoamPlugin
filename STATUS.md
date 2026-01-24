@@ -1,7 +1,7 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.3.7** | Build: 2026-01-23
+**v1.3.7** | Build: 2026-01-24
 
 ---
 
@@ -28,6 +28,7 @@
 - **v1.3.7:**
   - **Soporte NotebookLM:** Parsing completo de exportaciones de NotebookLM (incluyendo marcadores en chino).
   - **Encoding Fix:** Solución definitiva para caracteres Unicode usando `String.fromCodePoint` para evitar corrupción en build.
+  - **Bullet Fix:** Normalización de viñetas de NotebookLM (•, ◦) para listados anidados correctos.
   - **UI Update:** Botón de preset y validación actualizada.
 - **v1.3.6:** Fix: La opción "Revisar clasificación" ahora se respeta al cargar archivo.
 - **v1.3.3:** Implementado procesamiento asíncrono y batch insertion.
@@ -38,7 +39,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-01-23 | v1.3.7: Soporte NotebookLM + Fix encoding UTF-8 en build (`String.fromCodePoint`) |
+| 2026-01-24 | v1.3.7: Soporte NotebookLM + Fix encoding UTF-8 + Fix bullets (•, ◦) |
 | 2026-01-20 | v1.3.6: Fix: La opción "Revisar clasificación" ahora se respeta al cargar archivo |
 | 2026-01-20 | v1.3.5: Editor de Clasificación ahora es una opción manual ("Revisar clasificación") desactivada por defecto |
 | 2026-01-20 | v1.3.4: Editor de Clasificación ahora aparece siempre (no solo con MCP) |

@@ -525,5 +525,23 @@ const ChatbotRoamCleaners = {
         }
 
         return resultado;
-    }
+    },
+    /**
+     * Normaliza las viñetas de NotebookLM (\u2022, \u25E6) para asegurar saltos de línea y formato correcto.
+     */
+    normalizarVinetasNotebookLM(texto) {
+        // 1. Reemplazar viñeta sólida "\u2022 " por salto + guión "- "
+        // Se usa \n- para garantizar que quede en su propia línea
+        texto = texto.replace(/\u2022 /g, '\n- ');
+
+        // 2. Reemplazar viñeta hueca "\u25E6 " por salto + indentación + guión
+        // Se asume nivel 1 de indentación (4 espacios)
+        texto = texto.replace(/\u25E6 /g, '\n    - ');
+
+        // Limpieza de posibles saltos dobles introducidos si ya había saltos
+        texto = texto.replace(/\n\n- /g, '\n- ');
+        texto = texto.replace(/\n\n    - /g, '\n    - ');
+
+        return texto;
+    },
 };

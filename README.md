@@ -46,6 +46,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 | Imágenes Base64 | Elimina imágenes embedidas |
 | Header NotebookLM | Elimina YAML y título exportado |
 | Timestamps NotebookLM | Elimina timestamps de sección |
+| Normalizar viñetas (NotebookLM) | Convierte bullets • y ◦ a estructura Roam |
 
 ## 🔄 Editor de Clasificación (Opcional)
 
