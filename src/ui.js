@@ -14,7 +14,9 @@ const ChatbotRoamUI = {
     _searchMatches: [],      // Posiciones de coincidencias
     _currentMatchIndex: -1,  // Índice actual
     _isCut: false,           // Si ya se cortó
+    _isCut: false,           // Si ya se cortó
     _boundEscHandler: null,  // Referencia al handler de ESC para cleanup
+    _activeCancelToken: null, // Token para cancelar insercion en curso
 
 
     // CREAR MODAL
@@ -43,7 +45,10 @@ const ChatbotRoamUI = {
         this._originalProcessedContent = null;
         this._searchMatches = [];
         this._currentMatchIndex = -1;
+        this._searchMatches = [];
+        this._currentMatchIndex = -1;
         this._isCut = false;
+        this._activeCancelToken = null;
 
         // Crear modal
         this._modalContainer = document.createElement('div');
@@ -861,12 +866,21 @@ const ChatbotRoamUI = {
         insertBtn.textContent = 'Insertando... (0%)';
         this._toggleInputs(false);
 
-        // Insertar usando el Inserter con soporte de rollback y batching
-        const result = await ChatbotRoamInserter.insertBlocksRecursively(parentUid, bloques, 0, (count, total) => {
+        // Crear token de cancelacion
+        this._activeCancelToken = { cancelled: false };
+
+        // Insertar usando el Inserter con soporte de rollback, batching y cancelacion
+        const result = await ChatbotRoamInserter.insertBlocksRecursively(parentUid, bloques, 0, this._activeCancelToken, (count, total) => {
+            // Verificar si el modal aun existe (por si se cancelo y cerro)
+            if (!this._modalContainer) return;
+
             // Actualizar porcentaje
             const percent = Math.round((count / total) * 100);
             insertBtn.textContent = `Insertando... (${percent}%)`;
         });
+
+        // Limpiar token
+        this._activeCancelToken = null;
 
         if (result.success) {
             // Cerrar modal tras exito
@@ -875,13 +889,24 @@ const ChatbotRoamUI = {
             // Notificar al usuario (podriamos usar un toast de Roam si existiera API publica, por ahora alert o nada)
             console.log(`Chatbot Roam Plugin: ${result.insertedCount} bloques insertados correctamente.`);
         } else {
+            // Verificar si el modal aun existe antes de intentar actualizar UI
+            if (!this._modalContainer) return;
+
             // Mostrar error y rollback info
-            let msg = 'Error al insertar bloques: ' + result.error;
+            let msg = '';
+
+            if (result.error === 'OPERACION_CANCELADA_POR_USUARIO') {
+                msg = 'Operacion cancelada por el usuario.';
+            } else {
+                msg = 'Error al insertar bloques: ' + result.error;
+            }
+
             if (result.rolledBackCount > 0) {
-                msg += '\n\nSe realizo un ROLLBACK automatico eliminando ' + result.rolledBackCount + ' bloques parciales.';
+                msg += '\n\nSe realizo una limpieza automatica (ROLLBACK) eliminando ' + result.rolledBackCount + ' bloques parciales.';
             } else {
                 msg += '\n\nNo se insertaron bloques (limpio).';
             }
+
             alert(msg);
 
             // Restaurar UI
@@ -893,6 +918,14 @@ const ChatbotRoamUI = {
     // CLOSE MODAL
     closeModal() {
         const savedUid = this._savedBlockUid;
+
+        // Si hay una insercion activa, cancelarla
+        if (this._activeCancelToken) {
+            console.log('Cancelando insercion en curso...');
+            this._activeCancelToken.cancelled = true;
+            // No esperamos al rollback aqui, "fire and forget"
+            // El usuario recibe feedback visual inmediato de cierre
+        }
 
         // Limpiar event listener SIEMPRE (incluso si modal ya no existe)
         if (this._boundEscHandler) {

@@ -1,17 +1,19 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.3.7** | Build: 2026-01-24
-
+**v1.3.8** | Build: 2026-01-25
+|
 ---
 
 ## 🚀 Estado
 - **Funcionalidad:** Estable
-- **Pruebas:** NotebookLM validado con archivo de usuario (soporte UTF-8 completo).
+- **Pruebas:** NotebookLM validado con archivo de usuario (soporte UTF-8 completo). Cancelación validada.
 
 ## Estado de Funcionalidades
 
 ### ✅ Funcionando
+- **Rate Limit Safe:** Límite estricto de 22 ops/seg para evitar errores de API Roam (v1.3.8)
+- **Cancelación Real:** Botón cancelar detiene proceso y limpia basura (v1.3.8)
 - Drag & drop de archivos .md
 - Auto-detección de tipo de chatbot (Claude, ChatGPT, Gemini, Antigravity, **NotebookLM**)
 - 17 opciones de limpieza configurables (registro centralizado)
@@ -25,14 +27,15 @@
 - Procesamiento asíncrono y por lotes (v1.3.3)
 
 ## 📋 Cambios Recientes
+- **v1.3.8:**
+  - **Rate Limit Protection:** Velocidad de inserción ajustada a 22 ops/seg (1320/min) para respetar límite de Roam API (1500/min).
+  - **Cancelación Segura:** Ahora es posible cancelar una importación en curso. Incluye rollback automático (limpieza de bloques parciales).
+  - **Rollback Throttled:** La limpieza tras error/cancelación también respeta la velocidad segura.
 - **v1.3.7:**
   - **Soporte NotebookLM:** Parsing completo de exportaciones de NotebookLM (incluyendo marcadores en chino).
-  - **Encoding Fix:** Solución definitiva para caracteres Unicode usando `String.fromCodePoint` y cargando fuentes con `-Encoding UTF8` en el script de build.
-  - **Robustez UI:** Uso de escapes Unicode (`\u00f3`, etc.) en etiquetas para evitar mangling en entornos Roam.
-  - **Bullet Fix:** Normalización de viñetas de NotebookLM (•, ◦) para listados anidados correctos.
-  - **UI Update:** Botón de preset y validación actualizada.
+  - **Encoding Fix:** Solución definitiva para caracteres Unicode.
+  - **Robustez UI:** Uso de escapes Unicode.
 - **v1.3.6:** Fix: La opción "Revisar clasificación" ahora se respeta al cargar archivo.
-- **v1.3.3:** Implementado procesamiento asíncrono y batch insertion.
 
 ---
 
@@ -40,6 +43,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-01-25 | v1.3.8: Tasa de 22 ops/s para evitar errores API + Cancelación real con rollback seguro |
 | 2026-01-24 | v1.3.7: Soporte NotebookLM + Fix encoding UTF-8 (build.ps1) + Unicode escapes en UI |
 | 2026-01-20 | v1.3.6: Fix: La opción "Revisar clasificación" ahora se respeta al cargar archivo |
 | 2026-01-20 | v1.3.5: Editor de Clasificación ahora es una opción manual ("Revisar clasificación") desactivada por defecto |

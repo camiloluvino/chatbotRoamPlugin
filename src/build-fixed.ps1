@@ -3,7 +3,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$version = "1.3.6"
+$version = "1.3.8"
 $srcDir = $PSScriptRoot
 $outputFile = Join-Path $srcDir "..\chatbot-roam-plugin.js"
 

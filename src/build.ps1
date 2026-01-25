@@ -1,7 +1,7 @@
 # Build script for Chatbot Roam Plugin
 # Concatenates all source files into a single bundle
 
-$version = "1.3.7"
+$version = "1.3.8"
 $outputFile = "..\chatbot-roam-plugin.js"
 $srcDir = "."
 

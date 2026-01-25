@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.3.7
+// CHATBOT ROAM PLUGIN v1.3.8
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-01-24 14:39:23
+// Generated: 2026-01-25 03:46:17
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -2009,7 +2009,7 @@ const ChatbotRoamStyles = {
 };
 
 
-// --- roam/parser.js ---
+// --- roam\parser.js ---
 // ============================================================================
 // CHATBOT ROAM PLUGIN - ROAM PARSER
 // Converts lines into hierarchical block structure for Roam
@@ -2197,7 +2197,7 @@ const ChatbotRoamParser = {
 };
 
 
-// --- roam/inserter.js ---
+// --- roam\inserter.js ---
 // ============================================================================
 // CHATBOT ROAM PLUGIN - ROAM INSERTER
 // Handles block insertion into Roam using the Roam Alpha API
@@ -2205,12 +2205,14 @@ const ChatbotRoamParser = {
 // ============================================================================
 
 const ChatbotRoamInserter = {
-    // Configuracion de batching
-    BATCH_SIZE: 50,
-    BATCH_DELAY_MS: 50,
+    // Configuracion de batching (Ajustado para Roam Rate Limit 1500/min)
+    // 22 ops * 60 seg = 1320 ops/min (Margen de seguridad del 12%)
+    BATCH_SIZE: 22,
+    BATCH_DELAY_MS: 1000,
 
     /**
      * Elimina bloques por sus UIDs (para rollback en caso de error)
+     * Aplica throttling para evitar saturar rate limit durante limpieza
      * @param {Array<string>} uids - Array de UIDs a eliminar
      * @returns {Promise<number>} - Numero de bloques eliminados exitosamente
      * @private
@@ -2221,6 +2223,15 @@ const ChatbotRoamInserter = {
 
         // Eliminar en orden inverso para evitar problemas con padres/hijos
         for (let i = uids.length - 1; i >= 0; i--) {
+            // Aplicar Rate Limiting tambien al borrar
+            // Cada BATCH_SIZE bloques, esperar BATCH_DELAY_MS
+            // i es indice decreciente, asi que chequeamos modulos
+            // (uids.length - 1 - i) es el contador de operaciones realizadas
+            const opsCount = (uids.length - 1) - i;
+            if (opsCount > 0 && opsCount % this.BATCH_SIZE === 0) {
+                await this._delay(this.BATCH_DELAY_MS);
+            }
+
             const uid = uids[i];
             try {
                 await window.roamAlphaAPI.data.block.delete({ block: { uid: uid } });
@@ -2241,22 +2252,24 @@ const ChatbotRoamInserter = {
     },
 
     /**
-     * Inserta bloques recursivamente en Roam con soporte de rollback y batching
-     * Si ocurre un error, automaticamente elimina los bloques ya insertados
+     * Inserta bloques recursivamente en Roam con soporte de rollback, batching y cancelacion
+     * Si ocurre un error o se cancela, automaticamente elimina los bloques ya insertados
      * 
      * @param {string} parentUid - UID del bloque padre
      * @param {Array} bloques - Array de bloques a insertar
      * @param {number} startOrder - Orden inicial para los bloques
+     * @param {Object} cancelToken - Objeto { cancelled: boolean } compartido con UI
      * @param {Function} onProgress - Callback opcional (insertedCount, total) => void
      * @returns {Promise<Object>} - { success, insertedBlocks, insertedCount, error, rolledBackCount }
      */
-    async insertBlocksRecursively(parentUid, bloques, startOrder, onProgress) {
+    async insertBlocksRecursively(parentUid, bloques, startOrder, cancelToken, onProgress) {
         // Estado GLOBAL de insercion para este proceso
         // Pasado por referencia a todas las llamadas recursivas
         const context = {
             allInsertedUids: [],
             totalOpsEstimate: this._estimateTotalBlocks(bloques),
-            opsCount: 0
+            opsCount: 0,
+            cancelToken: cancelToken
         };
 
         try {
@@ -2271,6 +2284,12 @@ const ChatbotRoamInserter = {
         } catch (error) {
             // Error durante insercion - hacer rollback GLOBAL
             console.error('Error durante insercion, iniciando rollback de ' + context.allInsertedUids.length + ' bloques...');
+
+            // Si es cancelacion, mostrar mensaje especifico en log
+            if (error.message === 'OPERACION_CANCELADA_POR_USUARIO') {
+                console.info('Causa: Cancelacion por usuario');
+            }
+
             const rolledBack = await this._rollbackBlocks(context.allInsertedUids);
             console.log('Rollback completado: ' + rolledBack + '/' + context.allInsertedUids.length + ' bloques eliminados');
 
@@ -2299,17 +2318,27 @@ const ChatbotRoamInserter = {
     },
 
     /**
-     * Logica interna de insercion recursiva con batching
+     * Logica interna de insercion recursiva con batching y cancelacion
      * @private
      */
     async _insertBlocksInternal(parentUid, bloques, startOrder, context, onProgress) {
         const insertedBlocks = [];
 
         for (let i = 0; i < bloques.length; i++) {
-            // Check batch limit
+            // 1. Verificar Cancelacion
+            if (context.cancelToken && context.cancelToken.cancelled) {
+                throw new Error('OPERACION_CANCELADA_POR_USUARIO');
+            }
+
+            // 2. Check batch limit (Rate Limiting)
             if (context.opsCount > 0 && context.opsCount % this.BATCH_SIZE === 0) {
-                // Yield al UI thread
+                // Yield al UI thread y esperar para respetar rate limit
                 await this._delay(this.BATCH_DELAY_MS);
+            }
+
+            // Verificar Cancelacion de nuevo tras el delay (ui input puede haber ocurrido)
+            if (context.cancelToken && context.cancelToken.cancelled) {
+                throw new Error('OPERACION_CANCELADA_POR_USUARIO');
             }
 
             const bloque = bloques[i];
@@ -2348,8 +2377,11 @@ const ChatbotRoamInserter = {
             context.opsCount++;
 
             // Reportar progreso
-            if (onProgress && context.opsCount % 10 === 0) {
-                onProgress(context.opsCount, context.totalOpsEstimate);
+            if (onProgress) {
+                // Reportar cada bloque o cada pocos bloques
+                if (context.opsCount % 2 === 0 || context.opsCount === context.totalOpsEstimate) {
+                    onProgress(context.opsCount, context.totalOpsEstimate);
+                }
             }
 
             // Insertar hijos recursivamente
@@ -2381,7 +2413,9 @@ const ChatbotRoamUI = {
     _searchMatches: [],      // Posiciones de coincidencias
     _currentMatchIndex: -1,  // Índice actual
     _isCut: false,           // Si ya se cortó
+    _isCut: false,           // Si ya se cortó
     _boundEscHandler: null,  // Referencia al handler de ESC para cleanup
+    _activeCancelToken: null, // Token para cancelar insercion en curso
 
 
     // CREAR MODAL
@@ -2410,7 +2444,10 @@ const ChatbotRoamUI = {
         this._originalProcessedContent = null;
         this._searchMatches = [];
         this._currentMatchIndex = -1;
+        this._searchMatches = [];
+        this._currentMatchIndex = -1;
         this._isCut = false;
+        this._activeCancelToken = null;
 
         // Crear modal
         this._modalContainer = document.createElement('div');
@@ -3228,12 +3265,21 @@ const ChatbotRoamUI = {
         insertBtn.textContent = 'Insertando... (0%)';
         this._toggleInputs(false);
 
-        // Insertar usando el Inserter con soporte de rollback y batching
-        const result = await ChatbotRoamInserter.insertBlocksRecursively(parentUid, bloques, 0, (count, total) => {
+        // Crear token de cancelacion
+        this._activeCancelToken = { cancelled: false };
+
+        // Insertar usando el Inserter con soporte de rollback, batching y cancelacion
+        const result = await ChatbotRoamInserter.insertBlocksRecursively(parentUid, bloques, 0, this._activeCancelToken, (count, total) => {
+            // Verificar si el modal aun existe (por si se cancelo y cerro)
+            if (!this._modalContainer) return;
+
             // Actualizar porcentaje
             const percent = Math.round((count / total) * 100);
             insertBtn.textContent = `Insertando... (${percent}%)`;
         });
+
+        // Limpiar token
+        this._activeCancelToken = null;
 
         if (result.success) {
             // Cerrar modal tras exito
@@ -3242,13 +3288,24 @@ const ChatbotRoamUI = {
             // Notificar al usuario (podriamos usar un toast de Roam si existiera API publica, por ahora alert o nada)
             console.log(`Chatbot Roam Plugin: ${result.insertedCount} bloques insertados correctamente.`);
         } else {
+            // Verificar si el modal aun existe antes de intentar actualizar UI
+            if (!this._modalContainer) return;
+
             // Mostrar error y rollback info
-            let msg = 'Error al insertar bloques: ' + result.error;
+            let msg = '';
+
+            if (result.error === 'OPERACION_CANCELADA_POR_USUARIO') {
+                msg = 'Operacion cancelada por el usuario.';
+            } else {
+                msg = 'Error al insertar bloques: ' + result.error;
+            }
+
             if (result.rolledBackCount > 0) {
-                msg += '\n\nSe realizo un ROLLBACK automatico eliminando ' + result.rolledBackCount + ' bloques parciales.';
+                msg += '\n\nSe realizo una limpieza automatica (ROLLBACK) eliminando ' + result.rolledBackCount + ' bloques parciales.';
             } else {
                 msg += '\n\nNo se insertaron bloques (limpio).';
             }
+
             alert(msg);
 
             // Restaurar UI
@@ -3260,6 +3317,14 @@ const ChatbotRoamUI = {
     // CLOSE MODAL
     closeModal() {
         const savedUid = this._savedBlockUid;
+
+        // Si hay una insercion activa, cancelarla
+        if (this._activeCancelToken) {
+            console.log('Cancelando insercion en curso...');
+            this._activeCancelToken.cancelled = true;
+            // No esperamos al rollback aqui, "fire and forget"
+            // El usuario recibe feedback visual inmediato de cierre
+        }
 
         // Limpiar event listener SIEMPRE (incluso si modal ya no existe)
         if (this._boundEscHandler) {
