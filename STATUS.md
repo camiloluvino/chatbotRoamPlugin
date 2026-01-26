@@ -1,17 +1,18 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.3.8** | Build: 2026-01-25
+**v1.3.9** | Build: 2026-01-26
 |
 ---
 
 ## 🚀 Estado
 - **Funcionalidad:** Estable
-- **Pruebas:** NotebookLM validado con archivo de usuario (soporte UTF-8 completo). Cancelación validada.
+- **Pruebas:** NotebookLM validado con archivo de usuario (soporte UTF-8 completo + limpieza de escapes). Cancelación validada.
 
 ## Estado de Funcionalidades
 
 ### ✅ Funcionando
+- **NotebookLM Polish (v1.3.9):** Limpieza visual de listas numeradas escapadas (`1\.` -> `1.`) y detección robusta.
 - **Rate Limit Safe:** Límite estricto de 22 ops/seg para evitar errores de API Roam (v1.3.8)
 - **Cancelación Real:** Botón cancelar detiene proceso y limpia basura (v1.3.8)
 - Drag & drop de archivos .md
@@ -27,6 +28,9 @@
 - Procesamiento asíncrono y por lotes (v1.3.3)
 
 ## 📋 Cambios Recientes
+- **v1.3.9:**
+  - **NotebookLM Formatting:** Limpieza de escapes innecesarios (e.g. `1\.` a `1.`) en exportaciones de NotebookLM para mejorar legibilidad.
+  - **Detección Mejorada:** Lógica de detección NotebookLM integrada en el flujo de limpieza principal.
 - **v1.3.8:**
   - **Rate Limit Protection:** Velocidad de inserción ajustada a 22 ops/seg (1320/min) para respetar límite de Roam API (1500/min).
   - **Cancelación Segura:** Ahora es posible cancelar una importación en curso. Incluye rollback automático (limpieza de bloques parciales).

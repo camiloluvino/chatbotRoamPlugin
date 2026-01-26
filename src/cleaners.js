@@ -399,6 +399,17 @@ const ChatbotRoamCleaners = {
         return texto.replace(/^## [^\n]*(?:Today|Yesterday|AM|PM)[^\n]*\n*/gm, '');
     },
 
+    /**
+     * Limpia escapes innecesarios de NotebookLM, como "1\." que debería ser "1."
+     */
+    limpiarEscapesNotebookLM(texto) {
+        // Reemplazar "numero\." por "numero."
+        texto = texto.replace(/(\d+)\\\./g, '$1.');
+        // Reemplazar "\-" por "-" (por si acaso)
+        texto = texto.replace(/\\-/g, '-');
+        return texto;
+    },
+
     // ========================================================================
     // CONVERSIÓN DE TABLAS MARKDOWN A ROAM
     // ========================================================================

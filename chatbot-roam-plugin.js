@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.3.8
+// CHATBOT ROAM PLUGIN v1.3.9
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-01-25 03:46:17
+// Generated: 2026-01-26 03:21:53
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -22,7 +22,7 @@ const NOTEBOOKLM_ASSISTANT = String.fromCharCode(0x52A9, 0x624B);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.3.7",
+    VERSION: "1.3.9",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -496,6 +496,17 @@ const ChatbotRoamCleaners = {
     eliminarTimestampNotebookLM(texto) {
         // Eliminar líneas tipo "## 🕒 Today • 3:06 PM" o similares
         return texto.replace(/^## [^\n]*(?:Today|Yesterday|AM|PM)[^\n]*\n*/gm, '');
+    },
+
+    /**
+     * Limpia escapes innecesarios de NotebookLM, como "1\." que debería ser "1."
+     */
+    limpiarEscapesNotebookLM(texto) {
+        // Reemplazar "numero\." por "numero."
+        texto = texto.replace(/(\d+)\\\./g, '$1.');
+        // Reemplazar "\-" por "-" (por si acaso)
+        texto = texto.replace(/\\-/g, '-');
+        return texto;
     },
 
     // ========================================================================
@@ -1314,6 +1325,9 @@ const ChatbotRoamProcessing = {
             contenido = ChatbotRoamCleaners.eliminarImagenesEmbedidas(contenido);
         }
 
+        // Detectar si es NotebookLM (para aplicar limpieza específica en el loop)
+        const esNotebookLM = ChatbotRoamPatterns.isNotebookLM(contenido);
+
         // Extraer conversación
         const conversacionRaw = this.extraerConversacionRaw(contenido);
 
@@ -1336,7 +1350,7 @@ const ChatbotRoamProcessing = {
             let promptLimpio = this._limpiarPrompt(rawPrompt, opciones);
 
             // --- LIMPIAR RESPUESTA ---
-            let responseLimpio = this._limpiarRespuesta(rawResponse, opciones);
+            let responseLimpio = this._limpiarRespuesta(rawResponse, opciones, esNotebookLM);
 
             // --- FORMATEAR PARA ROAM (usa modulo Formatter) ---
             const lineasFormateadas = ChatbotRoamFormatter.formatExchange(promptLimpio, responseLimpio);
@@ -1367,7 +1381,7 @@ const ChatbotRoamProcessing = {
      * Limpia una respuesta aplicando las opciones seleccionadas
      * @private
      */
-    _limpiarRespuesta(rawResponse, opciones) {
+    _limpiarRespuesta(rawResponse, opciones, esNotebookLM = false) {
         let responseTemp = rawResponse;
 
         // Aplicar cleaners del registro centralizado
@@ -1375,6 +1389,12 @@ const ChatbotRoamProcessing = {
 
         // Limpiar formato básico
         responseTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(responseTemp);
+
+        // Limpieza específica para NotebookLM (escapes)
+        if (esNotebookLM) {
+            responseTemp = ChatbotRoamCleaners.limpiarEscapesNotebookLM(responseTemp);
+        }
+
         return ChatbotRoamCleaners.limpiarContenido(responseTemp);
     },
 
