@@ -47,6 +47,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-01-26 | Reorganización del proyecto (`docs/`, `data/`) y actualización de documentación |
 | 2026-01-25 | v1.3.8: Tasa de 22 ops/s para evitar errores API + Cancelación real con rollback seguro |
 | 2026-01-24 | v1.3.7: Soporte NotebookLM + Fix encoding UTF-8 (build.ps1) + Unicode escapes en UI |
 | 2026-01-20 | v1.3.6: Fix: La opción "Revisar clasificación" ahora se respeta al cargar archivo |

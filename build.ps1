@@ -3,7 +3,7 @@
 
 $version = "1.3.8"
 $outputFile = "..\chatbot-roam-plugin.js"
-$srcDir = "."
+$srcDir = ".\src"
 
 # Source files in order of dependencies
 $sourceFiles = @(

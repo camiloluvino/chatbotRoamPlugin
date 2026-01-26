@@ -69,8 +69,12 @@ Algunos exportadores pueden invertir el orden de los mensajes (confundir Prompt 
 
 ### Estructura
 
+### Estructura
+
 ```
 chatbotRoamPlugin/
+├── docs/                 # Documentación y referencias
+├── data/                 # Archivos de ejemplo y exports
 ├── src/
 │   ├── patterns.js           # Regex compilados
 │   ├── cleaners.js           # Funciones de limpieza
@@ -83,7 +87,7 @@ chatbotRoamPlugin/
 │   │   └── inserter.js       # Inserción con rollback
 │   ├── ui.js                 # Modal y componentes UI
 │   ├── index.js              # Entrada, registro comandos
-│   └── build.ps1             # Script de build
+├── build.ps1             # Script de build
 ├── chatbot-roam-plugin.js    # Bundle final
 └── README.md
 ```
@@ -91,7 +95,6 @@ chatbotRoamPlugin/
 ### Build
 
 ```powershell
-cd src
 .\build.ps1
 ```
 

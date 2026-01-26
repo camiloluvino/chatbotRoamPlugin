@@ -11,8 +11,8 @@ Plugin para Roam Research que importa conversaciones exportadas de chatbots (Cla
 
 ### Flujo de trabajo obligatorio
 1. Editar archivos en `src/`
-2. Ejecutar `.\build.ps1` desde `src/`
-3. Probar en Roam con archivo de ejemplo
+2. Ejecutar `.\build.ps1` desde la raíz
+3. Probar en Roam con archivo de ejemplo (`data/`)
 4. Commit
 
 > [!CAUTION]
@@ -91,7 +91,7 @@ const BT3 = '```';
 La versión `1.0.0` está definida en 3 lugares (mantener sincronizados):
 - `src/patterns.js` → `ChatbotRoamPatterns.VERSION`
 - `src/index.js` → `ChatbotRoamPlugin.VERSION`  
-- `src/build.ps1` → `$version`
+- `build.ps1` → `$version`
 
 ### Idioma del código
 - Funciones y variables: **Español**
