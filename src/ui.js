@@ -578,6 +578,10 @@ const ChatbotRoamUI = {
             this._currentOpciones = ChatbotRoamProcessing.getPresetOpciones(preset);
         }
 
+        // Limpiar editor de clasificación si existe (los presets siempre lo desactivan)
+        const editorPanel = this._modalContainer.querySelector('.chatbot-roam-editor-panel');
+        if (editorPanel) editorPanel.remove();
+
         // Update checkboxes
         this._modalContainer.querySelectorAll('[data-option]').forEach(checkbox => {
             const option = checkbox.dataset.option;
@@ -595,6 +599,20 @@ const ChatbotRoamUI = {
         });
 
         if (this._fileContent) {
+            const revisarActivo = this._currentOpciones['revisar_clasificacion'];
+            const editorExiste = !!this._modalContainer.querySelector('.chatbot-roam-editor-panel');
+
+            if (revisarActivo && !editorExiste) {
+                // Usuario acaba de marcar la opción → mostrar editor
+                this._mostrarEditorClasificacion();
+                return;
+            }
+
+            if (!revisarActivo && editorExiste) {
+                // Usuario desmarcó → quitar editor y re-procesar
+                this._modalContainer.querySelector('.chatbot-roam-editor-panel').remove();
+            }
+
             this._processAndPreview();
         }
     },

@@ -145,6 +145,20 @@ const ChatbotRoamStyles = {
                 accent-color: #e94560;
             }
 
+            .chatbot-roam-option-highlight {
+                grid-column: 1 / -1;
+                background: rgba(255, 165, 0, 0.08);
+                border: 1px solid rgba(255, 165, 0, 0.3);
+                border-radius: 6px;
+                padding: 6px 10px;
+                color: #FFA500;
+                font-weight: 600;
+            }
+
+            .chatbot-roam-option-highlight input[type="checkbox"] {
+                accent-color: #FFA500;
+            }
+
             .chatbot-roam-presets {
                 display: flex;
                 gap: 8px;

@@ -15,6 +15,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 - 📐 **Indentación bajo headings** - El contenido bajo headings markdown (`#`, `##`, `###`) se anida automáticamente
 - 🚀 **Rate Limit Safe (v1.3.8)** - Velocidad optimizada (22 ops/s) para evitar errores de API al importar archivos masivos.
 - 🧹 **NotebookLM Limpio (v1.3.9)** - Elimina escapes visuales molestos (ej: `1\.` a `1.`) y mejora la detección de formato.
+- ⚡ **Selector Manual Reactivo (v1.4.0)** - Activa/desactiva la revisión manual en tiempo real sin recargar el archivo.
 - 🛑 **Cancelación Segura** - Detén la importación en cualquier momento con rollback automático.
 
 ## 🚀 Instalación
@@ -59,8 +60,8 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 
 Algunos exportadores pueden invertir el orden de los mensajes (confundir Prompt con Response). Para verificar esto manualmente antes de procesar:
 
-1. Marca la opción **"Revisar clasificación (Prompt/Response)"** en el modal.
-2. Arrastra tu archivo.
+1. Marca la opción **"Revisar clasificación (Prompt/Response)"** en el modal (ahora destacada en naranja).
+2. Puedes marcarla **antes o después** de cargar el archivo.
 3. Se abrirá el **Editor de Clasificación** donde podrás verificar y corregir visualmente.
 4. Si encuentras errores, usa los botones **[⇄]** o **[↓↓]** para corregirlos.
 

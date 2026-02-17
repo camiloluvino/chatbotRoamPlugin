@@ -268,7 +268,8 @@ const ChatbotRoamOpciones = {
             // No mostrar opciones de preproceso (son internas)
             if (opcion.aplicarA === 'preproceso') continue;
 
-            html += '<label class="chatbot-roam-option">' +
+            var extraClass = opcion.id === 'revisar_clasificacion' ? ' chatbot-roam-option-highlight' : '';
+            html += '<label class="chatbot-roam-option' + extraClass + '">' +
                 '<input type="checkbox" data-option="' + opcion.id + '">' +
                 opcion.label +
                 '</label>';

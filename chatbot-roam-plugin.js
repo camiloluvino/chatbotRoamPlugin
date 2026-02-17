@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.3.9
+// CHATBOT ROAM PLUGIN v1.4.0
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-01-26 12:50:59
+// Generated: 2026-02-17 02:45:24
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -928,7 +928,8 @@ const ChatbotRoamOpciones = {
             // No mostrar opciones de preproceso (son internas)
             if (opcion.aplicarA === 'preproceso') continue;
 
-            html += '<label class="chatbot-roam-option">' +
+            var extraClass = opcion.id === 'revisar_clasificacion' ? ' chatbot-roam-option-highlight' : '';
+            html += '<label class="chatbot-roam-option' + extraClass + '">' +
                 '<input type="checkbox" data-option="' + opcion.id + '">' +
                 opcion.label +
                 '</label>';
@@ -1586,6 +1587,20 @@ const ChatbotRoamStyles = {
 
             .chatbot-roam-option input[type="checkbox"] {
                 accent-color: #e94560;
+            }
+
+            .chatbot-roam-option-highlight {
+                grid-column: 1 / -1;
+                background: rgba(255, 165, 0, 0.08);
+                border: 1px solid rgba(255, 165, 0, 0.3);
+                border-radius: 6px;
+                padding: 6px 10px;
+                color: #FFA500;
+                font-weight: 600;
+            }
+
+            .chatbot-roam-option-highlight input[type="checkbox"] {
+                accent-color: #FFA500;
             }
 
             .chatbot-roam-presets {
@@ -2997,6 +3012,10 @@ const ChatbotRoamUI = {
             this._currentOpciones = ChatbotRoamProcessing.getPresetOpciones(preset);
         }
 
+        // Limpiar editor de clasificación si existe (los presets siempre lo desactivan)
+        const editorPanel = this._modalContainer.querySelector('.chatbot-roam-editor-panel');
+        if (editorPanel) editorPanel.remove();
+
         // Update checkboxes
         this._modalContainer.querySelectorAll('[data-option]').forEach(checkbox => {
             const option = checkbox.dataset.option;
@@ -3014,6 +3033,20 @@ const ChatbotRoamUI = {
         });
 
         if (this._fileContent) {
+            const revisarActivo = this._currentOpciones['revisar_clasificacion'];
+            const editorExiste = !!this._modalContainer.querySelector('.chatbot-roam-editor-panel');
+
+            if (revisarActivo && !editorExiste) {
+                // Usuario acaba de marcar la opción → mostrar editor
+                this._mostrarEditorClasificacion();
+                return;
+            }
+
+            if (!revisarActivo && editorExiste) {
+                // Usuario desmarcó → quitar editor y re-procesar
+                this._modalContainer.querySelector('.chatbot-roam-editor-panel').remove();
+            }
+
             this._processAndPreview();
         }
     },
@@ -3376,7 +3409,7 @@ const ChatbotRoamUI = {
 // Main entry point - registers commands with Roam
 
 const ChatbotRoamPlugin = {
-    VERSION: "1.3.7",
+    VERSION: "1.4.0",
 
     // Lista de comandos registrados (para cleanup en recargas)
     _registeredCommands: [
@@ -3405,7 +3438,7 @@ const ChatbotRoamPlugin = {
             "default-hotkey": "ctrl-shift-i"
         });
 
-        console.log('Chatbot Roam Plugin v1.3.7 loaded');
+        console.log('Chatbot Roam Plugin v1.4.0 loaded');
         console.log('   Usa Ctrl+Shift+I o busca "Importar Conversacion" en el command palette.');
     }
 };
