@@ -12,8 +12,8 @@ const ChatbotRoamStyles = {
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.6);
-                backdrop-filter: blur(4px);
+                background: rgba(7, 54, 66, 0.85);
+                backdrop-filter: blur(6px);
                 z-index: 10000;
                 display: flex;
                 align-items: center;
@@ -21,13 +21,13 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-modal {
-                background: #1a1a2e;
-                border-radius: 12px;
+                background: #002b36;
+                border-radius: 8px;
                 width: 900px;
                 max-width: 90vw;
                 max-height: 90vh;
                 overflow: hidden;
-                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(88, 110, 117, 0.3);
                 display: flex;
                 flex-direction: column;
             }
@@ -36,30 +36,32 @@ const ChatbotRoamStyles = {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 16px 20px;
-                background: #16213e;
-                border-bottom: 1px solid #0f3460;
+                padding: 14px 20px;
+                background: #073642;
+                border-bottom: 1px solid #586e75;
             }
 
             .chatbot-roam-title {
-                color: #e94560;
-                font-size: 18px;
+                color: #b58900;
+                font-size: 16px;
                 font-weight: 600;
                 margin: 0;
+                letter-spacing: 0.3px;
             }
 
             .chatbot-roam-close {
                 background: transparent;
                 border: none;
-                color: #888;
-                font-size: 24px;
+                color: #657b83;
+                font-size: 22px;
                 cursor: pointer;
                 padding: 0;
                 line-height: 1;
+                transition: color 0.15s;
             }
 
             .chatbot-roam-close:hover {
-                color: #e94560;
+                color: #cb4b16;
             }
 
             .chatbot-roam-body {
@@ -69,58 +71,59 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-dropzone {
-                border: 2px dashed #0f3460;
-                border-radius: 8px;
+                border: 2px dashed #586e75;
+                border-radius: 6px;
                 padding: 40px 20px;
                 text-align: center;
                 cursor: pointer;
-                transition: all 0.3s ease;
-                background: #16213e;
+                transition: all 0.2s ease;
+                background: #073642;
             }
 
             .chatbot-roam-dropzone:hover,
             .chatbot-roam-dropzone.dragover {
-                border-color: #e94560;
-                background: rgba(233, 69, 96, 0.1);
+                border-color: #2aa198;
+                background: rgba(42, 161, 152, 0.08);
             }
 
             .chatbot-roam-dropzone-icon {
-                font-size: 48px;
+                font-size: 42px;
                 margin-bottom: 12px;
+                color: #657b83;
             }
 
             .chatbot-roam-dropzone-text {
-                color: #aaa;
+                color: #93a1a1;
                 font-size: 14px;
             }
 
             .chatbot-roam-dropzone-text strong {
-                color: #e94560;
+                color: #2aa198;
             }
 
             .chatbot-roam-file-loaded {
-                background: rgba(76, 175, 80, 0.1);
-                border-color: #4CAF50;
+                background: rgba(42, 161, 152, 0.1);
+                border-color: #2aa198;
             }
 
             .chatbot-roam-file-loaded .chatbot-roam-dropzone-icon {
-                color: #4CAF50;
+                color: #2aa198;
             }
 
             .chatbot-roam-file-error {
-                background: rgba(233, 69, 96, 0.1);
-                border-color: #e94560;
+                background: rgba(203, 75, 22, 0.1);
+                border-color: #cb4b16;
             }
 
             .chatbot-roam-file-error .chatbot-roam-dropzone-icon {
-                color: #e94560;
+                color: #cb4b16;
                 font-size: 36px;
                 font-weight: bold;
             }
 
             .chatbot-roam-section-title {
-                color: #e94560;
-                font-size: 14px;
+                color: #b58900;
+                font-size: 13px;
                 font-weight: 600;
                 margin: 20px 0 12px 0;
                 text-transform: uppercase;
@@ -137,26 +140,26 @@ const ChatbotRoamStyles = {
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                color: #ccc;
+                color: #93a1a1;
                 font-size: 13px;
             }
 
             .chatbot-roam-option input[type="checkbox"] {
-                accent-color: #e94560;
+                accent-color: #2aa198;
             }
 
             .chatbot-roam-option-highlight {
                 grid-column: 1 / -1;
-                background: rgba(255, 165, 0, 0.08);
-                border: 1px solid rgba(255, 165, 0, 0.3);
+                background: rgba(203, 75, 22, 0.08);
+                border: 1px solid rgba(203, 75, 22, 0.25);
                 border-radius: 6px;
                 padding: 6px 10px;
-                color: #FFA500;
+                color: #cb4b16;
                 font-weight: 600;
             }
 
             .chatbot-roam-option-highlight input[type="checkbox"] {
-                accent-color: #FFA500;
+                accent-color: #cb4b16;
             }
 
             .chatbot-roam-presets {
@@ -167,38 +170,38 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-preset-btn {
-                background: #0f3460;
-                border: 1px solid #16213e;
-                color: #aaa;
+                background: transparent;
+                border: 1px solid #586e75;
+                color: #93a1a1;
                 padding: 6px 14px;
-                border-radius: 16px;
+                border-radius: 4px;
                 font-size: 12px;
                 cursor: pointer;
-                transition: all 0.2s;
+                transition: all 0.15s;
             }
 
             .chatbot-roam-preset-btn:hover {
-                background: #e94560;
-                color: white;
-                border-color: #e94560;
+                background: #b58900;
+                color: #002b36;
+                border-color: #b58900;
             }
 
             .chatbot-roam-preview {
-                background: #0d1117;
-                border: 1px solid #30363d;
-                border-radius: 8px;
+                background: #073642;
+                border: 1px solid #586e75;
+                border-radius: 6px;
                 padding: 12px;
                 max-height: 250px;
                 overflow-y: auto;
-                font-family: 'Consolas', 'Monaco', monospace;
+                font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
                 font-size: 12px;
-                color: #c9d1d9;
+                color: #839496;
                 white-space: pre-wrap;
                 line-height: 1.5;
             }
 
             .chatbot-roam-preview-info {
-                color: #888;
+                color: #657b83;
                 font-size: 11px;
                 margin-top: 8px;
                 font-style: italic;
@@ -208,18 +211,18 @@ const ChatbotRoamStyles = {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 16px 20px;
-                background: #16213e;
-                border-top: 1px solid #0f3460;
+                padding: 14px 20px;
+                background: #073642;
+                border-top: 1px solid #586e75;
             }
 
             .chatbot-roam-info {
-                color: #888;
+                color: #657b83;
                 font-size: 12px;
             }
 
             .chatbot-roam-info strong {
-                color: #e94560;
+                color: #b58900;
             }
 
             .chatbot-roam-buttons {
@@ -229,36 +232,37 @@ const ChatbotRoamStyles = {
 
             .chatbot-roam-btn {
                 padding: 10px 20px;
-                border-radius: 6px;
-                font-size: 14px;
+                border-radius: 4px;
+                font-size: 13px;
                 cursor: pointer;
-                transition: all 0.2s;
+                transition: all 0.15s;
             }
 
             .chatbot-roam-btn-cancel {
                 background: transparent;
-                border: 1px solid #444;
-                color: #aaa;
+                border: 1px solid #586e75;
+                color: #93a1a1;
             }
 
             .chatbot-roam-btn-cancel:hover {
-                border-color: #666;
-                color: #fff;
+                border-color: #839496;
+                color: #eee8d5;
             }
 
             .chatbot-roam-btn-insert {
-                background: #e94560;
+                background: #b58900;
                 border: none;
-                color: white;
+                color: #002b36;
                 font-weight: 600;
             }
 
             .chatbot-roam-btn-insert:hover {
-                background: #d63651;
+                background: #d4a000;
             }
 
             .chatbot-roam-btn-insert:disabled {
-                background: #444;
+                background: #586e75;
+                color: #839496;
                 cursor: not-allowed;
             }
 
@@ -268,9 +272,9 @@ const ChatbotRoamStyles = {
 
             /* Busqueda incremental */
             .chatbot-roam-search-section {
-                background: #16213e;
-                border: 1px solid #0f3460;
-                border-radius: 8px;
+                background: #073642;
+                border: 1px solid #586e75;
+                border-radius: 6px;
                 padding: 12px;
                 margin-bottom: 16px;
             }
@@ -283,21 +287,21 @@ const ChatbotRoamStyles = {
 
             .chatbot-roam-search-input {
                 flex: 1;
-                background: #0d1117;
-                border: 1px solid #30363d;
+                background: #002b36;
+                border: 1px solid #586e75;
                 border-radius: 4px;
                 padding: 8px 12px;
-                color: #c9d1d9;
+                color: #93a1a1;
                 font-size: 13px;
             }
 
             .chatbot-roam-search-input:focus {
                 outline: none;
-                border-color: #e94560;
+                border-color: #2aa198;
             }
 
             .chatbot-roam-search-input::placeholder {
-                color: #666;
+                color: #586e75;
             }
 
             .chatbot-roam-search-nav {
@@ -307,9 +311,9 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-search-btn {
-                background: #0f3460;
-                border: 1px solid #16213e;
-                color: #aaa;
+                background: transparent;
+                border: 1px solid #586e75;
+                color: #93a1a1;
                 width: 28px;
                 height: 28px;
                 border-radius: 4px;
@@ -318,12 +322,13 @@ const ChatbotRoamStyles = {
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                transition: all 0.15s;
             }
 
             .chatbot-roam-search-btn:hover:not(:disabled) {
-                background: #e94560;
-                color: white;
-                border-color: #e94560;
+                background: #2aa198;
+                color: #002b36;
+                border-color: #2aa198;
             }
 
             .chatbot-roam-search-btn:disabled {
@@ -332,16 +337,16 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-search-count {
-                color: #888;
+                color: #657b83;
                 font-size: 12px;
                 min-width: 40px;
                 text-align: center;
             }
 
             .chatbot-roam-cut-btn {
-                background: #e94560;
+                background: #b58900;
                 border: none;
-                color: white;
+                color: #002b36;
                 padding: 6px 12px;
                 border-radius: 4px;
                 cursor: pointer;
@@ -350,38 +355,39 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-cut-btn:hover {
-                background: #d63651;
+                background: #d4a000;
             }
 
             .chatbot-roam-cut-btn:disabled {
-                background: #444;
+                background: #586e75;
+                color: #839496;
                 cursor: not-allowed;
             }
 
             .chatbot-roam-cut-indicator {
-                color: #4CAF50;
+                color: #2aa198;
                 font-size: 12px;
                 margin-left: 8px;
             }
 
             /* Preview con highlights */
             .chatbot-roam-preview mark {
-                background: rgba(233, 69, 96, 0.3);
+                background: rgba(181, 137, 0, 0.35);
                 color: inherit;
                 padding: 1px 2px;
                 border-radius: 2px;
             }
 
             .chatbot-roam-preview mark.current {
-                background: #e94560;
-                color: white;
+                background: #b58900;
+                color: #002b36;
             }
 
             /* Editor de clasificación manual v2 */
             .chatbot-roam-editor-panel {
-                background: rgba(255, 165, 0, 0.08);
-                border: 1px solid #FFA500;
-                border-radius: 8px;
+                background: rgba(203, 75, 22, 0.08);
+                border: 1px solid #cb4b16;
+                border-radius: 6px;
                 padding: 16px;
                 margin-top: 16px;
             }
@@ -392,23 +398,23 @@ const ChatbotRoamStyles = {
 
             .chatbot-roam-editor-title {
                 display: block;
-                color: #FFA500;
+                color: #cb4b16;
                 font-weight: 600;
                 font-size: 14px;
                 margin-bottom: 4px;
             }
 
             .chatbot-roam-editor-subtitle {
-                color: #888;
+                color: #657b83;
                 font-size: 12px;
             }
 
             .chatbot-roam-editor-stats {
-                color: #aaa;
+                color: #93a1a1;
                 font-size: 11px;
                 margin-bottom: 10px;
                 padding: 6px 10px;
-                background: rgba(0, 0, 0, 0.2);
+                background: rgba(0, 0, 0, 0.15);
                 border-radius: 4px;
             }
 
@@ -422,23 +428,23 @@ const ChatbotRoamStyles = {
                 flex-direction: column;
                 padding: 8px 12px;
                 margin-bottom: 6px;
-                border-radius: 6px;
+                border-radius: 4px;
                 border-left: 4px solid;
                 position: relative;
             }
 
             .chatbot-roam-editor-item.prompt {
-                background: rgba(66, 133, 244, 0.15);
-                border-left-color: #4285F4;
+                background: rgba(38, 139, 210, 0.12);
+                border-left-color: #268bd2;
             }
 
             .chatbot-roam-editor-item.response {
-                background: rgba(76, 175, 80, 0.15);
-                border-left-color: #4CAF50;
+                background: rgba(42, 161, 152, 0.12);
+                border-left-color: #2aa198;
             }
 
             .chatbot-roam-editor-item.modified {
-                box-shadow: 0 0 8px rgba(255, 165, 0, 0.5);
+                box-shadow: 0 0 8px rgba(203, 75, 22, 0.4);
             }
 
             .chatbot-roam-editor-item-header {
@@ -449,7 +455,7 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-editor-num {
-                color: #666;
+                color: #586e75;
                 font-size: 11px;
                 font-weight: 600;
             }
@@ -464,15 +470,15 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-editor-item.prompt .chatbot-roam-editor-tipo {
-                color: #4285F4;
+                color: #268bd2;
             }
 
             .chatbot-roam-editor-item.response .chatbot-roam-editor-tipo {
-                color: #4CAF50;
+                color: #2aa198;
             }
 
             .chatbot-roam-editor-mcp {
-                background: #e94560;
+                background: #cb4b16;
                 color: white;
                 font-size: 9px;
                 padding: 2px 5px;
@@ -481,15 +487,15 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-editor-line {
-                color: #666;
+                color: #586e75;
                 font-size: 10px;
                 margin-left: auto;
             }
 
             .chatbot-roam-editor-extracto {
-                color: #999;
+                color: #839496;
                 font-size: 11px;
-                font-family: 'Consolas', 'Monaco', monospace;
+                font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
@@ -507,9 +513,9 @@ const ChatbotRoamStyles = {
 
             .chatbot-roam-editor-swap-btn,
             .chatbot-roam-editor-chain-btn {
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid #444;
-                color: #aaa;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid #586e75;
+                color: #93a1a1;
                 width: 28px;
                 height: 28px;
                 border-radius: 4px;
@@ -518,24 +524,25 @@ const ChatbotRoamStyles = {
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                transition: all 0.15s;
             }
 
             .chatbot-roam-editor-swap-btn:hover {
-                background: #FFA500;
-                border-color: #FFA500;
+                background: #cb4b16;
+                border-color: #cb4b16;
                 color: white;
             }
 
             .chatbot-roam-editor-chain-btn {
                 font-size: 11px;
-                background: rgba(255, 165, 0, 0.15);
-                border-color: #FFA500;
-                color: #FFA500;
+                background: rgba(203, 75, 22, 0.15);
+                border-color: #cb4b16;
+                color: #cb4b16;
             }
 
             .chatbot-roam-editor-chain-btn:hover {
-                background: #e94560;
-                border-color: #e94560;
+                background: #cb4b16;
+                border-color: #cb4b16;
                 color: white;
             }
 
@@ -547,9 +554,9 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-editor-btn-continue {
-                background: #4CAF50;
+                background: #2aa198;
                 border: none;
-                color: white;
+                color: #002b36;
                 padding: 8px 16px;
                 border-radius: 4px;
                 font-size: 12px;
@@ -558,13 +565,13 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-editor-btn-continue:hover {
-                background: #45a049;
+                background: #3dc9b9;
             }
 
             .chatbot-roam-editor-btn-skip {
                 background: transparent;
-                border: 1px solid #444;
-                color: #aaa;
+                border: 1px solid #586e75;
+                color: #93a1a1;
                 padding: 8px 16px;
                 border-radius: 4px;
                 font-size: 12px;
@@ -572,14 +579,14 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-editor-btn-skip:hover {
-                border-color: #666;
-                color: #fff;
+                border-color: #839496;
+                color: #eee8d5;
             }
 
             .chatbot-roam-editor-btn-restore {
                 background: transparent;
-                border: 1px solid #e94560;
-                color: #e94560;
+                border: 1px solid #cb4b16;
+                color: #cb4b16;
                 padding: 8px 16px;
                 border-radius: 4px;
                 font-size: 12px;
@@ -587,7 +594,7 @@ const ChatbotRoamStyles = {
             }
 
             .chatbot-roam-editor-btn-restore:hover:not(:disabled) {
-                background: #e94560;
+                background: #cb4b16;
                 color: white;
             }
 
