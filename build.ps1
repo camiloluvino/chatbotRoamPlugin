@@ -1,9 +1,11 @@
 # Build script for Chatbot Roam Plugin
 # Concatenates all source files into a single bundle
 
-$version = "1.3.8"
-$outputFile = "..\chatbot-roam-plugin.js"
-$srcDir = ".\src"
+$ErrorActionPreference = "Stop"
+
+$version = "1.4.1"
+$srcDir = Join-Path $PSScriptRoot "src"
+$outputFile = Join-Path $srcDir "..\chatbot-roam-plugin.js"
 
 # Source files in order of dependencies
 $sourceFiles = @(
@@ -13,13 +15,13 @@ $sourceFiles = @(
     "formatter.js",
     "processing.js",
     "styles.js",
-    "roam/parser.js",
-    "roam/inserter.js",
+    "roam\parser.js",
+    "roam\inserter.js",
     "ui.js",
     "index.js"
 )
 
-# Header (simplified to avoid Roam conflicts)
+# Header
 $header = @"
 // CHATBOT ROAM PLUGIN v$version
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
@@ -28,29 +30,35 @@ $header = @"
 
 "@
 
-# Build
 Write-Host "Building Chatbot Roam Plugin v$version..." -ForegroundColor Cyan
 
-$content = $header
+# Build content
+$contentBuilder = New-Object System.Text.StringBuilder
+[void]$contentBuilder.Append($header)
 
 foreach ($file in $sourceFiles) {
     $filePath = Join-Path $srcDir $file
     if (Test-Path $filePath) {
         Write-Host "  + $file" -ForegroundColor Green
-        $content += "`n// --- $file ---`n"
-        $content += Get-Content $filePath -Raw -Encoding UTF8
-        $content += "`n"
+        [void]$contentBuilder.AppendLine()
+        [void]$contentBuilder.AppendLine("// --- $file ---")
+        $fileContent = [System.IO.File]::ReadAllText($filePath, [System.Text.Encoding]::UTF8)
+        [void]$contentBuilder.Append($fileContent)
+        [void]$contentBuilder.AppendLine()
     }
     else {
         Write-Host "  ! Missing: $file" -ForegroundColor Red
+        throw "Missing file: $file"
     }
 }
 
-# Write output with proper UTF-8 encoding (no BOM)
-$outputPath = Join-Path $srcDir $outputFile
-$Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $false
-[System.IO.File]::WriteAllText($outputPath, $content, $Utf8NoBomEncoding)
+# Write output with UTF-8 NO BOM
+$finalContent = $contentBuilder.ToString()
+$Utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($outputFile, $finalContent, $Utf8NoBom)
 
-$size = (Get-Item $outputPath).Length / 1024
-Write-Host "`nBuild complete!" -ForegroundColor Green
-Write-Host "Output: $outputPath ($([math]::Round($size, 1)) KB)" -ForegroundColor Yellow
+$size = (Get-Item $outputFile).Length / 1024
+Write-Host ""
+Write-Host "Build complete!" -ForegroundColor Green
+Write-Host "Output: $outputFile ($([math]::Round($size, 1)) KB)" -ForegroundColor Yellow
+Write-Host "Lines: $($finalContent.Split("`n").Count)" -ForegroundColor Gray

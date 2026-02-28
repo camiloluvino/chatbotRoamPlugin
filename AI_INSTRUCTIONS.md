@@ -12,7 +12,7 @@ Plugin para Roam Research que importa conversaciones exportadas de chatbots (Cla
 ### Flujo de trabajo obligatorio
 1. Editar archivos en `src/`
 2. Ejecutar `.\build.ps1` desde la raíz
-3. Probar en Roam con archivo de ejemplo (`data/`)
+3. Probar en Roam con archivo de ejemplo (`test-data/`)
 4. Commit
 
 > [!CAUTION]
@@ -88,7 +88,7 @@ const BT3 = '```';
 - **Regex patterns**: `UPPER_SNAKE_CASE` (`MCP_TOOL_CALLS`)
 
 ### Versionado
-La versión `1.0.0` está definida en 3 lugares (mantener sincronizados):
+La versión está definida en 3 lugares (mantener sincronizados en **1.4.1**):
 - `src/patterns.js` → `ChatbotRoamPatterns.VERSION`
 - `src/index.js` → `ChatbotRoamPlugin.VERSION`  
 - `build.ps1` → `$version`
@@ -191,7 +191,7 @@ Las tablas Markdown se convierten a formato Roam en `cleaners.js` y mantienen su
    - `STATUS.md` → Versión Actual
    - `src/patterns.js` → `VERSION`
    - `src/index.js` → `VERSION`
-   - `src/build.ps1` → `$version`
+   - `build.ps1` → `$version`
 
 ### Ejemplo de entrada en Historial:
 ```markdown

@@ -14,7 +14,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 - 📐 **Indentación bajo headings** - El contenido bajo headings markdown (`#`, `##`, `###`) se anida automáticamente
 - 🚀 **Rate Limit Safe** - Velocidad optimizada (22 ops/s) para evitar errores de API al importar archivos masivos.
 - 🧹 **NotebookLM Limpio** - Elimina escapes visuales molestos (ej: `1\.` a `1.`) y mejora la detección de formato.
-- 🎨 **Diseño Solarized/Claude (v1.4.0)** - Interfaz minimalista con paleta Solarized Dark y acentos dorados inspirados en Claude AI.
+- 🎨 **Diseño Solarized/Claude (v1.4.1)** - Interfaz minimalista con paleta Solarized Dark y acentos dorados inspirados en Claude AI.
 - 🛑 **Cancelación Segura** - Detén la importación en cualquier momento con rollback automático.
 
 ## 🚀 Instalación

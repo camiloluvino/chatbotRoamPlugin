@@ -1,13 +1,18 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.4.0** | Build: 2026-02-22
+**v1.4.1** | Build: 2026-02-27
+
+### Resumen de Estado
+- **Plugin:** Funcional y estable.
+- **Inserción:** Mejorada con robustez ante fallos de la batch API (fallback automático).
+- **Pruebas:** Nuevo diseño Solarized/Claude aplicado (v1.4.1)
 
 ---
 
 ## 🚀 Estado
 - **Funcionalidad:** Estable
-- **Pruebas:** Nuevo diseño Solarized/Claude aplicado (v1.4.0)
+- **Pruebas:** Nuevo diseño Solarized/Claude aplicado (v1.4.1)
 
 ## Estado de Funcionalidades
 
@@ -49,6 +54,8 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-02-27 | v1.4.1: Corregido error "actions of undefined" en inserción mediante fallback robusto en Batch API |
+| 2026-02-27 | Limpieza del proyecto: unificado build.ps1 (eliminado build-fixed.ps1), borrado PENDIENTE_TABLAS_ROAM.md, renombrado data/ → test-data/, sincronizada versión a v1.4.0 |
 | 2026-02-22 | v1.4.0: Nuevo diseño Solarized/Claude (paleta minimalista con dorados y cyan) |
 | 2026-01-26 | Reorganización del proyecto (`docs/`, `data/`) y actualización de documentación |
 | 2026-01-25 | v1.3.8: Tasa de 22 ops/s para evitar errores API + Cancelación real con rollback seguro |
