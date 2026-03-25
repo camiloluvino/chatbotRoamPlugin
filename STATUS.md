@@ -1,7 +1,7 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.4.1** | Build: 2026-02-27
+**v1.4.2** | Build: 2026-03-25
 
 ### Resumen de Estado
 - **Plugin:** Funcional y estable.
@@ -20,6 +20,7 @@
 - **Solarized/Claude Design (v1.4.0):** Nuevo diseño minimalista con paleta Solarized Dark y acentos dorados/cyan inspirados en Claude AI.
 - **Rate Limit Safe:** Límite estricto de 22 ops/seg para evitar errores de API Roam (v1.3.8)
 - **Cancelación Real:** Botón cancelar detiene proceso y limpia basura (v1.3.8)
+- **Importador Múltiple (v1.4.2):** Carga simultánea de archivos con agrupación jerárquica por nombre de archivo.
 - Drag & drop de archivos .md
 - Auto-detección de tipo de chatbot (Claude, ChatGPT, Gemini, Antigravity, NotebookLM)
 - 17 opciones de limpieza configurables (registro centralizado)
@@ -33,6 +34,9 @@
 - Procesamiento asíncrono y por lotes (v1.3.3)
 
 ## 📋 Cambios Recientes
+- **v1.4.2:**
+  - **Importador Múltiple:** Soporte para cargar varios archivos .md simultáneamente.
+  - **Jerarquía Automática:** Cada archivo importado se anida bajo un bloque padre con el nombre del archivo (`📁 nombre.md`), manteniendo el orden alfabético.
 - **v1.4.0:**
   - **Solarized/Claude Design:** Nuevo diseño minimalista con paleta Solarized Dark. Fondo base #002b36, acentos en dorado (#b58900) y cyan (#2aa198). Bordes más sutiles, tipografía más limpia.
 - **v1.3.9:**
@@ -54,6 +58,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-03-25 | v1.4.2: Importador múltiple con agrupación jerárquica por archivo |
 | 2026-02-27 | v1.4.1: Corregido error "actions of undefined" en inserción mediante fallback robusto en Batch API |
 | 2026-02-27 | Limpieza del proyecto: unificado build.ps1 (eliminado build-fixed.ps1), borrado PENDIENTE_TABLAS_ROAM.md, renombrado data/ → test-data/, sincronizada versión a v1.4.0 |
 | 2026-02-22 | v1.4.0: Nuevo diseño Solarized/Claude (paleta minimalista con dorados y cyan) |

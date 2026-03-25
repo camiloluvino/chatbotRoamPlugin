@@ -45,6 +45,12 @@ const ChatbotRoamProcessing = {
             marcadores.push({ tipo: 'RESPONSE', pos: match.index });
         }
 
+        // Encontrar boundaries de archivo
+        const boundaryRegex = /:::FILE_BOUNDARY:(.*?):::/g;
+        while ((match = boundaryRegex.exec(contenido)) !== null) {
+            marcadores.push({ tipo: 'BOUNDARY', pos: match.index, filename: match[1] });
+        }
+
         // Ordenar por posición
         marcadores.sort((a, b) => a.pos - b.pos);
 
@@ -85,7 +91,15 @@ const ChatbotRoamProcessing = {
         // Recorrer marcadores y agrupar
         let i = 0;
         while (i < marcadores.length) {
-            const { tipo, pos } = marcadores[i];
+            const item = marcadores[i];
+            const tipo = item.tipo;
+            const pos = item.pos;
+
+            if (tipo === 'BOUNDARY') {
+                pares.push({ isBoundary: true, filename: item.filename });
+                i++;
+                continue;
+            }
 
             if (tipo === 'PROMPT') {
                 // Extraer contenido del prompt
@@ -234,7 +248,14 @@ const ChatbotRoamProcessing = {
                 await new Promise(resolve => setTimeout(resolve, 0));
             }
 
-            const { prompt: rawPrompt, response: rawResponse } = conversacionRaw[i];
+            const item = conversacionRaw[i];
+            if (item.isBoundary) {
+                resultado.push('* 📁 ' + item.filename);
+                continue;
+            }
+
+            const rawPrompt = item.prompt;
+            const rawResponse = item.response;
 
             // --- LIMPIAR PROMPT ---
             let promptLimpio = this._limpiarPrompt(rawPrompt, opciones);

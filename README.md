@@ -4,7 +4,8 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 
 ## ✨ Características
 
-- 📁 **Drag & Drop** - Arrastra archivos .md directamente al modal
+- 📁 **Multi-file Drag & Drop** - Arrastra múltiples archivos .md simultáneamente (v1.4.2)
+- 🗂️ **Agrupación Jerárquica** - Organiza automáticamente cada conversación bajo un bloque con su nombre de archivo.
 - 🤖 **Multi-chatbot** - Soporta Claude, ChatGPT, Google Gemini, Antigravity y NotebookLM
 - 🔍 **Auto-detección** - Detecta el tipo de chatbot y aplica el preset correspondiente
 - 🎛️ **17 opciones de limpieza** - Configura exactamente qué limpiar
@@ -27,7 +28,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 ## 📖 Uso
 
 1. **Abre el modal**: `Ctrl+Shift+I` o busca "Importar Conversación" en el Command Palette
-2. **Arrastra tu archivo** .md exportado del chatbot
+2. **Arrastra tus archivos** .md exportados (puedes seleccionar varios a la vez)
 3. **Ajusta opciones** si es necesario (auto-detecta y aplica preset)
 4. **Revisa la vista previa**
 5. **Selecciona un bloque** en Roam donde insertar

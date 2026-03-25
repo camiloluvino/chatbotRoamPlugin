@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.4.1
+// CHATBOT ROAM PLUGIN v1.4.2
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-02-27 21:33:35
+// Generated: 2026-03-25 16:09:06
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -1156,6 +1156,12 @@ const ChatbotRoamProcessing = {
             marcadores.push({ tipo: 'RESPONSE', pos: match.index });
         }
 
+        // Encontrar boundaries de archivo
+        const boundaryRegex = /:::FILE_BOUNDARY:(.*?):::/g;
+        while ((match = boundaryRegex.exec(contenido)) !== null) {
+            marcadores.push({ tipo: 'BOUNDARY', pos: match.index, filename: match[1] });
+        }
+
         // Ordenar por posición
         marcadores.sort((a, b) => a.pos - b.pos);
 
@@ -1196,7 +1202,15 @@ const ChatbotRoamProcessing = {
         // Recorrer marcadores y agrupar
         let i = 0;
         while (i < marcadores.length) {
-            const { tipo, pos } = marcadores[i];
+            const item = marcadores[i];
+            const tipo = item.tipo;
+            const pos = item.pos;
+
+            if (tipo === 'BOUNDARY') {
+                pares.push({ isBoundary: true, filename: item.filename });
+                i++;
+                continue;
+            }
 
             if (tipo === 'PROMPT') {
                 // Extraer contenido del prompt
@@ -1345,7 +1359,14 @@ const ChatbotRoamProcessing = {
                 await new Promise(resolve => setTimeout(resolve, 0));
             }
 
-            const { prompt: rawPrompt, response: rawResponse } = conversacionRaw[i];
+            const item = conversacionRaw[i];
+            if (item.isBoundary) {
+                resultado.push('* 📁 ' + item.filename);
+                continue;
+            }
+
+            const rawPrompt = item.prompt;
+            const rawResponse = item.response;
 
             // --- LIMPIAR PROMPT ---
             let promptLimpio = this._limpiarPrompt(rawPrompt, opciones);
@@ -2540,11 +2561,11 @@ const ChatbotRoamUI = {
             '<div class="chatbot-roam-dropzone" data-action="dropzone">' +
             '<div class="chatbot-roam-dropzone-icon">+</div>' +
             '<div class="chatbot-roam-dropzone-text">' +
-            '<strong>Arrastra un archivo .md aqui</strong><br>' +
+            '<strong>Arrastra uno o mas archivos .md aqui</strong><br>' +
             'o haz clic para seleccionar' +
             '</div>' +
             '</div>' +
-            '<input type="file" class="chatbot-roam-hidden-input" accept=".md,.txt" data-action="file-input">' +
+            '<input type="file" class="chatbot-roam-hidden-input" accept=".md,.txt" multiple data-action="file-input">' +
             '<div class="chatbot-roam-section-title">OPCIONES DE LIMPIEZA</div>' +
             '<div class="chatbot-roam-options">' +
             ChatbotRoamOpciones.generarCheckboxesHTML() +
@@ -2572,7 +2593,7 @@ const ChatbotRoamUI = {
             '</div>' +
             '<div class="chatbot-roam-section-title">VISTA PREVIA</div>' +
             '<div class="chatbot-roam-preview" data-element="preview">' +
-            '<span style="color: #666;">Arrastra un archivo para ver la vista previa...</span>' +
+            '<span style="color: #666;">Arrastra archivos para ver la vista previa...</span>' +
             '</div>' +
             '<div class="chatbot-roam-preview-info" data-element="preview-info"></div>' +
             '</div>' +
@@ -2620,14 +2641,14 @@ const ChatbotRoamUI = {
         dropzone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropzone.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file) this._handleFile(file);
+            const files = e.dataTransfer.files;
+            if (files && files.length > 0) this._handleFiles(files);
         });
 
         // File input change
         fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) this._handleFile(file);
+            const files = e.target.files;
+            if (files && files.length > 0) this._handleFiles(files);
         });
 
         // Preset buttons
@@ -2749,74 +2770,93 @@ const ChatbotRoamUI = {
             '<span style="color: #e94560;">' + message + '</span>';
     },
 
-    _handleFile(file) {
-        // Validar archivo antes de leer
-        const fileValidation = this._validateFile(file);
-        if (!fileValidation.valid) {
-            this._showDropzoneError(fileValidation.error);
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const content = e.target.result;
-
-            // Validar contenido
-            const contentValidation = this._validateContent(content);
-            if (!contentValidation.valid) {
-                this._showDropzoneError(contentValidation.error);
+    _handleFiles(fileList) {
+        // Convertir FileList a Array y ordenar alfabeticamente
+        const filesArray = Array.from(fileList).sort((a, b) => a.name.localeCompare(b.name));
+        
+        // Validar todos los archivos individuales
+        let totalSize = 0;
+        for (const file of filesArray) {
+            const fileValidation = this._validateFile(file);
+            if (!fileValidation.valid) {
+                this._showDropzoneError('Archivo "' + file.name + '" invalido: ' + fileValidation.error);
                 return;
             }
+            totalSize += file.size;
+        }
 
-            this._fileContent = content;
+        // Mostrar estado de carga
+        const dropzone = this._modalContainer.querySelector('[data-action="dropzone"]');
+        dropzone.classList.remove('chatbot-roam-file-error');
+        dropzone.classList.add('chatbot-roam-file-loaded');
+        dropzone.querySelector('.chatbot-roam-dropzone-icon').textContent = '...';
+        dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML = 'Leyendo ' + filesArray.length + ' archivo(s)...';
 
-            // Guardar intención del usuario sobre la revisión manual
-            // (porque _applyPreset reseteará esto a false)
+        // Leer todos de forma asincronica
+        const readPromises = filesArray.map(file => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve({ name: file.name, content: e.target.result, size: file.size });
+                reader.onerror = () => reject('Error leyendo ' + file.name);
+                reader.readAsText(file);
+            });
+        });
+
+        Promise.all(readPromises).then(results => {
+            const validContents = [];
+            let warnings = [];
+
+            for (const result of results) {
+                const contentValidation = this._validateContent(result.content);
+                if (!contentValidation.valid) {
+                    this._showDropzoneError('Archivo "' + result.name + '" no valido: ' + contentValidation.error);
+                    return; // Abortar operacion si un archivo no es valido
+                }
+                if (contentValidation.warning) warnings.push(result.name + ': ' + contentValidation.warning);
+                
+                // Unir contenidos con un delimitador rastreable por el processing
+                validContents.push(':::FILE_BOUNDARY:' + result.name + ':::\n' + result.content);
+            }
+
+            this._fileContent = validContents.join('\n\n');
+
+            // Guardar intencion del usuario sobre la revision manual
             const intencionRevisar = this._currentOpciones['revisar_clasificacion'];
 
-            // Detectar tipo de chatbot y aplicar preset
+            // Detectar tipo de chatbot y aplicar preset (usa todo el bloque de texto)
             const tipo = ChatbotRoamProcessing.detectarTipoChatbot(this._fileContent);
             this._applyPreset(tipo);
 
-            // Restaurar intención de revisar si estaba activa
+            // Restaurar intencion de revisar si estaba activa
             if (intencionRevisar) {
                 this._currentOpciones['revisar_clasificacion'] = true;
-                // Actualizar visualmente el checkbox que _applyPreset desmarcó
                 const chk = this._modalContainer.querySelector('[data-option="revisar_clasificacion"]');
                 if (chk) chk.checked = true;
             }
 
-            // Actualizar dropzone visual
-            const dropzone = this._modalContainer.querySelector('[data-action="dropzone"]');
-            dropzone.classList.remove('chatbot-roam-file-error');
-            dropzone.classList.add('chatbot-roam-file-loaded');
+            // Actualizar dropzone visual final
             dropzone.querySelector('.chatbot-roam-dropzone-icon').textContent = 'OK';
-
-            // Mostrar warning si existe
-            let statusText = '<span style="color: #4CAF50;">Archivo cargado (' + (file.size / 1024).toFixed(1) + ' KB)</span>';
-            if (contentValidation.warning) {
-                statusText += '<br><span style="color: #FFA500; font-size: 11px;">' + contentValidation.warning + '</span>';
+            
+            let namesText = filesArray.length > 1 ? filesArray.length + ' archivos' : filesArray[0].name;
+            let statusText = '<span style="color: #4CAF50;">Cargados (' + (totalSize / 1024).toFixed(1) + ' KB)</span>';
+            
+            if (warnings.length > 0) {
+                statusText += '<br><span style="color: #FFA500; font-size: 11px;">Advertencias: ' + warnings.length + '</span>';
             }
 
             dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML =
-                '<strong>' + file.name + '</strong><br>' + statusText;
+                '<strong>' + namesText + '</strong><br>' + statusText;
 
-            // Verificar si el usuario desea revisar la clasificación manualmente
-            // O si detectamos un patrón MCP y queremos sugerirlo (opcional, por ahora estrictamente manual)
+            // Redirigir dependiendo de la revision
             const revisarManual = this._currentOpciones['revisar_clasificacion'];
-
             if (revisarManual) {
                 this._mostrarEditorClasificacion();
             } else {
                 this._processAndPreview();
             }
-        };
-
-        reader.onerror = () => {
-            this._showDropzoneError('Error al leer el archivo. Intenta de nuevo.');
-        };
-
-        reader.readAsText(file);
+        }).catch(err => {
+            this._showDropzoneError('Error fatal: ' + err);
+        });
     },
 
     // ========================================================================
@@ -3218,7 +3258,7 @@ const ChatbotRoamUI = {
         const content = this._isCut ? this._processedContent : this._originalProcessedContent;
 
         if (!content) {
-            preview.innerHTML = '<span style="color: #666;">Arrastra un archivo para ver la vista previa...</span>';
+            preview.innerHTML = '<span style="color: #666;">Arrastra archivos para ver la vista previa...</span>';
             this._updateSearchButtons();
             return;
         }
@@ -3341,7 +3381,25 @@ const ChatbotRoamUI = {
 
         // Parsear el contenido procesado en estructura de bloques
         const lineas = this._processedContent.split('\n');
-        const bloques = ChatbotRoamParser.parseToBlockStructure(lineas);
+        let rawBloques = ChatbotRoamParser.parseToBlockStructure(lineas);
+
+        // Agrupar bajo los nodos padre de cada archivo si procede
+        let bloques = [];
+        let currentFileBlock = null;
+
+        for (let i = 0; i < rawBloques.length; i++) {
+            let bloque = rawBloques[i];
+            if (bloque.text && bloque.text.startsWith('📁 ')) {
+                currentFileBlock = { text: `**${bloque.text}**`, children: [] };
+                bloques.push(currentFileBlock);
+            } else {
+                if (currentFileBlock) {
+                    currentFileBlock.children.push(bloque);
+                } else {
+                    bloques.push(bloque);
+                }
+            }
+        }
 
         if (bloques.length === 0) {
             alert('No se generaron bloques para insertar.');
