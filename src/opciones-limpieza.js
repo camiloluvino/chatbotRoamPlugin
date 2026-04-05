@@ -38,6 +38,14 @@ const OPCIONES_LIMPIEZA = [
         aplicarA: 'ambos',
         cleaner: function (texto) { return ChatbotRoamCleaners.limpiarMetadataGenerico(texto); }
     },
+    {
+        id: 'neutralizar_sintaxis',
+        label: 'Neutralizar sintaxis Roam (::, [[ ]]) en la IA',
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.neutralizarSintaxisRoam(texto); }
+    },
 
     // ========================================================================
     // OPCIONES CLAUDE

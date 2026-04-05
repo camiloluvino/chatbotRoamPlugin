@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.4.2
+// CHATBOT ROAM PLUGIN v1.4.5
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-03-25 16:09:06
+// Generated: 2026-04-05 00:36:16
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -151,6 +151,18 @@ const ChatbotRoamCleaners = {
         texto = texto.replace(ChatbotRoamPatterns.CODIGO_CUATRO_BACKTICKS, ChatbotRoamPatterns.BT4);
         texto = texto.replace(ChatbotRoamPatterns.CODIGO_TRES_BACKTICKS, ChatbotRoamPatterns.BT3);
         return texto;
+    },
+
+    /**
+     * Neutraliza la sintaxis especial de Roam (::, [[, ]]) para evitar que se creen 
+     * atributos y referencias a páginas accidentalmente al importar texto de IA.
+     */
+    neutralizarSintaxisRoam(texto) {
+        let limpio = texto.replace(/::/g, ': :');
+        // Múltiples corchetes como [[[[ se transforman usando lookahead para separar cada uno
+        limpio = limpio.replace(/\[(?=\[)/g, '[ ');
+        limpio = limpio.replace(/\](?=\])/g, '] ');
+        return limpio;
     },
 
     // ========================================================================
@@ -697,6 +709,14 @@ const OPCIONES_LIMPIEZA = [
         defaultActivo: false,
         aplicarA: 'ambos',
         cleaner: function (texto) { return ChatbotRoamCleaners.limpiarMetadataGenerico(texto); }
+    },
+    {
+        id: 'neutralizar_sintaxis',
+        label: 'Neutralizar sintaxis Roam (::, [[ ]]) en la IA',
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.neutralizarSintaxisRoam(texto); }
     },
 
     // ========================================================================
@@ -1394,6 +1414,9 @@ const ChatbotRoamProcessing = {
 
         // Aplicar cleaners del registro centralizado
         promptTemp = ChatbotRoamOpciones.aplicarLimpieza(promptTemp, opciones, 'prompt');
+
+        // Neutralizar sintaxis especial de Roam de manera obligatoria en todas las intervenciones del usuario
+        promptTemp = ChatbotRoamCleaners.neutralizarSintaxisRoam(promptTemp);
 
         promptTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(promptTemp);
         return ChatbotRoamCleaners.limpiarContenido(promptTemp).split('\n').join(' ').trim();

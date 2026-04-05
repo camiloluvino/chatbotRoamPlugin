@@ -1,7 +1,7 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.4.2** | Build: 2026-03-25
+**v1.4.5** | Build: 2026-04-05
 
 ### Resumen de Estado
 - **Plugin:** Funcional y estable.
@@ -30,10 +30,14 @@
 - Indentación bajo headings markdown (#, ##, ###)
 - Conversión de tablas Markdown a formato nativo Roam
 - Búsqueda incremental en preview
+- **Neutralización de Sintaxis Roam (v1.4.5):** Evita la creación accidental de atributos (`::`) y páginas (`[[ ]]`). Automático para el usuario, opcional para la IA.
 - Editor de Clasificación Manual (v1.3.6)
 - Procesamiento asíncrono y por lotes (v1.3.3)
 
 ## 📋 Cambios Recientes
+- **v1.4.5:**
+  - **Neutralización de Sintaxis:** Nueva lógica para romper `::` y `[[ ]]` inyectando espacios.
+  - **Comportamiento Diferenciado:** La limpieza es obligatoria para el input del usuario (User Prompt) y opcional (configurable) para la respuesta de la IA.
 - **v1.4.2:**
   - **Importador Múltiple:** Soporte para cargar varios archivos .md simultáneamente.
   - **Jerarquía Automática:** Cada archivo importado se anida bajo un bloque padre con el nombre del archivo (`📁 nombre.md`), manteniendo el orden alfabético.
@@ -58,6 +62,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-04-05 | v1.4.5: Neutralización de sintaxis Roam (::, [[ ]]) obligatoria en prompts y opcional en respuestas |
 | 2026-03-25 | v1.4.2: Importador múltiple con agrupación jerárquica por archivo |
 | 2026-02-27 | v1.4.1: Corregido error "actions of undefined" en inserción mediante fallback robusto en Batch API |
 | 2026-02-27 | Limpieza del proyecto: unificado build.ps1 (eliminado build-fixed.ps1), borrado PENDIENTE_TABLAS_ROAM.md, renombrado data/ → test-data/, sincronizada versión a v1.4.0 |

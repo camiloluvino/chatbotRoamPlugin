@@ -284,6 +284,9 @@ const ChatbotRoamProcessing = {
         // Aplicar cleaners del registro centralizado
         promptTemp = ChatbotRoamOpciones.aplicarLimpieza(promptTemp, opciones, 'prompt');
 
+        // Neutralizar sintaxis especial de Roam de manera obligatoria en todas las intervenciones del usuario
+        promptTemp = ChatbotRoamCleaners.neutralizarSintaxisRoam(promptTemp);
+
         promptTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(promptTemp);
         return ChatbotRoamCleaners.limpiarContenido(promptTemp).split('\n').join(' ').trim();
     },

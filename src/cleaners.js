@@ -54,6 +54,18 @@ const ChatbotRoamCleaners = {
         return texto;
     },
 
+    /**
+     * Neutraliza la sintaxis especial de Roam (::, [[, ]]) para evitar que se creen 
+     * atributos y referencias a páginas accidentalmente al importar texto de IA.
+     */
+    neutralizarSintaxisRoam(texto) {
+        let limpio = texto.replace(/::/g, ': :');
+        // Múltiples corchetes como [[[[ se transforman usando lookahead para separar cada uno
+        limpio = limpio.replace(/\[(?=\[)/g, '[ ');
+        limpio = limpio.replace(/\](?=\])/g, '] ');
+        return limpio;
+    },
+
     // ========================================================================
     // LIMPIEZA GENÉRICA / CHATGPT
     // ========================================================================
