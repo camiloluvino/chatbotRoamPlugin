@@ -188,6 +188,14 @@ const OPCIONES_LIMPIEZA = [
     },
 
     {
+        id: 'separar_headers_colisionados_notebooklm',
+        label: 'Separar t\u00edtulos colisionados',
+        chatbots: ['notebooklm'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.separarHeadersColisionadosNotebookLM(texto); }
+    },
+    {
         id: 'normalizar_vinetas_notebooklm',
         label: 'Normalizar vi\u00f1etas (\u2022, \u25e6)',
         chatbots: ['notebooklm'],

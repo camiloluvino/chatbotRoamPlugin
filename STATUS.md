@@ -1,7 +1,7 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.4.5** | Build: 2026-04-05
+**v1.4.6** | Build: 2026-04-16
 
 ### Resumen de Estado
 - **Plugin:** Funcional y estable.
@@ -31,10 +31,15 @@
 - Conversión de tablas Markdown a formato nativo Roam
 - Búsqueda incremental en preview
 - **Neutralización de Sintaxis Roam (v1.4.5):** Evita la creación accidental de atributos (`::`) y páginas (`[[ ]]`). Automático para el usuario, opcional para la IA.
+- **NotebookLM Structural Formatting (v1.4.6):** Resolución de colisiones sintácticas entre títulos y descripciones + SOPORTE de jerarquía automática para líneas en negrita.
 - Editor de Clasificación Manual (v1.3.6)
 - Procesamiento asíncrono y por lotes (v1.3.3)
 
 ## 📋 Cambios Recientes
+- **v1.4.6:**
+  - **Fix estructural NotebookLM:** Corrección mediante Regex de colisiones entre cierre de negritas y texto descriptivo (`**Título**Texto`).
+  - **Jerarquía de Negritas:** Las líneas compuestas íntegramente por negritas ahora actúan como encabezados topológicos, anidando el contenido siguiente automáticamente en Roam.
+  - **Parser Update:** El parser de Roam ahora reconoce líneas en negrita como títulos, preservando la anidación y eliminando caracteres de control sobrantes.
 - **v1.4.5:**
   - **Neutralización de Sintaxis:** Nueva lógica para romper `::` y `[[ ]]` inyectando espacios.
   - **Comportamiento Diferenciado:** La limpieza es obligatoria para el input del usuario (User Prompt) y opcional (configurable) para la respuesta de la IA.
@@ -62,6 +67,7 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-04-16 | v1.4.6: Solución de colisiones estructurales en NotebookLM y soporte de jerarquía para negritas |
 | 2026-04-05 | v1.4.5: Neutralización de sintaxis Roam (::, [[ ]]) obligatoria en prompts y opcional en respuestas |
 | 2026-03-25 | v1.4.2: Importador múltiple con agrupación jerárquica por archivo |
 | 2026-02-27 | v1.4.1: Corregido error "actions of undefined" en inserción mediante fallback robusto en Batch API |

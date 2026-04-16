@@ -101,8 +101,8 @@ const ChatbotRoamFormatter = {
                 continue;
             }
 
-            // Headings markdown (#, ##, ###, etc.)
-            if (lineaStripped.startsWith('#')) {
+            // Headings markdown (#, ##, ###, etc.) o lineas completamente en negrita (**Texto**)
+            if (lineaStripped.startsWith('#') || (lineaStripped.startsWith('**') && lineaStripped.endsWith('**') && lineaStripped.length > 4)) {
                 bajoHeading = true;  // Activar indentacion para contenido siguiente
                 resultado.push(this.INDENT_BASE + lineaStripped);
             }

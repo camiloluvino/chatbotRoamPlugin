@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.4.5
+// CHATBOT ROAM PLUGIN v1.4.6
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-04-05 00:36:16
+// Generated: 2026-04-16 02:08:38
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -649,6 +649,14 @@ const ChatbotRoamCleaners = {
         return resultado;
     },
     /**
+     * Separa el texto colisionado tras un cierre de negritas en exportaciones de NotebookLM
+     * Asegura que el patrón **Texto**Descripción se convierta en **Texto**\nDescripción
+     */
+    separarHeadersColisionadosNotebookLM(texto) {
+        return texto.replace(/(\S)\*\*([A-ZÁÉÍÓÚÑ¿¡])/g, '$1**\n$2');
+    },
+
+    /**
      * Normaliza las viñetas de NotebookLM (\u2022, \u25E6) para asegurar saltos de línea y formato correcto.
      */
     normalizarVinetasNotebookLM(texto) {
@@ -860,6 +868,14 @@ const OPCIONES_LIMPIEZA = [
     },
 
     {
+        id: 'separar_headers_colisionados_notebooklm',
+        label: 'Separar t\u00edtulos colisionados',
+        chatbots: ['notebooklm'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.separarHeadersColisionadosNotebookLM(texto); }
+    },
+    {
         id: 'normalizar_vinetas_notebooklm',
         label: 'Normalizar vi\u00f1etas (\u2022, \u25e6)',
         chatbots: ['notebooklm'],
@@ -1064,8 +1080,8 @@ const ChatbotRoamFormatter = {
                 continue;
             }
 
-            // Headings markdown (#, ##, ###, etc.)
-            if (lineaStripped.startsWith('#')) {
+            // Headings markdown (#, ##, ###, etc.) o lineas completamente en negrita (**Texto**)
+            if (lineaStripped.startsWith('#') || (lineaStripped.startsWith('**') && lineaStripped.endsWith('**') && lineaStripped.length > 4)) {
                 bajoHeading = true;  // Activar indentacion para contenido siguiente
                 resultado.push(this.INDENT_BASE + lineaStripped);
             }
@@ -2210,8 +2226,9 @@ const ChatbotRoamParser = {
                 // Linea normal - quitar "* " si es un bullet
                 var textoLimpio = texto.startsWith('* ') ? texto.substring(2) : texto;
 
-                // Detectar si es un heading markdown
-                var esHeading = textoLimpio.trim().startsWith('#');
+                // Detectar si es un heading markdown o linea completamente en negrita
+                var textoTrimmed = textoLimpio.trim();
+                var esHeading = textoTrimmed.startsWith('#') || (textoTrimmed.startsWith('**') && textoTrimmed.endsWith('**') && textoTrimmed.length > 4);
 
                 if (textoLimpio.trim()) {
                     var nuevoBloque = {

@@ -112,8 +112,9 @@ const ChatbotRoamParser = {
                 // Linea normal - quitar "* " si es un bullet
                 var textoLimpio = texto.startsWith('* ') ? texto.substring(2) : texto;
 
-                // Detectar si es un heading markdown
-                var esHeading = textoLimpio.trim().startsWith('#');
+                // Detectar si es un heading markdown o linea completamente en negrita
+                var textoTrimmed = textoLimpio.trim();
+                var esHeading = textoTrimmed.startsWith('#') || (textoTrimmed.startsWith('**') && textoTrimmed.endsWith('**') && textoTrimmed.length > 4);
 
                 if (textoLimpio.trim()) {
                     var nuevoBloque = {

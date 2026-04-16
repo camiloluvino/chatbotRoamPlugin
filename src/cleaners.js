@@ -550,6 +550,14 @@ const ChatbotRoamCleaners = {
         return resultado;
     },
     /**
+     * Separa el texto colisionado tras un cierre de negritas en exportaciones de NotebookLM
+     * Asegura que el patrón **Texto**Descripción se convierta en **Texto**\nDescripción
+     */
+    separarHeadersColisionadosNotebookLM(texto) {
+        return texto.replace(/(\S)\*\*([A-ZÁÉÍÓÚÑ¿¡])/g, '$1**\n$2');
+    },
+
+    /**
      * Normaliza las viñetas de NotebookLM (\u2022, \u25E6) para asegurar saltos de línea y formato correcto.
      */
     normalizarVinetasNotebookLM(texto) {
