@@ -74,6 +74,14 @@ const OPCIONES_LIMPIEZA = [
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarToolCallsClaude(texto); }
     },
+    {
+        id: 'eliminar_thinking_blockquotes_claude',
+        label: 'Bloques de pensamiento (Claude V2)',
+        chatbots: ['claude'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarThinkingBlockquotesClaude(texto); }
+    },
 
     // ========================================================================
     // OPCIONES CHATGPT

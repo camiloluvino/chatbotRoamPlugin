@@ -237,13 +237,15 @@ const ChatbotRoamUI = {
             return { valid: false, error: 'El archivo esta vacio.', warning: null };
         }
 
-        // Verificar marcadores de conversacion (incluye Antigravity y NotebookLM)
+        // Verificar marcadores de conversacion (incluye Antigravity, NotebookLM y Claude V2)
         // NotebookLM uses Chinese: 🧑 用户 (user) and 🤖 助手 (assistant)
         const tienePrompt = content.includes('## Prompt:') ||
             content.includes('### User Input') ||
+            content.includes('## User:') ||
             (ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR && content.includes(ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR));
         const tieneResponse = content.includes('## Response:') ||
             content.includes('### Planner Response') ||
+            content.includes('## Assistant:') ||
             (ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR && content.includes(ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR));
 
         if (!tienePrompt && !tieneResponse) {

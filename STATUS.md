@@ -1,7 +1,7 @@
 # Status - Chatbot Roam Plugin
 
 ## Versión Actual
-**v1.4.6** | Build: 2026-04-16
+**v1.4.7** | Build: 2026-05-22
 
 ### Resumen de Estado
 - **Plugin:** Funcional y estable.
@@ -66,7 +66,7 @@
 ## Historial Reciente
 
 | Fecha | Cambio |
-|-------|--------|
+| 2026-05-22 | v1.4.7: Soporte para formato Claude V2 (## User/Assistant, timestamps en blockquote y eliminación de bloques de pensamiento en blockquote) |
 | 2026-04-16 | v1.4.6: Solución de colisiones estructurales en NotebookLM y soporte de jerarquía para negritas |
 | 2026-04-05 | v1.4.5: Neutralización de sintaxis Roam (::, [[ ]]) obligatoria en prompts y opcional en respuestas |
 | 2026-03-25 | v1.4.2: Importador múltiple con agrupación jerárquica por archivo |

@@ -2,7 +2,7 @@
 // Main entry point - registers commands with Roam
 
 const ChatbotRoamPlugin = {
-    VERSION: "1.4.1",
+    VERSION: "1.4.7",
 
     // Lista de comandos registrados (para cleanup en recargas)
     _registeredCommands: [

@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.4.6
+// CHATBOT ROAM PLUGIN v1.4.7
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-04-16 02:08:38
+// Generated: 2026-05-22 13:14:19
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -22,7 +22,7 @@ const NOTEBOOKLM_ASSISTANT = String.fromCharCode(0x52A9, 0x624B);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.4.1",
+    VERSION: "1.4.7",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -36,10 +36,16 @@ const ChatbotRoamPatterns = {
     // TIMESTAMPS
     TIMESTAMP_COMPLETO: /^\d{1,2}\/\d{1,2}\/\d{4},\s+\d{1,2}:\d{2}:\d{2}\s+[ap]\.m\.$/,
     TIMESTAMP_FECHA: /^\d{1,2}\/\d{1,2}\/\d{4}/,
+    // Timestamp en formato blockquote (nuevo formato Claude): > 5/20/2026 22:35:00
+    TIMESTAMP_BLOCKQUOTE: /^>\s*\d{1,2}\/\d{1,2}\/\d{4},?\s+\d{1,2}:\d{2}(:\d{2})?/,
 
     // MARCADORES DE CONVERSACION
+    // Formato clásico: ## Prompt: / ## Response:
     PROMPT_MARKER: /^## Prompt:/gm,
     RESPONSE_MARKER: /^## Response:/gm,
+    // Formato Claude V2 (actualización del exportador): ## User: / ## Assistant:
+    PROMPT_MARKER_V2: /^## User:/gm,
+    RESPONSE_MARKER_V2: /^## Assistant:/gm,
 
     // THOUGHT PROCESSES
     // Claude - bloques plaintext
@@ -229,6 +235,43 @@ const ChatbotRoamCleaners = {
      */
     eliminarThoughtProcessClaude(texto) {
         return texto.replace(ChatbotRoamPatterns.PLAINTEXT_BLOCKS_CLAUDE, '');
+    },
+
+    /**
+     * Elimina los bloques de pensamiento de Claude V2 que se presentan en formato blockquote
+     * (líneas consecutivas que empiezan con '>'). Solo los elimina si el bloque contiene
+     * la firma de finalización de pensamiento '- **Done**'.
+     */
+    eliminarThinkingBlockquotesClaude(texto) {
+        const lineas = texto.split('\n');
+        const lineasLimpias = [];
+        let bloqueActual = [];
+
+        for (const linea of lineas) {
+            const lineaStripped = linea.trim();
+
+            if (lineaStripped.startsWith('>')) {
+                bloqueActual.push(linea);
+            } else {
+                if (bloqueActual.length > 0) {
+                    const esThinkingBlock = bloqueActual.some(line => /- \*\*Done\*\*/i.test(line));
+                    if (!esThinkingBlock) {
+                        lineasLimpias.push(...bloqueActual);
+                    }
+                    bloqueActual = [];
+                }
+                lineasLimpias.push(linea);
+            }
+        }
+
+        if (bloqueActual.length > 0) {
+            const esThinkingBlock = bloqueActual.some(line => /- \*\*Done\*\*/i.test(line));
+            if (!esThinkingBlock) {
+                lineasLimpias.push(...bloqueActual);
+            }
+        }
+
+        return lineasLimpias.join('\n');
     },
 
     /**
@@ -754,6 +797,14 @@ const OPCIONES_LIMPIEZA = [
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarToolCallsClaude(texto); }
     },
+    {
+        id: 'eliminar_thinking_blockquotes_claude',
+        label: 'Bloques de pensamiento (Claude V2)',
+        chatbots: ['claude'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarThinkingBlockquotesClaude(texto); }
+    },
 
     // ========================================================================
     // OPCIONES CHATGPT
@@ -1165,6 +1216,8 @@ const ChatbotRoamProcessing = {
         // NotebookLM uses Chinese markers: 用户 (user) and 助手 (assistant)
         const esNotebookLM = ChatbotRoamPatterns.isNotebookLM(contenido);
         const esAntigravity = ChatbotRoamPatterns.DETECT_ANTIGRAVITY.test(contenido);
+        // Detectar formato Claude V2 (## User: / ## Assistant:)
+        const esClaudeV2 = contenido.includes('## User:') && contenido.includes('## Assistant:');
 
         // Usar marcadores segun formato
         let promptPattern, responsePattern;
@@ -1174,6 +1227,9 @@ const ChatbotRoamProcessing = {
         } else if (esAntigravity) {
             promptPattern = ChatbotRoamPatterns.ANTIGRAVITY_PROMPT_MARKER;
             responsePattern = ChatbotRoamPatterns.ANTIGRAVITY_RESPONSE_MARKER;
+        } else if (esClaudeV2) {
+            promptPattern = ChatbotRoamPatterns.PROMPT_MARKER_V2;
+            responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER_V2;
         } else {
             promptPattern = ChatbotRoamPatterns.PROMPT_MARKER;
             responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER;
@@ -1217,8 +1273,22 @@ const ChatbotRoamProcessing = {
             if (skipTimestamp) {
                 const resto = contenido.substring(siguienteLineaPos);
                 const lineasResto = resto.split('\n');
-                if (lineasResto.length > 0 && ChatbotRoamPatterns.TIMESTAMP_FECHA.test(lineasResto[0].trim())) {
-                    inicioContenido = siguienteLineaPos + lineasResto[0].length + 1;
+                let lineasSaltadas = 0;
+                // Saltar líneas vacías entre el marcador y el timestamp
+                while (lineasSaltadas < lineasResto.length && lineasResto[lineasSaltadas].trim() === '') {
+                    lineasSaltadas++;
+                }
+                const lineaCandidata = lineasSaltadas < lineasResto.length ? lineasResto[lineasSaltadas].trim() : '';
+                // Detectar timestamp normal o en formato blockquote (> fecha)
+                const lineaCandidataSinQuote = lineaCandidata.replace(/^>\s*/, '');
+                if (ChatbotRoamPatterns.TIMESTAMP_FECHA.test(lineaCandidataSinQuote) ||
+                    ChatbotRoamPatterns.TIMESTAMP_BLOCKQUOTE.test(lineaCandidata)) {
+                    // Calcular cuántos bytes saltar (líneas vacías + línea del timestamp)
+                    let bytesASaltar = 0;
+                    for (let k = 0; k <= lineasSaltadas; k++) {
+                        bytesASaltar += lineasResto[k].length + 1;
+                    }
+                    inicioContenido = siguienteLineaPos + bytesASaltar;
                 }
             }
 
@@ -1257,8 +1327,22 @@ const ChatbotRoamProcessing = {
                 if (skipTimestamp) {
                     const resto = contenido.substring(siguienteLineaPos);
                     const lineasResto = resto.split('\n');
-                    if (lineasResto.length > 0 && ChatbotRoamPatterns.TIMESTAMP_FECHA.test(lineasResto[0].trim())) {
-                        inicioContenido = siguienteLineaPos + lineasResto[0].length + 1;
+                    let lineasSaltadas = 0;
+                    // Saltar líneas vacías entre el marcador y el timestamp
+                    while (lineasSaltadas < lineasResto.length && lineasResto[lineasSaltadas].trim() === '') {
+                        lineasSaltadas++;
+                    }
+                    const lineaCandidata = lineasSaltadas < lineasResto.length ? lineasResto[lineasSaltadas].trim() : '';
+                    // Detectar timestamp normal o en formato blockquote (> fecha)
+                    const lineaCandidataSinQuote = lineaCandidata.replace(/^>\s*/, '');
+                    if (ChatbotRoamPatterns.TIMESTAMP_FECHA.test(lineaCandidataSinQuote) ||
+                        ChatbotRoamPatterns.TIMESTAMP_BLOCKQUOTE.test(lineaCandidata)) {
+                        // Calcular cuántos bytes saltar (líneas vacías + línea del timestamp)
+                        let bytesASaltar = 0;
+                        for (let k = 0; k <= lineasSaltadas; k++) {
+                            bytesASaltar += lineasResto[k].length + 1;
+                        }
+                        inicioContenido = siguienteLineaPos + bytesASaltar;
                     }
                 }
 
@@ -1309,12 +1393,15 @@ const ChatbotRoamProcessing = {
      */
     extraerTodosLosBloques(contenido) {
         const bloques = [];
-        const regex = /^## (Prompt|Response):/gm;
+        const regex = /^## (Prompt|Response|User|Assistant):/gm;
         let match;
 
         while ((match = regex.exec(contenido)) !== null) {
             const posInicio = match.index;
-            const tipo = match[1]; // "Prompt" o "Response"
+            // Normalizar: "User" -> "Prompt", "Assistant" -> "Response"
+            let tipo = match[1];
+            if (tipo === 'User') tipo = 'Prompt';
+            if (tipo === 'Assistant') tipo = 'Response';
 
             // Calcular número de línea
             const lineNumber = contenido.substring(0, posInicio).split('\n').length;
@@ -1322,7 +1409,7 @@ const ChatbotRoamProcessing = {
             // Encontrar el fin de este bloque (siguiente ## o fin de archivo)
             const restoContenido = contenido.substring(posInicio);
             const marcadorLen = match[0].length; // "## Prompt:" o "## Response:"
-            const siguienteBloque = restoContenido.substring(marcadorLen).search(/^## (?:Prompt|Response):/m);
+            const siguienteBloque = restoContenido.substring(marcadorLen).search(/^## (?:Prompt|Response|User|Assistant):/m);
             const finBloque = siguienteBloque === -1
                 ? contenido.length
                 : posInicio + marcadorLen + siguienteBloque;
@@ -1472,6 +1559,12 @@ const ChatbotRoamProcessing = {
         const esAntigravity = ChatbotRoamPatterns.DETECT_ANTIGRAVITY.test(contenido);
         if (esAntigravity) {
             return 'antigravity';
+        }
+
+        // Detectar Claude V2 (formato actualizado del exportador: ## User: / ## Assistant:)
+        const esClaudeV2 = contenido.includes('## User:') && contenido.includes('## Assistant:');
+        if (esClaudeV2) {
+            return 'claude';
         }
 
         const tieneToolCalls = ChatbotRoamPatterns.DETECT_CLAUDE_TOOLS.test(contenido);
@@ -2769,13 +2862,15 @@ const ChatbotRoamUI = {
             return { valid: false, error: 'El archivo esta vacio.', warning: null };
         }
 
-        // Verificar marcadores de conversacion (incluye Antigravity y NotebookLM)
+        // Verificar marcadores de conversacion (incluye Antigravity, NotebookLM y Claude V2)
         // NotebookLM uses Chinese: 🧑 用户 (user) and 🤖 助手 (assistant)
         const tienePrompt = content.includes('## Prompt:') ||
             content.includes('### User Input') ||
+            content.includes('## User:') ||
             (ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR && content.includes(ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR));
         const tieneResponse = content.includes('## Response:') ||
             content.includes('### Planner Response') ||
+            content.includes('## Assistant:') ||
             (ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR && content.includes(ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR));
 
         if (!tienePrompt && !tieneResponse) {
@@ -3544,7 +3639,7 @@ const ChatbotRoamUI = {
 // Main entry point - registers commands with Roam
 
 const ChatbotRoamPlugin = {
-    VERSION: "1.4.1",
+    VERSION: "1.4.7",
 
     // Lista de comandos registrados (para cleanup en recargas)
     _registeredCommands: [

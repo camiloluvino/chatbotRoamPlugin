@@ -16,7 +16,7 @@ const NOTEBOOKLM_ASSISTANT = String.fromCharCode(0x52A9, 0x624B);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.4.1",
+    VERSION: "1.4.7",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -30,10 +30,16 @@ const ChatbotRoamPatterns = {
     // TIMESTAMPS
     TIMESTAMP_COMPLETO: /^\d{1,2}\/\d{1,2}\/\d{4},\s+\d{1,2}:\d{2}:\d{2}\s+[ap]\.m\.$/,
     TIMESTAMP_FECHA: /^\d{1,2}\/\d{1,2}\/\d{4}/,
+    // Timestamp en formato blockquote (nuevo formato Claude): > 5/20/2026 22:35:00
+    TIMESTAMP_BLOCKQUOTE: /^>\s*\d{1,2}\/\d{1,2}\/\d{4},?\s+\d{1,2}:\d{2}(:\d{2})?/,
 
     // MARCADORES DE CONVERSACION
+    // Formato clásico: ## Prompt: / ## Response:
     PROMPT_MARKER: /^## Prompt:/gm,
     RESPONSE_MARKER: /^## Response:/gm,
+    // Formato Claude V2 (actualización del exportador): ## User: / ## Assistant:
+    PROMPT_MARKER_V2: /^## User:/gm,
+    RESPONSE_MARKER_V2: /^## Assistant:/gm,
 
     // THOUGHT PROCESSES
     // Claude - bloques plaintext

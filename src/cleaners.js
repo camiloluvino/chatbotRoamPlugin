@@ -133,6 +133,43 @@ const ChatbotRoamCleaners = {
     },
 
     /**
+     * Elimina los bloques de pensamiento de Claude V2 que se presentan en formato blockquote
+     * (líneas consecutivas que empiezan con '>'). Solo los elimina si el bloque contiene
+     * la firma de finalización de pensamiento '- **Done**'.
+     */
+    eliminarThinkingBlockquotesClaude(texto) {
+        const lineas = texto.split('\n');
+        const lineasLimpias = [];
+        let bloqueActual = [];
+
+        for (const linea of lineas) {
+            const lineaStripped = linea.trim();
+
+            if (lineaStripped.startsWith('>')) {
+                bloqueActual.push(linea);
+            } else {
+                if (bloqueActual.length > 0) {
+                    const esThinkingBlock = bloqueActual.some(line => /- \*\*Done\*\*/i.test(line));
+                    if (!esThinkingBlock) {
+                        lineasLimpias.push(...bloqueActual);
+                    }
+                    bloqueActual = [];
+                }
+                lineasLimpias.push(linea);
+            }
+        }
+
+        if (bloqueActual.length > 0) {
+            const esThinkingBlock = bloqueActual.some(line => /- \*\*Done\*\*/i.test(line));
+            if (!esThinkingBlock) {
+                lineasLimpias.push(...bloqueActual);
+            }
+        }
+
+        return lineasLimpias.join('\n');
+    },
+
+    /**
      * Elimina los bloques completos de herramientas de Claude.
      */
     eliminarToolCallsClaude(texto) {
