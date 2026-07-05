@@ -13,8 +13,8 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 - ⚡ **Inserción directa** - Inserta como hijo del bloque seleccionado
 - 💻 **Preserva code blocks** - Los bloques de código se insertan correctamente formateados
 - 📐 **Indentación bajo headings** - El contenido bajo headings markdown (`#`, `##`, `###`) se anida automáticamente
-- 🚀 **Rate Limit Safe** - Velocidad optimizada (22 ops/s) para evitar errores de API al importar archivos masivos.
-- 🤖 **Soporte Claude V2** - Reconocimiento automático del nuevo formato de exportación (`## User:`), timestamps en blockquotes y eliminación de bloques de pensamiento (v1.4.7).
+- 🚀 **Rate Limit Safe** - Adaptación automática al límite oficial de Roam (1500 mutaciones/60s). Lotes de 50 bloques con delay seguro y dinámico (~2.5s entre lotes) para evitar errores de API.
+- 🤖 **Soporte Claude V2** - Reconocimiento automático del nuevo formato de exportación (`## User:`), timestamps en blockquotes y eliminación de bloques de pensamiento en blockquotes (v1.4.7).
 - 🧹 **NotebookLM Pro** - Resolución de colisiones sintácticas (`**Título**Texto`) y soporte de jerarquía automática para líneas en negrita (v1.4.6).
 - 🧹 **NotebookLM Limpio** - Elimina escapes visuales molestos (ej: `1\.` a `1.`).
 - 🔗 **Neutralización de Sintaxis Roam** - Evita que se creen atributos (`::`) o páginas (`[[ ]]`) accidentalmente al importar texto (v1.4.5).
@@ -37,7 +37,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 5. **Selecciona un bloque** en Roam donde insertar
 6. **Click en "Insertar en Roam"**
 
-> **Nota sobre velocidad:** Para proteger tu base de datos y evitar errores de API, la inserción está limitada a 22 bloques por segundo. Una conversación larga puede tomar unos minutos.
+> **Nota sobre velocidad:** Para proteger tu base de datos y evitar errores de API (como `maximum mutation rate limit exceeded`), la inserción se realiza en lotes de 50 bloques con un retraso dinámico de ~2.5 segundos. Una conversación grande (1,600 bloques) tomará aproximadamente 80 segundos.
 
 > **Nota sobre cancelación:** Si cancelas durante la inserción, el plugin intentará borrar los bloques que ya insertó. Este proceso de limpieza también es lento para ser seguro. **¡No cierres el navegador mientras dice "Limpiando..."!**
 

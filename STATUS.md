@@ -1,12 +1,12 @@
 # Status - Chatbot Roam Plugin
-
-## Versión Actual
-**v1.4.7** | Build: 2026-05-22
-
-### Resumen de Estado
-- **Plugin:** Funcional y estable.
-- **Inserción:** Mejorada con robustez ante fallos de la batch API (fallback automático).
-- **Pruebas:** Nuevo diseño Solarized/Claude aplicado (v1.4.1)
+ 
+ ## Versión Actual
+-**v1.4.8** | Build: 2026-07-05
+-
+-### Resumen de Estado
+-- **Plugin:** Funcional y estable.
+-- **Inserción:** Optimizada para rate limits oficiales de Roam y extracción de texto de alto rendimiento para archivos grandes.
+-- **Pruebas:** Corregido error de límite de mutaciones (1500/60s) con rate limit adaptativo.
 
 ---
 
@@ -36,6 +36,12 @@
 - Procesamiento asíncrono y por lotes (v1.3.3)
 
 ## 📋 Cambios Recientes
+- **v1.4.8:**
+  - **Rate Limit Adaptativo:** Agregado cálculo dinámico del delay entre lotes para respetar de forma precisa la cuota de mutación oficial de Roam (1,500 mutaciones por 60 segundos).
+  - **Rollback Rate-Limited:** El sistema de rollback tras cancelar o fallar una inserción ahora también está regulado por el rate limit para evitar bloqueos del navegador o de la cuenta.
+  - **Optimización de Memoria en Extracción:** Eliminada iteración de código muerto y uso excesivo de `split()` en archivos grandes. Las búsquedas de timestamps ahora ocurren sobre fragmentos limitados de 1,000 bytes.
+  - **Filtro de Imágenes Optimizado:** Reemplazado loop caracter por caracter por conteo de coincidencia RegExp nativo.
+  - **Preview Truncado e Interfaz Ágil:** La UI de la preview ahora se trunca a 80K caracteres y el escape de HTML evita la creación de elementos DOM temporales.
 - **v1.4.6:**
   - **Fix estructural NotebookLM:** Corrección mediante Regex de colisiones entre cierre de negritas y texto descriptivo (`**Título**Texto`).
   - **Jerarquía de Negritas:** Las líneas compuestas íntegramente por negritas ahora actúan como encabezados topológicos, anidando el contenido siguiente automáticamente en Roam.
@@ -66,6 +72,7 @@
 ## Historial Reciente
 
 | Fecha | Cambio |
+| 2026-07-05 | v1.4.8: Optimización de rendimiento para archivos grandes y mitigación del rate limit (1500 ops/60s) en inserción y rollback |
 | 2026-05-22 | v1.4.7: Soporte para formato Claude V2 (## User/Assistant, timestamps en blockquote y eliminación de bloques de pensamiento en blockquote) |
 | 2026-04-16 | v1.4.6: Solución de colisiones estructurales en NotebookLM y soporte de jerarquía para negritas |
 | 2026-04-05 | v1.4.5: Neutralización de sintaxis Roam (::, [[ ]]) obligatoria en prompts y opcional en respuestas |

@@ -22,13 +22,13 @@ const ChatbotRoamCleaners = {
         const lineas = texto.split('\n');
         const lineasLimpias = [];
 
-        for (const linea of lineas) {
-            if (linea.length > 100) {
-                let charsBase64 = 0;
-                for (const c of linea) {
-                    if (/[a-zA-Z0-9+/=]/.test(c)) charsBase64++;
-                }
-                const ratio = charsBase64 / linea.length;
+        for (let i = 0; i < lineas.length; i++) {
+            const linea = lineas[i];
+            const len = linea.length;
+            if (len > 100) {
+                // Contar caracteres que NO son de base64
+                const nonBase64Count = (linea.match(/[^a-zA-Z0-9+/=]/g) || []).length;
+                const ratio = (len - nonBase64Count) / len;
                 if (ratio > 0.9) continue;
             }
             lineasLimpias.push(linea);

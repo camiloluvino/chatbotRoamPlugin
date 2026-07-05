@@ -701,10 +701,15 @@ const ChatbotRoamUI = {
         const insertBtn = this._modalContainer.querySelector('[data-action="insert"]');
 
         if (content) {
-            // Mostrar contenido completo para poder buscar
-            preview.textContent = content;
+            // Mostrar contenido (truncado si es excesivamente grande para evitar lags de renderizado)
+            const MAX_PREVIEW_LIMIT = 80000;
+            const isTruncated = content.length > MAX_PREVIEW_LIMIT;
+            const displayContent = isTruncated ? content.substring(0, MAX_PREVIEW_LIMIT) + '\n\n... [Vista previa truncada para mejorar rendimiento. El archivo completo se importará correctamente] ...' : content;
+
+            preview.textContent = displayContent;
             const countInfo = numIntercambios !== undefined ? `${numIntercambios} intercambios · ` : '';
-            previewInfo.textContent = `${countInfo}${content.length.toLocaleString()} caracteres totales`;
+            const truncationInfo = isTruncated ? ' (vista previa truncada)' : '';
+            previewInfo.textContent = `${countInfo}${content.length.toLocaleString()} caracteres totales${truncationInfo}`;
             insertBtn.disabled = false;
         } else {
             preview.innerHTML = '<span style="color: #e94560;">No se encontraron conversaciones en el archivo.</span>';
@@ -765,7 +770,7 @@ const ChatbotRoamUI = {
 
     _renderPreviewWithHighlights() {
         const preview = this._modalContainer.querySelector('[data-element="preview"]');
-        const content = this._isCut ? this._processedContent : this._originalProcessedContent;
+        let content = this._isCut ? this._processedContent : this._originalProcessedContent;
 
         if (!content) {
             preview.innerHTML = '<span style="color: #666;">Arrastra archivos para ver la vista previa...</span>';
@@ -773,8 +778,18 @@ const ChatbotRoamUI = {
             return;
         }
 
-        if (this._searchMatches.length === 0) {
-            preview.textContent = content;
+        const MAX_PREVIEW_LIMIT = 80000;
+        let isTruncated = false;
+        if (content.length > MAX_PREVIEW_LIMIT) {
+            content = content.substring(0, MAX_PREVIEW_LIMIT);
+            isTruncated = true;
+        }
+
+        // Filtrar matches que estén dentro del límite de la vista previa visible
+        const visibleMatches = this._searchMatches.filter(match => match.end <= MAX_PREVIEW_LIMIT);
+
+        if (visibleMatches.length === 0) {
+            preview.textContent = content + (isTruncated ? '\n\n... [Vista previa truncada para mejorar rendimiento] ...' : '');
             this._updateSearchButtons();
             return;
         }
@@ -783,8 +798,8 @@ const ChatbotRoamUI = {
         let html = '';
         let lastEnd = 0;
 
-        for (let i = 0; i < this._searchMatches.length; i++) {
-            const match = this._searchMatches[i];
+        for (let i = 0; i < visibleMatches.length; i++) {
+            const match = visibleMatches[i];
             // Texto antes del match
             html += this._escapeHtml(content.substring(lastEnd, match.start));
             // Match con highlight
@@ -796,15 +811,22 @@ const ChatbotRoamUI = {
         }
         // Texto después del último match
         html += this._escapeHtml(content.substring(lastEnd));
+        if (isTruncated) {
+            html += '\n\n... [Vista previa truncada para mejorar rendimiento] ...';
+        }
 
         preview.innerHTML = html;
         this._updateSearchButtons();
     },
 
     _escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     },
 
     _scrollToCurrentMatch() {

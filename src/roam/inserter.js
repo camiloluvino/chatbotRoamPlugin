@@ -5,14 +5,31 @@
 // ============================================================================
 
 const ChatbotRoamInserter = {
-    // Configuración de batching mejorada usando batch.actions
-    // Lotes más grandes reducen peticiones, delay pequeño evita congelar UI
+    // Configuración de batching con respeto al rate limit de Roam
+    // Rate limit de Roam: 1500 mutaciones por 60000ms
+    // Con BATCH_SIZE=50 y target de ~1200/min (80% del límite para margen de seguridad):
+    // delay = 60000 / (1200/50) = 2500ms entre lotes
     BATCH_SIZE: 50,
-    BATCH_DELAY_MS: 50,
+    ROAM_RATE_LIMIT: 1500,        // mutaciones máximas por ventana
+    ROAM_RATE_WINDOW_MS: 60000,   // ventana del rate limit (60s)
+    RATE_LIMIT_SAFETY: 0.80,      // usar 80% del límite para dejar margen
 
     // Flag para detectar disponibilidad del batch API (se evalúa una sola vez)
     _batchApiChecked: false,
     _hasBatchApi: false,
+    _batchApiType: 'none', // 'actions', 'function', o 'none'
+
+    /**
+     * Calcula el delay necesario entre lotes para respetar el rate limit
+     * @param {number} batchSize - Tamaño del lote enviado
+     * @returns {number} - Milisegundos de espera
+     * @private
+     */
+    _calculateDelay(batchSize) {
+        const effectiveLimit = this.ROAM_RATE_LIMIT * this.RATE_LIMIT_SAFETY;
+        const batchesPerWindow = effectiveLimit / batchSize;
+        return Math.ceil(this.ROAM_RATE_WINDOW_MS / batchesPerWindow);
+    },
 
     /**
      * Detecta si la batch API está disponible (una sola vez, cachea resultado)
@@ -22,16 +39,41 @@ const ChatbotRoamInserter = {
     _checkBatchApi() {
         if (!this._batchApiChecked) {
             try {
-                this._hasBatchApi = !!(window.roamAlphaAPI &&
-                    window.roamAlphaAPI.data &&
-                    window.roamAlphaAPI.data.batch &&
-                    typeof window.roamAlphaAPI.data.batch.actions === 'function');
+                const api = window.roamAlphaAPI;
+                const hasApi = !!api;
+                const hasData = !!(api && api.data);
+                const hasBatch = !!(api && api.data && api.data.batch);
+                const hasActions = !!(hasBatch && typeof api.data.batch.actions === 'function');
+                const isBatchFunction = !!(hasBatch && typeof api.data.batch === 'function');
+
+                console.log('ChatbotRoamInserter API Check:', {
+                    hasApi,
+                    hasData,
+                    hasBatch,
+                    hasActions,
+                    isBatchFunction
+                });
+
+                if (hasActions) {
+                    this._hasBatchApi = true;
+                    this._batchApiType = 'actions';
+                } else if (isBatchFunction) {
+                    this._hasBatchApi = true;
+                    this._batchApiType = 'function';
+                } else {
+                    this._hasBatchApi = false;
+                    this._batchApiType = 'none';
+                }
             } catch (e) {
+                console.error('Error checking Roam Batch API:', e);
                 this._hasBatchApi = false;
+                this._batchApiType = 'none';
             }
             this._batchApiChecked = true;
             if (!this._hasBatchApi) {
                 console.warn('ChatbotRoamInserter: batch API no disponible, usando fallback individual (más lento).');
+            } else {
+                console.log(`ChatbotRoamInserter: batch API disponible usando método "${this._batchApiType}".`);
             }
         }
         return this._hasBatchApi;
@@ -46,16 +88,25 @@ const ChatbotRoamInserter = {
     async _executeBatch(actions) {
         if (this._checkBatchApi()) {
             try {
-                await window.roamAlphaAPI.data.batch.actions({
-                    action: "batch-actions",
-                    actions: actions
-                });
+                if (this._batchApiType === 'actions') {
+                    await window.roamAlphaAPI.data.batch.actions({
+                        action: "batch-actions",
+                        actions: actions
+                    });
+                } else if (this._batchApiType === 'function') {
+                    await window.roamAlphaAPI.data.batch(actions);
+                }
                 return; // Batch exitoso, salir
             } catch (batchError) {
-                // Batch API falló en runtime — invalidar cache y usar fallback
+                // Si es rate limit, NO invalidar la API — solo propagar el error
+                if (batchError && batchError.message && batchError.message.includes('rate limit')) {
+                    throw batchError;
+                }
+                // Batch API falló por otra razón — invalidar cache y usar fallback
                 console.warn('ChatbotRoamInserter: batch.actions falló en runtime, cambiando a fallback individual.', batchError);
                 this._hasBatchApi = false;
                 this._batchApiChecked = true;
+                this._batchApiType = 'none';
             }
         }
         // Fallback: ejecutar cada acción individualmente
@@ -75,7 +126,7 @@ const ChatbotRoamInserter = {
 
     /**
      * Elimina bloques por sus UIDs (para rollback en caso de error)
-     * Utiliza batch.actions para velocidad
+     * Utiliza batch.actions para velocidad, respetando rate limit
      * @param {Array<string>} uids - Array de UIDs a eliminar
      * @returns {Promise<number>} - Numero de bloques eliminados exitosamente
      * @private
@@ -84,9 +135,12 @@ const ChatbotRoamInserter = {
         let deleted = 0;
         console.warn('Rollback: Iniciando eliminacion de ' + uids.length + ' bloques...');
 
+        const rollbackBatchSize = this.BATCH_SIZE;
+        const rollbackDelay = this._calculateDelay(rollbackBatchSize);
+
         // Eliminar en orden inverso (de abajo hacia arriba)
-        for (let i = uids.length; i > 0; i -= this.BATCH_SIZE) {
-            const start = Math.max(0, i - this.BATCH_SIZE);
+        for (let i = uids.length; i > 0; i -= rollbackBatchSize) {
+            const start = Math.max(0, i - rollbackBatchSize);
             const batchUids = uids.slice(start, i).reverse();
 
             const actions = batchUids.map(uid => ({
@@ -98,11 +152,23 @@ const ChatbotRoamInserter = {
                 await this._executeBatch(actions);
                 deleted += actions.length;
             } catch (e) {
-                console.warn('Rollback: No se pudo eliminar el lote de bloques', e);
+                // Si es rate limit durante rollback, esperar más y reintentar
+                if (e && e.message && e.message.includes('rate limit')) {
+                    console.warn('Rollback: rate limit alcanzado, esperando 10s antes de reintentar...');
+                    await this._delay(10000);
+                    try {
+                        await this._executeBatch(actions);
+                        deleted += actions.length;
+                    } catch (retryError) {
+                        console.warn('Rollback: reintento fallido, saltando lote', retryError);
+                    }
+                } else {
+                    console.warn('Rollback: No se pudo eliminar el lote de bloques', e);
+                }
             }
-            // Yield UI
+            // Respetar rate limit entre lotes de rollback
             if (start > 0) {
-                await this._delay(this.BATCH_DELAY_MS);
+                await this._delay(rollbackDelay);
             }
         }
         return deleted;
@@ -161,6 +227,7 @@ const ChatbotRoamInserter = {
 
     /**
      * Inserta bloques recursivamente en Roam con soporte de rollback, batching y cancelacion
+     * Respeta el rate limit de Roam (1500 mutaciones / 60s)
      * Si ocurre un error o se cancela, automaticamente elimina los bloques ya insertados
      * 
      * @param {string} parentUid - UID del bloque padre
@@ -174,6 +241,12 @@ const ChatbotRoamInserter = {
         const actions = this._flattenBlocks(parentUid, bloques, startOrder);
         const totalOpsEstimate = actions.length;
         const allInsertedUids = [];
+
+        // Calcular delay basado en rate limit
+        const batchDelay = this._calculateDelay(this.BATCH_SIZE);
+        const totalBatches = Math.ceil(actions.length / this.BATCH_SIZE);
+        const estimatedSeconds = Math.ceil((totalBatches * batchDelay) / 1000);
+        console.log(`ChatbotRoamInserter: ${actions.length} bloques en ${totalBatches} lotes de ${this.BATCH_SIZE}, delay ${batchDelay}ms (~${estimatedSeconds}s estimados)`);
 
         try {
             for (let i = 0; i < actions.length; i += this.BATCH_SIZE) {
@@ -192,9 +265,9 @@ const ChatbotRoamInserter = {
                     onProgress(allInsertedUids.length, totalOpsEstimate);
                 }
 
-                // Pausa para liberar el hilo de UI
+                // Respetar rate limit entre lotes
                 if (i + this.BATCH_SIZE < actions.length) {
-                    await this._delay(this.BATCH_DELAY_MS);
+                    await this._delay(batchDelay);
                 }
             }
 

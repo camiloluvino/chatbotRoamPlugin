@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.4.7
+// CHATBOT ROAM PLUGIN v1.4.8
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-05-22 13:14:19
+// Generated: 2026-07-05 00:30:25
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -22,7 +22,7 @@ const NOTEBOOKLM_ASSISTANT = String.fromCharCode(0x52A9, 0x624B);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.4.7",
+    VERSION: "1.4.8",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -127,13 +127,13 @@ const ChatbotRoamCleaners = {
         const lineas = texto.split('\n');
         const lineasLimpias = [];
 
-        for (const linea of lineas) {
-            if (linea.length > 100) {
-                let charsBase64 = 0;
-                for (const c of linea) {
-                    if (/[a-zA-Z0-9+/=]/.test(c)) charsBase64++;
-                }
-                const ratio = charsBase64 / linea.length;
+        for (let i = 0; i < lineas.length; i++) {
+            const linea = lineas[i];
+            const len = linea.length;
+            if (len > 100) {
+                // Contar caracteres que NO son de base64
+                const nonBase64Count = (linea.match(/[^a-zA-Z0-9+/=]/g) || []).length;
+                const ratio = (len - nonBase64Count) / len;
                 if (ratio > 0.9) continue;
             }
             lineasLimpias.push(linea);
@@ -1257,51 +1257,6 @@ const ChatbotRoamProcessing = {
         // Ordenar por posición
         marcadores.sort((a, b) => a.pos - b.pos);
 
-        // Extraer contenido entre marcadores
-        const prompts = [];
-        const responses = [];
-
-        for (let i = 0; i < marcadores.length; i++) {
-            const { tipo, pos } = marcadores[i];
-            const lineaInicio = contenido.substring(pos).split('\n', 2);
-
-            if (lineaInicio.length < 2) continue;
-
-            let siguienteLineaPos = pos + lineaInicio[0].length + 1;
-            let inicioContenido = siguienteLineaPos;
-
-            if (skipTimestamp) {
-                const resto = contenido.substring(siguienteLineaPos);
-                const lineasResto = resto.split('\n');
-                let lineasSaltadas = 0;
-                // Saltar líneas vacías entre el marcador y el timestamp
-                while (lineasSaltadas < lineasResto.length && lineasResto[lineasSaltadas].trim() === '') {
-                    lineasSaltadas++;
-                }
-                const lineaCandidata = lineasSaltadas < lineasResto.length ? lineasResto[lineasSaltadas].trim() : '';
-                // Detectar timestamp normal o en formato blockquote (> fecha)
-                const lineaCandidataSinQuote = lineaCandidata.replace(/^>\s*/, '');
-                if (ChatbotRoamPatterns.TIMESTAMP_FECHA.test(lineaCandidataSinQuote) ||
-                    ChatbotRoamPatterns.TIMESTAMP_BLOCKQUOTE.test(lineaCandidata)) {
-                    // Calcular cuántos bytes saltar (líneas vacías + línea del timestamp)
-                    let bytesASaltar = 0;
-                    for (let k = 0; k <= lineasSaltadas; k++) {
-                        bytesASaltar += lineasResto[k].length + 1;
-                    }
-                    inicioContenido = siguienteLineaPos + bytesASaltar;
-                }
-            }
-
-            const finContenido = i < marcadores.length - 1 ? marcadores[i + 1].pos : contenido.length;
-            const bloque = contenido.substring(inicioContenido, finContenido).trim();
-
-            if (tipo === 'PROMPT') {
-                prompts.push(bloque);
-            } else {
-                responses.push(bloque);
-            }
-        }
-
         // Emparejar prompts con responses (concatenando respuestas consecutivas)
         const pares = [];
 
@@ -1320,13 +1275,14 @@ const ChatbotRoamProcessing = {
 
             if (tipo === 'PROMPT') {
                 // Extraer contenido del prompt
-                const lineaInicio = contenido.substring(pos).split('\n', 2);
-                let siguienteLineaPos = pos + lineaInicio[0].length + 1;
+                const nextNewLine = contenido.indexOf('\n', pos);
+                const lineLength = nextNewLine === -1 ? contenido.length - pos : nextNewLine - pos;
+                let siguienteLineaPos = pos + lineLength + 1;
                 let inicioContenido = siguienteLineaPos;
 
                 if (skipTimestamp) {
-                    const resto = contenido.substring(siguienteLineaPos);
-                    const lineasResto = resto.split('\n');
+                    const restoLimitado = contenido.substring(siguienteLineaPos, siguienteLineaPos + 1000);
+                    const lineasResto = restoLimitado.split('\n');
                     let lineasSaltadas = 0;
                     // Saltar líneas vacías entre el marcador y el timestamp
                     while (lineasSaltadas < lineasResto.length && lineasResto[lineasSaltadas].trim() === '') {
@@ -1355,8 +1311,9 @@ const ChatbotRoamProcessing = {
 
                 while (j < marcadores.length && marcadores[j].tipo === 'RESPONSE') {
                     const respPos = marcadores[j].pos;
-                    const respLineaInicio = contenido.substring(respPos).split('\n', 2);
-                    const respSiguienteLineaPos = respPos + respLineaInicio[0].length + 1;
+                    const respNextNewLine = contenido.indexOf('\n', respPos);
+                    const respLineLength = respNextNewLine === -1 ? contenido.length - respPos : respNextNewLine - respPos;
+                    const respSiguienteLineaPos = respPos + respLineLength + 1;
                     const finResp = j + 1 < marcadores.length ? marcadores[j + 1].pos : contenido.length;
                     const respBloque = contenido.substring(respSiguienteLineaPos, finResp).trim();
 
@@ -2401,14 +2358,31 @@ const ChatbotRoamParser = {
 // ============================================================================
 
 const ChatbotRoamInserter = {
-    // Configuración de batching mejorada usando batch.actions
-    // Lotes más grandes reducen peticiones, delay pequeño evita congelar UI
+    // Configuración de batching con respeto al rate limit de Roam
+    // Rate limit de Roam: 1500 mutaciones por 60000ms
+    // Con BATCH_SIZE=50 y target de ~1200/min (80% del límite para margen de seguridad):
+    // delay = 60000 / (1200/50) = 2500ms entre lotes
     BATCH_SIZE: 50,
-    BATCH_DELAY_MS: 50,
+    ROAM_RATE_LIMIT: 1500,        // mutaciones máximas por ventana
+    ROAM_RATE_WINDOW_MS: 60000,   // ventana del rate limit (60s)
+    RATE_LIMIT_SAFETY: 0.80,      // usar 80% del límite para dejar margen
 
     // Flag para detectar disponibilidad del batch API (se evalúa una sola vez)
     _batchApiChecked: false,
     _hasBatchApi: false,
+    _batchApiType: 'none', // 'actions', 'function', o 'none'
+
+    /**
+     * Calcula el delay necesario entre lotes para respetar el rate limit
+     * @param {number} batchSize - Tamaño del lote enviado
+     * @returns {number} - Milisegundos de espera
+     * @private
+     */
+    _calculateDelay(batchSize) {
+        const effectiveLimit = this.ROAM_RATE_LIMIT * this.RATE_LIMIT_SAFETY;
+        const batchesPerWindow = effectiveLimit / batchSize;
+        return Math.ceil(this.ROAM_RATE_WINDOW_MS / batchesPerWindow);
+    },
 
     /**
      * Detecta si la batch API está disponible (una sola vez, cachea resultado)
@@ -2418,16 +2392,41 @@ const ChatbotRoamInserter = {
     _checkBatchApi() {
         if (!this._batchApiChecked) {
             try {
-                this._hasBatchApi = !!(window.roamAlphaAPI &&
-                    window.roamAlphaAPI.data &&
-                    window.roamAlphaAPI.data.batch &&
-                    typeof window.roamAlphaAPI.data.batch.actions === 'function');
+                const api = window.roamAlphaAPI;
+                const hasApi = !!api;
+                const hasData = !!(api && api.data);
+                const hasBatch = !!(api && api.data && api.data.batch);
+                const hasActions = !!(hasBatch && typeof api.data.batch.actions === 'function');
+                const isBatchFunction = !!(hasBatch && typeof api.data.batch === 'function');
+
+                console.log('ChatbotRoamInserter API Check:', {
+                    hasApi,
+                    hasData,
+                    hasBatch,
+                    hasActions,
+                    isBatchFunction
+                });
+
+                if (hasActions) {
+                    this._hasBatchApi = true;
+                    this._batchApiType = 'actions';
+                } else if (isBatchFunction) {
+                    this._hasBatchApi = true;
+                    this._batchApiType = 'function';
+                } else {
+                    this._hasBatchApi = false;
+                    this._batchApiType = 'none';
+                }
             } catch (e) {
+                console.error('Error checking Roam Batch API:', e);
                 this._hasBatchApi = false;
+                this._batchApiType = 'none';
             }
             this._batchApiChecked = true;
             if (!this._hasBatchApi) {
                 console.warn('ChatbotRoamInserter: batch API no disponible, usando fallback individual (más lento).');
+            } else {
+                console.log(`ChatbotRoamInserter: batch API disponible usando método "${this._batchApiType}".`);
             }
         }
         return this._hasBatchApi;
@@ -2442,16 +2441,25 @@ const ChatbotRoamInserter = {
     async _executeBatch(actions) {
         if (this._checkBatchApi()) {
             try {
-                await window.roamAlphaAPI.data.batch.actions({
-                    action: "batch-actions",
-                    actions: actions
-                });
+                if (this._batchApiType === 'actions') {
+                    await window.roamAlphaAPI.data.batch.actions({
+                        action: "batch-actions",
+                        actions: actions
+                    });
+                } else if (this._batchApiType === 'function') {
+                    await window.roamAlphaAPI.data.batch(actions);
+                }
                 return; // Batch exitoso, salir
             } catch (batchError) {
-                // Batch API falló en runtime — invalidar cache y usar fallback
+                // Si es rate limit, NO invalidar la API — solo propagar el error
+                if (batchError && batchError.message && batchError.message.includes('rate limit')) {
+                    throw batchError;
+                }
+                // Batch API falló por otra razón — invalidar cache y usar fallback
                 console.warn('ChatbotRoamInserter: batch.actions falló en runtime, cambiando a fallback individual.', batchError);
                 this._hasBatchApi = false;
                 this._batchApiChecked = true;
+                this._batchApiType = 'none';
             }
         }
         // Fallback: ejecutar cada acción individualmente
@@ -2471,7 +2479,7 @@ const ChatbotRoamInserter = {
 
     /**
      * Elimina bloques por sus UIDs (para rollback en caso de error)
-     * Utiliza batch.actions para velocidad
+     * Utiliza batch.actions para velocidad, respetando rate limit
      * @param {Array<string>} uids - Array de UIDs a eliminar
      * @returns {Promise<number>} - Numero de bloques eliminados exitosamente
      * @private
@@ -2480,9 +2488,12 @@ const ChatbotRoamInserter = {
         let deleted = 0;
         console.warn('Rollback: Iniciando eliminacion de ' + uids.length + ' bloques...');
 
+        const rollbackBatchSize = this.BATCH_SIZE;
+        const rollbackDelay = this._calculateDelay(rollbackBatchSize);
+
         // Eliminar en orden inverso (de abajo hacia arriba)
-        for (let i = uids.length; i > 0; i -= this.BATCH_SIZE) {
-            const start = Math.max(0, i - this.BATCH_SIZE);
+        for (let i = uids.length; i > 0; i -= rollbackBatchSize) {
+            const start = Math.max(0, i - rollbackBatchSize);
             const batchUids = uids.slice(start, i).reverse();
 
             const actions = batchUids.map(uid => ({
@@ -2494,11 +2505,23 @@ const ChatbotRoamInserter = {
                 await this._executeBatch(actions);
                 deleted += actions.length;
             } catch (e) {
-                console.warn('Rollback: No se pudo eliminar el lote de bloques', e);
+                // Si es rate limit durante rollback, esperar más y reintentar
+                if (e && e.message && e.message.includes('rate limit')) {
+                    console.warn('Rollback: rate limit alcanzado, esperando 10s antes de reintentar...');
+                    await this._delay(10000);
+                    try {
+                        await this._executeBatch(actions);
+                        deleted += actions.length;
+                    } catch (retryError) {
+                        console.warn('Rollback: reintento fallido, saltando lote', retryError);
+                    }
+                } else {
+                    console.warn('Rollback: No se pudo eliminar el lote de bloques', e);
+                }
             }
-            // Yield UI
+            // Respetar rate limit entre lotes de rollback
             if (start > 0) {
-                await this._delay(this.BATCH_DELAY_MS);
+                await this._delay(rollbackDelay);
             }
         }
         return deleted;
@@ -2557,6 +2580,7 @@ const ChatbotRoamInserter = {
 
     /**
      * Inserta bloques recursivamente en Roam con soporte de rollback, batching y cancelacion
+     * Respeta el rate limit de Roam (1500 mutaciones / 60s)
      * Si ocurre un error o se cancela, automaticamente elimina los bloques ya insertados
      * 
      * @param {string} parentUid - UID del bloque padre
@@ -2570,6 +2594,12 @@ const ChatbotRoamInserter = {
         const actions = this._flattenBlocks(parentUid, bloques, startOrder);
         const totalOpsEstimate = actions.length;
         const allInsertedUids = [];
+
+        // Calcular delay basado en rate limit
+        const batchDelay = this._calculateDelay(this.BATCH_SIZE);
+        const totalBatches = Math.ceil(actions.length / this.BATCH_SIZE);
+        const estimatedSeconds = Math.ceil((totalBatches * batchDelay) / 1000);
+        console.log(`ChatbotRoamInserter: ${actions.length} bloques en ${totalBatches} lotes de ${this.BATCH_SIZE}, delay ${batchDelay}ms (~${estimatedSeconds}s estimados)`);
 
         try {
             for (let i = 0; i < actions.length; i += this.BATCH_SIZE) {
@@ -2588,9 +2618,9 @@ const ChatbotRoamInserter = {
                     onProgress(allInsertedUids.length, totalOpsEstimate);
                 }
 
-                // Pausa para liberar el hilo de UI
+                // Respetar rate limit entre lotes
                 if (i + this.BATCH_SIZE < actions.length) {
-                    await this._delay(this.BATCH_DELAY_MS);
+                    await this._delay(batchDelay);
                 }
             }
 
@@ -3326,10 +3356,15 @@ const ChatbotRoamUI = {
         const insertBtn = this._modalContainer.querySelector('[data-action="insert"]');
 
         if (content) {
-            // Mostrar contenido completo para poder buscar
-            preview.textContent = content;
+            // Mostrar contenido (truncado si es excesivamente grande para evitar lags de renderizado)
+            const MAX_PREVIEW_LIMIT = 80000;
+            const isTruncated = content.length > MAX_PREVIEW_LIMIT;
+            const displayContent = isTruncated ? content.substring(0, MAX_PREVIEW_LIMIT) + '\n\n... [Vista previa truncada para mejorar rendimiento. El archivo completo se importará correctamente] ...' : content;
+
+            preview.textContent = displayContent;
             const countInfo = numIntercambios !== undefined ? `${numIntercambios} intercambios · ` : '';
-            previewInfo.textContent = `${countInfo}${content.length.toLocaleString()} caracteres totales`;
+            const truncationInfo = isTruncated ? ' (vista previa truncada)' : '';
+            previewInfo.textContent = `${countInfo}${content.length.toLocaleString()} caracteres totales${truncationInfo}`;
             insertBtn.disabled = false;
         } else {
             preview.innerHTML = '<span style="color: #e94560;">No se encontraron conversaciones en el archivo.</span>';
@@ -3390,7 +3425,7 @@ const ChatbotRoamUI = {
 
     _renderPreviewWithHighlights() {
         const preview = this._modalContainer.querySelector('[data-element="preview"]');
-        const content = this._isCut ? this._processedContent : this._originalProcessedContent;
+        let content = this._isCut ? this._processedContent : this._originalProcessedContent;
 
         if (!content) {
             preview.innerHTML = '<span style="color: #666;">Arrastra archivos para ver la vista previa...</span>';
@@ -3398,8 +3433,18 @@ const ChatbotRoamUI = {
             return;
         }
 
-        if (this._searchMatches.length === 0) {
-            preview.textContent = content;
+        const MAX_PREVIEW_LIMIT = 80000;
+        let isTruncated = false;
+        if (content.length > MAX_PREVIEW_LIMIT) {
+            content = content.substring(0, MAX_PREVIEW_LIMIT);
+            isTruncated = true;
+        }
+
+        // Filtrar matches que estén dentro del límite de la vista previa visible
+        const visibleMatches = this._searchMatches.filter(match => match.end <= MAX_PREVIEW_LIMIT);
+
+        if (visibleMatches.length === 0) {
+            preview.textContent = content + (isTruncated ? '\n\n... [Vista previa truncada para mejorar rendimiento] ...' : '');
             this._updateSearchButtons();
             return;
         }
@@ -3408,8 +3453,8 @@ const ChatbotRoamUI = {
         let html = '';
         let lastEnd = 0;
 
-        for (let i = 0; i < this._searchMatches.length; i++) {
-            const match = this._searchMatches[i];
+        for (let i = 0; i < visibleMatches.length; i++) {
+            const match = visibleMatches[i];
             // Texto antes del match
             html += this._escapeHtml(content.substring(lastEnd, match.start));
             // Match con highlight
@@ -3421,15 +3466,22 @@ const ChatbotRoamUI = {
         }
         // Texto después del último match
         html += this._escapeHtml(content.substring(lastEnd));
+        if (isTruncated) {
+            html += '\n\n... [Vista previa truncada para mejorar rendimiento] ...';
+        }
 
         preview.innerHTML = html;
         this._updateSearchButtons();
     },
 
     _escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     },
 
     _scrollToCurrentMatch() {

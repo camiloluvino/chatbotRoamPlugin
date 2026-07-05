@@ -59,51 +59,6 @@ const ChatbotRoamProcessing = {
         // Ordenar por posición
         marcadores.sort((a, b) => a.pos - b.pos);
 
-        // Extraer contenido entre marcadores
-        const prompts = [];
-        const responses = [];
-
-        for (let i = 0; i < marcadores.length; i++) {
-            const { tipo, pos } = marcadores[i];
-            const lineaInicio = contenido.substring(pos).split('\n', 2);
-
-            if (lineaInicio.length < 2) continue;
-
-            let siguienteLineaPos = pos + lineaInicio[0].length + 1;
-            let inicioContenido = siguienteLineaPos;
-
-            if (skipTimestamp) {
-                const resto = contenido.substring(siguienteLineaPos);
-                const lineasResto = resto.split('\n');
-                let lineasSaltadas = 0;
-                // Saltar líneas vacías entre el marcador y el timestamp
-                while (lineasSaltadas < lineasResto.length && lineasResto[lineasSaltadas].trim() === '') {
-                    lineasSaltadas++;
-                }
-                const lineaCandidata = lineasSaltadas < lineasResto.length ? lineasResto[lineasSaltadas].trim() : '';
-                // Detectar timestamp normal o en formato blockquote (> fecha)
-                const lineaCandidataSinQuote = lineaCandidata.replace(/^>\s*/, '');
-                if (ChatbotRoamPatterns.TIMESTAMP_FECHA.test(lineaCandidataSinQuote) ||
-                    ChatbotRoamPatterns.TIMESTAMP_BLOCKQUOTE.test(lineaCandidata)) {
-                    // Calcular cuántos bytes saltar (líneas vacías + línea del timestamp)
-                    let bytesASaltar = 0;
-                    for (let k = 0; k <= lineasSaltadas; k++) {
-                        bytesASaltar += lineasResto[k].length + 1;
-                    }
-                    inicioContenido = siguienteLineaPos + bytesASaltar;
-                }
-            }
-
-            const finContenido = i < marcadores.length - 1 ? marcadores[i + 1].pos : contenido.length;
-            const bloque = contenido.substring(inicioContenido, finContenido).trim();
-
-            if (tipo === 'PROMPT') {
-                prompts.push(bloque);
-            } else {
-                responses.push(bloque);
-            }
-        }
-
         // Emparejar prompts con responses (concatenando respuestas consecutivas)
         const pares = [];
 
@@ -122,13 +77,14 @@ const ChatbotRoamProcessing = {
 
             if (tipo === 'PROMPT') {
                 // Extraer contenido del prompt
-                const lineaInicio = contenido.substring(pos).split('\n', 2);
-                let siguienteLineaPos = pos + lineaInicio[0].length + 1;
+                const nextNewLine = contenido.indexOf('\n', pos);
+                const lineLength = nextNewLine === -1 ? contenido.length - pos : nextNewLine - pos;
+                let siguienteLineaPos = pos + lineLength + 1;
                 let inicioContenido = siguienteLineaPos;
 
                 if (skipTimestamp) {
-                    const resto = contenido.substring(siguienteLineaPos);
-                    const lineasResto = resto.split('\n');
+                    const restoLimitado = contenido.substring(siguienteLineaPos, siguienteLineaPos + 1000);
+                    const lineasResto = restoLimitado.split('\n');
                     let lineasSaltadas = 0;
                     // Saltar líneas vacías entre el marcador y el timestamp
                     while (lineasSaltadas < lineasResto.length && lineasResto[lineasSaltadas].trim() === '') {
@@ -157,8 +113,9 @@ const ChatbotRoamProcessing = {
 
                 while (j < marcadores.length && marcadores[j].tipo === 'RESPONSE') {
                     const respPos = marcadores[j].pos;
-                    const respLineaInicio = contenido.substring(respPos).split('\n', 2);
-                    const respSiguienteLineaPos = respPos + respLineaInicio[0].length + 1;
+                    const respNextNewLine = contenido.indexOf('\n', respPos);
+                    const respLineLength = respNextNewLine === -1 ? contenido.length - respPos : respNextNewLine - respPos;
+                    const respSiguienteLineaPos = respPos + respLineLength + 1;
                     const finResp = j + 1 < marcadores.length ? marcadores[j + 1].pos : contenido.length;
                     const respBloque = contenido.substring(respSiguienteLineaPos, finResp).trim();
 
