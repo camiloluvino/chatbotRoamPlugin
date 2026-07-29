@@ -211,6 +211,14 @@ const OPCIONES_LIMPIEZA = [
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.normalizarVinetasNotebookLM(texto); }
     },
+    {
+        id: 'eliminar_fuentes_notebooklm',
+        label: 'Eliminar fuentes/sources (NotebookLM)',
+        chatbots: ['notebooklm'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarFuentesNotebookLM(texto); }
+    },
 
     // ========================================================================
     // CONVERSIÓN DE FORMATO

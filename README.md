@@ -14,6 +14,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 - 💻 **Preserva code blocks** - Los bloques de código se insertan correctamente formateados
 - 📐 **Indentación bajo headings** - El contenido bajo headings markdown (`#`, `##`, `###`) se anida automáticamente
 - 🚀 **Rate Limit Safe** - Adaptación automática al límite oficial de Roam (1500 mutaciones/60s). Lotes de 50 bloques con delay seguro y dinámico (~2.5s entre lotes) para evitar errores de API.
+- 🤖 **Soporte Gemini Exporter V2** - Reconocimiento del nuevo formato de exportación (`## User:` / `## Gemini:`) y eliminación automática de bloques de pensamiento (`> **Thinking steps**`).
 - 🤖 **Soporte Claude V2** - Reconocimiento automático del nuevo formato de exportación (`## User:`), timestamps en blockquotes y eliminación de bloques de pensamiento en blockquotes (v1.4.7).
 - 🧹 **NotebookLM Pro** - Resolución de colisiones sintácticas (`**Título**Texto`) y soporte de jerarquía automática para líneas en negrita (v1.4.6).
 - 🧹 **NotebookLM Limpio** - Elimina escapes visuales molestos (ej: `1\.` a `1.`).

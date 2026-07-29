@@ -1,7 +1,7 @@
 // CHATBOT ROAM PLUGIN v1.4.8
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-07-05 00:30:25
+// Generated: 2026-07-29 16:29:36
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -46,6 +46,8 @@ const ChatbotRoamPatterns = {
     // Formato Claude V2 (actualización del exportador): ## User: / ## Assistant:
     PROMPT_MARKER_V2: /^## User:/gm,
     RESPONSE_MARKER_V2: /^## Assistant:/gm,
+    // Formato Gemini Exporter: ## User: / ## Gemini:
+    RESPONSE_MARKER_GEMINI: /^## Gemini:/gm,
 
     // THOUGHT PROCESSES
     // Claude - bloques plaintext
@@ -82,7 +84,7 @@ const ChatbotRoamPatterns = {
     // DETECCION DE TIPO DE CHATBOT
     DETECT_ANTIGRAVITY: /^### (?:User Input|Planner Response)$/m,
     DETECT_CLAUDE_TOOLS: /\*\*\w+\*\*\s*\*Request\*/,
-    DETECT_GEMINI_THINKING: /^>\s*Thinking:/m,
+    DETECT_GEMINI_THINKING: /^>\s*(?:\*\*Thinking steps\*\*|Thinking:)/m,
 
     // Helper getters for backtick strings
     get BT3() { return BT3; },
@@ -408,7 +410,7 @@ const ChatbotRoamCleaners = {
         for (const linea of lineas) {
             const lineaStripped = linea.trim();
 
-            if (lineaStripped.startsWith('> Thinking:')) {
+            if (lineaStripped.startsWith('> Thinking:') || lineaStripped.startsWith('> **Thinking steps**')) {
                 enBloqueThinking = true;
                 continue;
             }
@@ -440,7 +442,7 @@ const ChatbotRoamCleaners = {
         for (const linea of lineas) {
             const lineaStripped = linea.trim();
 
-            if (lineaStripped.startsWith('>') && !lineaStripped.startsWith('> Thinking:')) {
+            if (lineaStripped.startsWith('>') && !lineaStripped.startsWith('> Thinking:') && !lineaStripped.startsWith('> **Thinking steps**')) {
                 const textoDespuesMayor = lineaStripped.substring(1).trim();
                 const tieneExtension = extensiones.some(ext => textoDespuesMayor.toUpperCase().includes(ext));
 
@@ -562,6 +564,16 @@ const ChatbotRoamCleaners = {
         // Reemplazar "\-" por "-" (por si acaso)
         texto = texto.replace(/\\-/g, '-');
         return texto;
+    },
+
+    /**
+     * Elimina el bloque de fuentes citado por NotebookLM al final de la respuesta.
+     * Ejemplo:
+     * > **来源：**
+     * > [1] archivo.pdf
+     */
+    eliminarFuentesNotebookLM(texto) {
+        return texto.replace(/> \*\*(?:来源：|Sources:)\*\*(?:\n> \[\d+\].*)*/g, '');
     },
 
     // ========================================================================
@@ -934,6 +946,14 @@ const OPCIONES_LIMPIEZA = [
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.normalizarVinetasNotebookLM(texto); }
     },
+    {
+        id: 'eliminar_fuentes_notebooklm',
+        label: 'Eliminar fuentes/sources (NotebookLM)',
+        chatbots: ['notebooklm'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarFuentesNotebookLM(texto); }
+    },
 
     // ========================================================================
     // CONVERSIÓN DE FORMATO
@@ -1218,6 +1238,8 @@ const ChatbotRoamProcessing = {
         const esAntigravity = ChatbotRoamPatterns.DETECT_ANTIGRAVITY.test(contenido);
         // Detectar formato Claude V2 (## User: / ## Assistant:)
         const esClaudeV2 = contenido.includes('## User:') && contenido.includes('## Assistant:');
+        // Detectar formato Gemini Exporter (## User: / ## Gemini:)
+        const esGeminiV2 = contenido.includes('## User:') && contenido.includes('## Gemini:');
 
         // Usar marcadores segun formato
         let promptPattern, responsePattern;
@@ -1230,6 +1252,9 @@ const ChatbotRoamProcessing = {
         } else if (esClaudeV2) {
             promptPattern = ChatbotRoamPatterns.PROMPT_MARKER_V2;
             responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER_V2;
+        } else if (esGeminiV2) {
+            promptPattern = ChatbotRoamPatterns.PROMPT_MARKER_V2;
+            responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER_GEMINI;
         } else {
             promptPattern = ChatbotRoamPatterns.PROMPT_MARKER;
             responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER;
@@ -1350,15 +1375,15 @@ const ChatbotRoamProcessing = {
      */
     extraerTodosLosBloques(contenido) {
         const bloques = [];
-        const regex = /^## (Prompt|Response|User|Assistant):/gm;
+        const regex = /^## (Prompt|Response|User|Assistant|Gemini):/gm;
         let match;
 
         while ((match = regex.exec(contenido)) !== null) {
             const posInicio = match.index;
-            // Normalizar: "User" -> "Prompt", "Assistant" -> "Response"
+            // Normalizar: "User" -> "Prompt", "Assistant" / "Gemini" -> "Response"
             let tipo = match[1];
             if (tipo === 'User') tipo = 'Prompt';
-            if (tipo === 'Assistant') tipo = 'Response';
+            if (tipo === 'Assistant' || tipo === 'Gemini') tipo = 'Response';
 
             // Calcular número de línea
             const lineNumber = contenido.substring(0, posInicio).split('\n').length;
@@ -1366,7 +1391,7 @@ const ChatbotRoamProcessing = {
             // Encontrar el fin de este bloque (siguiente ## o fin de archivo)
             const restoContenido = contenido.substring(posInicio);
             const marcadorLen = match[0].length; // "## Prompt:" o "## Response:"
-            const siguienteBloque = restoContenido.substring(marcadorLen).search(/^## (?:Prompt|Response|User|Assistant):/m);
+            const siguienteBloque = restoContenido.substring(marcadorLen).search(/^## (?:Prompt|Response|User|Assistant|Gemini):/m);
             const finBloque = siguienteBloque === -1
                 ? contenido.length
                 : posInicio + marcadorLen + siguienteBloque;
@@ -1533,8 +1558,9 @@ const ChatbotRoamProcessing = {
 
         const tieneThinkingGemini = ChatbotRoamPatterns.DETECT_GEMINI_THINKING.test(contenido);
         const tieneGeminiFooter = contenido.includes('Gemini Exporter');
+        const esGeminiV2 = contenido.includes('## User:') && contenido.includes('## Gemini:');
 
-        if (tieneThinkingGemini || tieneGeminiFooter) {
+        if (tieneThinkingGemini || tieneGeminiFooter || esGeminiV2) {
             return 'gemini';
         }
 

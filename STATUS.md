@@ -36,6 +36,8 @@
 - Procesamiento asíncrono y por lotes (v1.3.3)
 
 ## 📋 Cambios Recientes
+- **2026-07-29:**
+  - **Soporte Gemini Exporter V2:** Reconocimiento del nuevo formato de exportación (`## User:` / `## Gemini:`) y eliminación de bloques de pensamiento en formato `> **Thinking steps**`.
 - **v1.4.8:**
   - **Rate Limit Adaptativo:** Agregado cálculo dinámico del delay entre lotes para respetar de forma precisa la cuota de mutación oficial de Roam (1,500 mutaciones por 60 segundos).
   - **Rollback Rate-Limited:** El sistema de rollback tras cancelar o fallar una inserción ahora también está regulado por el rate limit para evitar bloqueos del navegador o de la cuenta.
@@ -72,6 +74,7 @@
 ## Historial Reciente
 
 | Fecha | Cambio |
+| 2026-07-29 | Soporte Gemini Exporter V2 (## User / ## Gemini, y filtro de > **Thinking steps**) |
 | 2026-07-05 | v1.4.8: Optimización de rendimiento para archivos grandes y mitigación del rate limit (1500 ops/60s) en inserción y rollback |
 | 2026-05-22 | v1.4.7: Soporte para formato Claude V2 (## User/Assistant, timestamps en blockquote y eliminación de bloques de pensamiento en blockquote) |
 | 2026-04-16 | v1.4.6: Solución de colisiones estructurales en NotebookLM y soporte de jerarquía para negritas |

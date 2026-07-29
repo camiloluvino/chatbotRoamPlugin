@@ -20,6 +20,8 @@ const ChatbotRoamProcessing = {
         const esAntigravity = ChatbotRoamPatterns.DETECT_ANTIGRAVITY.test(contenido);
         // Detectar formato Claude V2 (## User: / ## Assistant:)
         const esClaudeV2 = contenido.includes('## User:') && contenido.includes('## Assistant:');
+        // Detectar formato Gemini Exporter (## User: / ## Gemini:)
+        const esGeminiV2 = contenido.includes('## User:') && contenido.includes('## Gemini:');
 
         // Usar marcadores segun formato
         let promptPattern, responsePattern;
@@ -32,6 +34,9 @@ const ChatbotRoamProcessing = {
         } else if (esClaudeV2) {
             promptPattern = ChatbotRoamPatterns.PROMPT_MARKER_V2;
             responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER_V2;
+        } else if (esGeminiV2) {
+            promptPattern = ChatbotRoamPatterns.PROMPT_MARKER_V2;
+            responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER_GEMINI;
         } else {
             promptPattern = ChatbotRoamPatterns.PROMPT_MARKER;
             responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER;
@@ -152,15 +157,15 @@ const ChatbotRoamProcessing = {
      */
     extraerTodosLosBloques(contenido) {
         const bloques = [];
-        const regex = /^## (Prompt|Response|User|Assistant):/gm;
+        const regex = /^## (Prompt|Response|User|Assistant|Gemini):/gm;
         let match;
 
         while ((match = regex.exec(contenido)) !== null) {
             const posInicio = match.index;
-            // Normalizar: "User" -> "Prompt", "Assistant" -> "Response"
+            // Normalizar: "User" -> "Prompt", "Assistant" / "Gemini" -> "Response"
             let tipo = match[1];
             if (tipo === 'User') tipo = 'Prompt';
-            if (tipo === 'Assistant') tipo = 'Response';
+            if (tipo === 'Assistant' || tipo === 'Gemini') tipo = 'Response';
 
             // Calcular número de línea
             const lineNumber = contenido.substring(0, posInicio).split('\n').length;
@@ -168,7 +173,7 @@ const ChatbotRoamProcessing = {
             // Encontrar el fin de este bloque (siguiente ## o fin de archivo)
             const restoContenido = contenido.substring(posInicio);
             const marcadorLen = match[0].length; // "## Prompt:" o "## Response:"
-            const siguienteBloque = restoContenido.substring(marcadorLen).search(/^## (?:Prompt|Response|User|Assistant):/m);
+            const siguienteBloque = restoContenido.substring(marcadorLen).search(/^## (?:Prompt|Response|User|Assistant|Gemini):/m);
             const finBloque = siguienteBloque === -1
                 ? contenido.length
                 : posInicio + marcadorLen + siguienteBloque;
@@ -335,8 +340,9 @@ const ChatbotRoamProcessing = {
 
         const tieneThinkingGemini = ChatbotRoamPatterns.DETECT_GEMINI_THINKING.test(contenido);
         const tieneGeminiFooter = contenido.includes('Gemini Exporter');
+        const esGeminiV2 = contenido.includes('## User:') && contenido.includes('## Gemini:');
 
-        if (tieneThinkingGemini || tieneGeminiFooter) {
+        if (tieneThinkingGemini || tieneGeminiFooter || esGeminiV2) {
             return 'gemini';
         }
 

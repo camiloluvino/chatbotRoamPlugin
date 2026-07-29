@@ -303,7 +303,7 @@ const ChatbotRoamCleaners = {
         for (const linea of lineas) {
             const lineaStripped = linea.trim();
 
-            if (lineaStripped.startsWith('> Thinking:')) {
+            if (lineaStripped.startsWith('> Thinking:') || lineaStripped.startsWith('> **Thinking steps**')) {
                 enBloqueThinking = true;
                 continue;
             }
@@ -335,7 +335,7 @@ const ChatbotRoamCleaners = {
         for (const linea of lineas) {
             const lineaStripped = linea.trim();
 
-            if (lineaStripped.startsWith('>') && !lineaStripped.startsWith('> Thinking:')) {
+            if (lineaStripped.startsWith('>') && !lineaStripped.startsWith('> Thinking:') && !lineaStripped.startsWith('> **Thinking steps**')) {
                 const textoDespuesMayor = lineaStripped.substring(1).trim();
                 const tieneExtension = extensiones.some(ext => textoDespuesMayor.toUpperCase().includes(ext));
 
@@ -457,6 +457,16 @@ const ChatbotRoamCleaners = {
         // Reemplazar "\-" por "-" (por si acaso)
         texto = texto.replace(/\\-/g, '-');
         return texto;
+    },
+
+    /**
+     * Elimina el bloque de fuentes citado por NotebookLM al final de la respuesta.
+     * Ejemplo:
+     * > **来源：**
+     * > [1] archivo.pdf
+     */
+    eliminarFuentesNotebookLM(texto) {
+        return texto.replace(/> \*\*(?:来源：|Sources:)\*\*(?:\n> \[\d+\].*)*/g, '');
     },
 
     // ========================================================================

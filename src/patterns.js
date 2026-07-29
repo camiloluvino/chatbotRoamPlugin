@@ -40,6 +40,8 @@ const ChatbotRoamPatterns = {
     // Formato Claude V2 (actualización del exportador): ## User: / ## Assistant:
     PROMPT_MARKER_V2: /^## User:/gm,
     RESPONSE_MARKER_V2: /^## Assistant:/gm,
+    // Formato Gemini Exporter: ## User: / ## Gemini:
+    RESPONSE_MARKER_GEMINI: /^## Gemini:/gm,
 
     // THOUGHT PROCESSES
     // Claude - bloques plaintext
@@ -76,7 +78,7 @@ const ChatbotRoamPatterns = {
     // DETECCION DE TIPO DE CHATBOT
     DETECT_ANTIGRAVITY: /^### (?:User Input|Planner Response)$/m,
     DETECT_CLAUDE_TOOLS: /\*\*\w+\*\*\s*\*Request\*/,
-    DETECT_GEMINI_THINKING: /^>\s*Thinking:/m,
+    DETECT_GEMINI_THINKING: /^>\s*(?:\*\*Thinking steps\*\*|Thinking:)/m,
 
     // Helper getters for backtick strings
     get BT3() { return BT3; },
