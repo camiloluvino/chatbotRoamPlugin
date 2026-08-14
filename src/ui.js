@@ -14,7 +14,6 @@ const ChatbotRoamUI = {
     _searchMatches: [],      // Posiciones de coincidencias
     _currentMatchIndex: -1,  // Índice actual
     _isCut: false,           // Si ya se cortó
-    _isCut: false,           // Si ya se cortó
     _boundEscHandler: null,  // Referencia al handler de ESC para cleanup
     _activeCancelToken: null, // Token para cancelar insercion en curso
 
@@ -43,8 +42,6 @@ const ChatbotRoamUI = {
         this._fileContent = null;
         this._processedContent = null;
         this._originalProcessedContent = null;
-        this._searchMatches = [];
-        this._currentMatchIndex = -1;
         this._searchMatches = [];
         this._currentMatchIndex = -1;
         this._isCut = false;
@@ -351,7 +348,9 @@ const ChatbotRoamUI = {
             let statusText = '<span style="color: #4CAF50;">Cargados (' + (totalSize / 1024).toFixed(1) + ' KB)</span>';
             
             if (warnings.length > 0) {
-                statusText += '<br><span style="color: #FFA500; font-size: 11px;">Advertencias: ' + warnings.length + '</span>';
+                const escapedWarnings = warnings.map(w => this._escapeHtml(w));
+                statusText += '<br><span style="color: #FFA500; font-size: 11px; font-weight: bold;" title="' + escapedWarnings.join('\n') + '">⚠ ' + warnings.length + ' advertencia(s):</span>';
+                statusText += '<br><span style="color: #FFA500; font-size: 10px; display: inline-block; max-width: 90%; text-align: center;">' + escapedWarnings.join('<br>') + '</span>';
             }
 
             dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML =
@@ -403,48 +402,44 @@ const ChatbotRoamUI = {
             const mcpBadge = bloque.tieneMCP ? '<span class="chatbot-roam-editor-mcp">MCP</span>' : '';
             const extractoCorto = bloque.extracto.substring(0, 70) + (bloque.extracto.length > 70 ? '...' : '');
 
-            return `
-                <div class="chatbot-roam-editor-item ${tipoClass}" data-idx="${idx}">
-                    <div class="chatbot-roam-editor-item-header">
-                        <span class="chatbot-roam-editor-num">[${idx + 1}]</span>
-                        <span class="chatbot-roam-editor-icon">${tipoIcon}</span>
-                        <span class="chatbot-roam-editor-tipo">${bloque.tipo.toUpperCase()}</span>
-                        ${mcpBadge}
-                        <span class="chatbot-roam-editor-line">Línea ${bloque.lineNumber}</span>
-                    </div>
-                    <div class="chatbot-roam-editor-extracto">${this._escapeHtml(extractoCorto)}</div>
-                    <div class="chatbot-roam-editor-buttons">
-                        <button class="chatbot-roam-editor-swap-btn" data-action="swap" data-idx="${idx}" title="Intercambiar este bloque">⇄</button>
-                        <button class="chatbot-roam-editor-chain-btn" data-action="chain" data-idx="${idx}" title="Invertir desde aquí hasta el final">↓↓</button>
-                    </div>
-                </div>
-            `;
+            return '<div class="chatbot-roam-editor-item ' + tipoClass + '" data-idx="' + idx + '">' +
+                '<div class="chatbot-roam-editor-item-header">' +
+                '<span class="chatbot-roam-editor-num">[' + (idx + 1) + ']</span>' +
+                '<span class="chatbot-roam-editor-icon">' + tipoIcon + '</span>' +
+                '<span class="chatbot-roam-editor-tipo">' + bloque.tipo.toUpperCase() + '</span>' +
+                mcpBadge +
+                '<span class="chatbot-roam-editor-line">Línea ' + bloque.lineNumber + '</span>' +
+                '</div>' +
+                '<div class="chatbot-roam-editor-extracto">' + this._escapeHtml(extractoCorto) + '</div>' +
+                '<div class="chatbot-roam-editor-buttons">' +
+                '<button class="chatbot-roam-editor-swap-btn" data-action="swap" data-idx="' + idx + '" title="Intercambiar este bloque">⇄</button>' +
+                '<button class="chatbot-roam-editor-chain-btn" data-action="chain" data-idx="' + idx + '" title="Invertir desde aquí hasta el final">↓↓</button>' +
+                '</div>' +
+                '</div>';
         }).join('');
 
-        panel.innerHTML = `
-            <div class="chatbot-roam-editor-header">
-                <span class="chatbot-roam-editor-title">⚠️ REVISIÓN DE CLASIFICACIÓN</span>
-                <span class="chatbot-roam-editor-subtitle">Verifica que cada bloque esté correctamente clasificado como Prompt o Response.</span>
-            </div>
-            <div class="chatbot-roam-editor-stats">
-                Total: ${this._todosLosBloques.length} bloques | 
-                <span data-element="modified-count">Modificados: 0</span>
-            </div>
-            <div class="chatbot-roam-editor-list">
-                ${itemsHTML}
-            </div>
-            <div class="chatbot-roam-editor-actions">
-                <button class="chatbot-roam-editor-btn-continue" data-action="continue-editor">
-                    Continuar con procesamiento
-                </button>
-                <button class="chatbot-roam-editor-btn-skip" data-action="skip-editor">
-                    Omitir revisión
-                </button>
-                <button class="chatbot-roam-editor-btn-restore" data-action="restore-editor" disabled>
-                    Restaurar original
-                </button>
-            </div>
-        `;
+        panel.innerHTML = '<div class="chatbot-roam-editor-header">' +
+            '<span class="chatbot-roam-editor-title">⚠️ REVISIÓN DE CLASIFICACIÓN</span>' +
+            '<span class="chatbot-roam-editor-subtitle">Verifica que cada bloque esté correctamente clasificado como Prompt o Response.</span>' +
+            '</div>' +
+            '<div class="chatbot-roam-editor-stats">' +
+            'Total: ' + this._todosLosBloques.length + ' bloques | ' +
+            '<span data-element="modified-count">Modificados: 0</span>' +
+            '</div>' +
+            '<div class="chatbot-roam-editor-list">' +
+            itemsHTML +
+            '</div>' +
+            '<div class="chatbot-roam-editor-actions">' +
+            '<button class="chatbot-roam-editor-btn-continue" data-action="continue-editor">' +
+            'Continuar con procesamiento' +
+            '</button>' +
+            '<button class="chatbot-roam-editor-btn-skip" data-action="skip-editor">' +
+            'Omitir revisión' +
+            '</button>' +
+            '<button class="chatbot-roam-editor-btn-restore" data-action="restore-editor" disabled>' +
+            'Restaurar original' +
+            '</button>' +
+            '</div>';
 
         // Insertar después del dropzone
         const dropzone = this._modalContainer.querySelector('[data-action="dropzone"]');
@@ -488,9 +483,9 @@ const ChatbotRoamUI = {
 
         const bloque = this._todosLosBloques[idx];
         const nuevoTipo = bloque.tipo === 'Prompt' ? 'Response' : 'Prompt';
-        const marcadorViejo = `## ${bloque.tipo}:`;
-        const marcadorNuevo = `## ${nuevoTipo}:`;
-        const diffLen = marcadorNuevo.length - marcadorViejo.length; // +1 o -1
+        const marcadorViejo = bloque.marcadorOriginal || ('## ' + bloque.tipo + ':');
+        const marcadorNuevo = '## ' + nuevoTipo + ':';
+        const diffLen = marcadorNuevo.length - marcadorViejo.length;
 
         // Reemplazar en el contenido
         const antes = this._fileContent.substring(0, bloque.pos);
@@ -502,8 +497,9 @@ const ChatbotRoamUI = {
             this._todosLosBloques[i].pos += diffLen;
         }
 
-        // Actualizar tipo del bloque
+        // Actualizar tipo y marcador del bloque
         bloque.tipo = nuevoTipo;
+        bloque.marcadorOriginal = marcadorNuevo;
 
         // Marcar como modificado
         if (this._bloquesModificados.has(idx)) {
@@ -518,7 +514,7 @@ const ChatbotRoamUI = {
         // Actualizar contador
         const countSpan = this._modalContainer.querySelector('[data-element="modified-count"]');
         if (countSpan) {
-            countSpan.textContent = `Modificados: ${this._bloquesModificados.size}`;
+            countSpan.textContent = 'Modificados: ' + this._bloquesModificados.size;
         }
 
         // Habilitar botón restaurar si hay modificaciones
@@ -532,7 +528,7 @@ const ChatbotRoamUI = {
      * Actualiza visualmente un item del editor después de intercambiar
      */
     _actualizarItemEditor(idx) {
-        const item = this._modalContainer.querySelector(`.chatbot-roam-editor-item[data-idx="${idx}"]`);
+        const item = this._modalContainer.querySelector('.chatbot-roam-editor-item[data-idx="' + idx + '"]');
         if (!item) return;
 
         const bloque = this._todosLosBloques[idx];
@@ -574,7 +570,7 @@ const ChatbotRoamUI = {
     _invertirDesdeAqui(idx) {
         const restantes = this._todosLosBloques.length - idx;
 
-        if (!confirm(`¿Invertir ${restantes} bloques desde aquí hasta el final?`)) {
+        if (!confirm('¿Invertir ' + restantes + ' bloques desde aquí hasta el final?')) {
             return;
         }
 
@@ -707,9 +703,9 @@ const ChatbotRoamUI = {
             const displayContent = isTruncated ? content.substring(0, MAX_PREVIEW_LIMIT) + '\n\n... [Vista previa truncada para mejorar rendimiento. El archivo completo se importará correctamente] ...' : content;
 
             preview.textContent = displayContent;
-            const countInfo = numIntercambios !== undefined ? `${numIntercambios} intercambios · ` : '';
+            const countInfo = numIntercambios !== undefined ? (numIntercambios + ' intercambios · ') : '';
             const truncationInfo = isTruncated ? ' (vista previa truncada)' : '';
-            previewInfo.textContent = `${countInfo}${content.length.toLocaleString()} caracteres totales${truncationInfo}`;
+            previewInfo.textContent = countInfo + content.length.toLocaleString() + ' caracteres totales' + truncationInfo;
             insertBtn.disabled = false;
         } else {
             preview.innerHTML = '<span style="color: #e94560;">No se encontraron conversaciones en el archivo.</span>';
@@ -806,7 +802,7 @@ const ChatbotRoamUI = {
             const isCurrent = i === this._currentMatchIndex;
             const markClass = isCurrent ? 'current' : '';
             const markId = isCurrent ? 'id="current-match"' : '';
-            html += `<mark class="${markClass}" ${markId}>${this._escapeHtml(content.substring(match.start, match.end))}</mark>`;
+            html += '<mark class="' + markClass + '" ' + markId + '>' + this._escapeHtml(content.substring(match.start, match.end)) + '</mark>';
             lastEnd = match.end;
         }
         // Texto después del último match
@@ -850,7 +846,7 @@ const ChatbotRoamUI = {
         cutBtn.disabled = !hasMatches || this._isCut;
 
         if (hasMatches) {
-            countSpan.textContent = `${this._currentMatchIndex + 1}/${this._searchMatches.length}`;
+            countSpan.textContent = (this._currentMatchIndex + 1) + '/' + this._searchMatches.length;
         } else {
             countSpan.textContent = '0/0';
         }
@@ -922,7 +918,7 @@ const ChatbotRoamUI = {
         for (let i = 0; i < rawBloques.length; i++) {
             let bloque = rawBloques[i];
             if (bloque.text && bloque.text.startsWith('📁 ')) {
-                currentFileBlock = { text: `**${bloque.text}**`, children: [] };
+                currentFileBlock = { text: '**' + bloque.text + '**', children: [] };
                 bloques.push(currentFileBlock);
             } else {
                 if (currentFileBlock) {
@@ -955,7 +951,7 @@ const ChatbotRoamUI = {
 
             // Actualizar porcentaje
             const percent = Math.round((count / total) * 100);
-            insertBtn.textContent = `Insertando... (${percent}%)`;
+            insertBtn.textContent = 'Insertando... (' + percent + '%)';
         });
 
         // Limpiar token
@@ -966,7 +962,7 @@ const ChatbotRoamUI = {
             this.closeModal();
 
             // Notificar al usuario (podriamos usar un toast de Roam si existiera API publica, por ahora alert o nada)
-            console.log(`Chatbot Roam Plugin: ${result.insertedCount} bloques insertados correctamente.`);
+            console.log('Chatbot Roam Plugin: ' + result.insertedCount + ' bloques insertados correctamente.');
         } else {
             // Verificar si el modal aun existe antes de intentar actualizar UI
             if (!this._modalContainer) return;

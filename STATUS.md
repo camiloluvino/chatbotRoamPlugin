@@ -1,41 +1,43 @@
 # Status - Chatbot Roam Plugin
  
  ## Versión Actual
--**v1.4.8** | Build: 2026-07-05
--
--### Resumen de Estado
--- **Plugin:** Funcional y estable.
--- **Inserción:** Optimizada para rate limits oficiales de Roam y extracción de texto de alto rendimiento para archivos grandes.
--- **Pruebas:** Corregido error de límite de mutaciones (1500/60s) con rate limit adaptativo.
+- **v1.4.9** | Build: 2026-08-14
+
+### Resumen de Estado
+- **Plugin:** Funcional, estable y totalmente compatible con `roam/js`.
+- **Compatibilidad Roam/JS:** Eliminación total de template literals / backticks en el bundle para evitar que el parser de bloques de Roam rompa el script.
+- **Robustez UI & Limpieza:** Mensajes de advertencia descriptivos en el dropzone, intercambio seguro de clasificación sin corrupción de texto y neutralización de sintaxis con protección de bloques de código.
 
 ---
 
 ## 🚀 Estado
 - **Funcionalidad:** Estable
-- **Pruebas:** Nuevo diseño Solarized/Claude aplicado (v1.4.1)
+- **Pruebas:** Bundle verificado sin backticks, syntax check superado, estilos y UI validados.
 
 ## Estado de Funcionalidades
 
 ### ✅ Funcionando
-- **Solarized/Claude Design (v1.4.0):** Nuevo diseño minimalista con paleta Solarized Dark y acentos dorados/cyan inspirados en Claude AI.
-- **Rate Limit Safe:** Límite estricto de 22 ops/seg para evitar errores de API Roam (v1.3.8)
-- **Cancelación Real:** Botón cancelar detiene proceso y limpia basura (v1.3.8)
+- **Zero-Backtick Bundle (v1.4.9):** 0 backticks en todo el código compilado para compatibilidad nativa con `{{[[roam/js]]}}`.
+- **Diagnóstico Descriptivo de Advertencias (v1.4.9):** El dropzone muestra el detalle exacto de las advertencias encontradas (ej: archivo vacío, estructura no reconocida).
+- **Editor de Clasificación Seguro (v1.4.9):** Intercambio de roles Prompt/Response preservando marcadores originales y evitando desfase de índices.
+- **Protección de Bloques de Código en Limpieza (v1.4.9):** La neutralización de `::` y `[[ ]]` no altera el contenido dentro de bloques de código (fenced code blocks).
+- **Solarized/Claude Design (v1.4.0):** Diseño minimalista con paleta Solarized Dark y acentos dorados/cyan inspirados en Claude AI.
+- **Rate Limit Safe:** Límite estricto y delay adaptativo para respetar la cuota oficial de Roam (1500 mutaciones/60s).
+- **Cancelación Real con Rollback:** Botón cancelar detiene proceso y elimina bloques creados de forma regulada.
 - **Importador Múltiple (v1.4.2):** Carga simultánea de archivos con agrupación jerárquica por nombre de archivo.
 - Drag & drop de archivos .md
 - Auto-detección de tipo de chatbot (Claude, ChatGPT, Gemini, Antigravity, NotebookLM)
 - 17 opciones de limpieza configurables (registro centralizado)
-- Vista previa antes de insertar
-- Inserción jerárquica en Roam
-- Preservación de bloques de código
-- Indentación bajo headings markdown (#, ##, ###)
-- Conversión de tablas Markdown a formato nativo Roam
-- Búsqueda incremental en preview
-- **Neutralización de Sintaxis Roam (v1.4.5):** Evita la creación accidental de atributos (`::`) y páginas (`[[ ]]`). Automático para el usuario, opcional para la IA.
-- **NotebookLM Structural Formatting (v1.4.6):** Resolución de colisiones sintácticas entre títulos y descripciones + SOPORTE de jerarquía automática para líneas en negrita.
-- Editor de Clasificación Manual (v1.3.6)
-- Procesamiento asíncrono y por lotes (v1.3.3)
+- Vista previa antes de insertar con búsqueda incremental
+- Inserción jerárquica en Roam con preservación de bloques de código y tablas Markdown
 
 ## 📋 Cambios Recientes
+- **v1.4.9 (2026-08-14):**
+  - **Eliminación Total de Backticks:** Reemplazo integral de template literals por concatenación y `join()` en toda la base de código para compatibilidad estricta con bloques `roam/js`.
+  - **Fix de Visibilidad del Modal:** Corrección de la propiedad `position: fixed;` en `.chatbot-roam-overlay` tras la migración de estilos.
+  - **Advertencias Descriptivas:** El dropzone ahora lista explícitamente el motivo de cada advertencia en lugar de mostrar un contador genérico.
+  - **Fix Editor de Clasificación:** Se añadió `marcadorOriginal` en los bloques y se corrigió la lógica de intercambio para no corromper el contenido de la conversación al alternar entre Prompt y Response.
+  - **Neutralización Segura de Sintaxis:** La función `neutralizarSintaxisRoam` ahora segmenta el texto para proteger bloques de código ` ``` ` de modificaciones destructivas.
 - **2026-07-29:**
   - **Soporte Gemini Exporter V2:** Reconocimiento del nuevo formato de exportación (`## User:` / `## Gemini:`) y eliminación de bloques de pensamiento en formato `> **Thinking steps**`.
 - **v1.4.8:**
@@ -74,6 +76,7 @@
 ## Historial Reciente
 
 | Fecha | Cambio |
+| 2026-08-14 | v1.4.9: Zero-backtick bundle para compatibilidad total con roam/js, fix de modal overlay, advertencias descriptivas, fix editor de clasificación y neutralización segura de sintaxis |
 | 2026-07-29 | Soporte Gemini Exporter V2 (## User / ## Gemini, y filtro de > **Thinking steps**) |
 | 2026-07-05 | v1.4.8: Optimización de rendimiento para archivos grandes y mitigación del rate limit (1500 ops/60s) en inserción y rollback |
 | 2026-05-22 | v1.4.7: Soporte para formato Claude V2 (## User/Assistant, timestamps en blockquote y eliminación de bloques de pensamiento en blockquote) |

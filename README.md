@@ -11,14 +11,17 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 - 🎛️ **17 opciones de limpieza** - Configura exactamente qué limpiar
 - 👁️ **Vista previa** - Previsualiza el resultado antes de insertar
 - ⚡ **Inserción directa** - Inserta como hijo del bloque seleccionado
-- 💻 **Preserva code blocks** - Los bloques de código se insertan correctamente formateados
+- 💻 **Preserva code blocks** - Los bloques de código se insertan correctamente formateados y protegidos de neutralización
+- 🛡️ **Zero-Backtick Bundle (v1.4.9)** - Compatibilidad nativa estricta con bloques `{{[[roam/js]]}}` sin interferir con el parser de Roam
+- ⚠️ **Diagnóstico de Advertencias Mejorado (v1.4.9)** - Muestra mensajes detallados y descriptivos en el dropzone cuando un archivo requiere atención
+- 🔄 **Editor de Clasificación Seguro (v1.4.9)** - Intercambio de roles (Prompt/Response) sin corrupción de texto ni desajuste de índices
 - 📐 **Indentación bajo headings** - El contenido bajo headings markdown (`#`, `##`, `###`) se anida automáticamente
 - 🚀 **Rate Limit Safe** - Adaptación automática al límite oficial de Roam (1500 mutaciones/60s). Lotes de 50 bloques con delay seguro y dinámico (~2.5s entre lotes) para evitar errores de API.
 - 🤖 **Soporte Gemini Exporter V2** - Reconocimiento del nuevo formato de exportación (`## User:` / `## Gemini:`) y eliminación automática de bloques de pensamiento (`> **Thinking steps**`).
 - 🤖 **Soporte Claude V2** - Reconocimiento automático del nuevo formato de exportación (`## User:`), timestamps en blockquotes y eliminación de bloques de pensamiento en blockquotes (v1.4.7).
 - 🧹 **NotebookLM Pro** - Resolución de colisiones sintácticas (`**Título**Texto`) y soporte de jerarquía automática para líneas en negrita (v1.4.6).
 - 🧹 **NotebookLM Limpio** - Elimina escapes visuales molestos (ej: `1\.` a `1.`).
-- 🔗 **Neutralización de Sintaxis Roam** - Evita que se creen atributos (`::`) o páginas (`[[ ]]`) accidentalmente al importar texto (v1.4.5).
+- 🔗 **Neutralización de Sintaxis Roam** - Evita que se creen atributos (`::`) o páginas (`[[ ]]`) accidentalmente al importar texto (v1.4.5), protegiendo bloques de código.
 - 🎨 **Diseño Solarized/Claude (v1.4.1)** - Interfaz minimalista con paleta Solarized Dark y acentos dorados inspirados en Claude AI.
 - 🛑 **Cancelación Segura** - Detén la importación en cualquier momento con rollback automático.
 

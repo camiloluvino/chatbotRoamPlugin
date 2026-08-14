@@ -55,15 +55,43 @@ const ChatbotRoamCleaners = {
     },
 
     /**
+     * Reemplaza de forma segura bloques delimitados por backticks para evitar borrado masivo
+     * si falta el delimitador de cierre.
+     */
+    _safeRegexReplace(texto, regex, delimiterStr) {
+        if (!texto || !delimiterStr) return texto;
+        const escapedDelim = delimiterStr.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const count = (texto.match(new RegExp(escapedDelim, 'g')) || []).length;
+        // Si el número de delimitadores es impar, hay al menos uno sin cerrar; no aplicamos el regex para evitar borrado masivo
+        if (count % 2 !== 0) {
+            console.warn('ChatbotRoamCleaners: Delimitadores desbalanceados detectados (' + count + '). Omitiendo reemplazo potencialmente destructivo.');
+            return texto;
+        }
+        return texto.replace(regex, '');
+    },
+
+    /**
      * Neutraliza la sintaxis especial de Roam (::, [[, ]]) para evitar que se creen 
-     * atributos y referencias a páginas accidentalmente al importar texto de IA.
+     * atributos y referencias a páginas accidentalmente al importar texto de IA,
+     * preservando intactos los bloques de código.
      */
     neutralizarSintaxisRoam(texto) {
-        let limpio = texto.replace(/::/g, ': :');
-        // Múltiples corchetes como [[[[ se transforman usando lookahead para separar cada uno
-        limpio = limpio.replace(/\[(?=\[)/g, '[ ');
-        limpio = limpio.replace(/\](?=\])/g, '] ');
-        return limpio;
+        if (!texto) return '';
+        // Separar en segmentos: texto normal vs bloques de codigo
+        const B3 = String.fromCharCode(96, 96, 96);
+        const partes = texto.split(new RegExp('(' + B3 + '+[\\s\\S]*?' + B3 + '+)', 'g'));
+
+        for (let i = 0; i < partes.length; i++) {
+            // Los índices pares son texto normal; los impares son bloques de código protegidos
+            if (i % 2 === 0) {
+                let limpio = partes[i].replace(/::/g, ': :');
+                // Múltiples corchetes como [[[[ se transforman usando lookahead para separar cada uno
+                limpio = limpio.replace(/\[(?=\[)/g, '[ ');
+                limpio = limpio.replace(/\](?=\])/g, '] ');
+                partes[i] = limpio;
+            }
+        }
+        return partes.join('');
     },
 
     // ========================================================================
@@ -101,7 +129,7 @@ const ChatbotRoamCleaners = {
      * Elimina bloques de razonamiento del modelo (ChatGPT).
      */
     eliminarThoughtProcessGenerico(texto) {
-        return texto.replace(ChatbotRoamPatterns.THOUGHT_PROCESS_GENERICO, '');
+        return this._safeRegexReplace(texto, ChatbotRoamPatterns.THOUGHT_PROCESS_GENERICO, ChatbotRoamPatterns.BT4);
     },
 
     /**
@@ -129,7 +157,7 @@ const ChatbotRoamCleaners = {
      * Elimina TODOS los bloques de metadata interna de Claude (plaintext blocks).
      */
     eliminarThoughtProcessClaude(texto) {
-        return texto.replace(ChatbotRoamPatterns.PLAINTEXT_BLOCKS_CLAUDE, '');
+        return this._safeRegexReplace(texto, ChatbotRoamPatterns.PLAINTEXT_BLOCKS_CLAUDE, ChatbotRoamPatterns.BT4);
     },
 
     /**
@@ -173,8 +201,8 @@ const ChatbotRoamCleaners = {
      * Elimina los bloques completos de herramientas de Claude.
      */
     eliminarToolCallsClaude(texto) {
-        // Patrón completo
-        texto = texto.replace(ChatbotRoamPatterns.TOOL_CALLS_COMPLETO, '');
+        // Patrón completo seguro
+        texto = this._safeRegexReplace(texto, ChatbotRoamPatterns.TOOL_CALLS_COMPLETO, ChatbotRoamPatterns.BT4);
         // Patrón simple
         texto = texto.replace(ChatbotRoamPatterns.TOOL_CALLS_SIMPLE, '');
         return texto;

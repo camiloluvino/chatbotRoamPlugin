@@ -73,7 +73,7 @@ const ChatbotRoamInserter = {
             if (!this._hasBatchApi) {
                 console.warn('ChatbotRoamInserter: batch API no disponible, usando fallback individual (más lento).');
             } else {
-                console.log(`ChatbotRoamInserter: batch API disponible usando método "${this._batchApiType}".`);
+                console.log('ChatbotRoamInserter: batch API disponible usando método "' + this._batchApiType + '".');
             }
         }
         return this._hasBatchApi;
@@ -246,7 +246,7 @@ const ChatbotRoamInserter = {
         const batchDelay = this._calculateDelay(this.BATCH_SIZE);
         const totalBatches = Math.ceil(actions.length / this.BATCH_SIZE);
         const estimatedSeconds = Math.ceil((totalBatches * batchDelay) / 1000);
-        console.log(`ChatbotRoamInserter: ${actions.length} bloques en ${totalBatches} lotes de ${this.BATCH_SIZE}, delay ${batchDelay}ms (~${estimatedSeconds}s estimados)`);
+        console.log('ChatbotRoamInserter: ' + actions.length + ' bloques en ' + totalBatches + ' lotes de ' + this.BATCH_SIZE + ', delay ' + batchDelay + 'ms (~' + estimatedSeconds + 's estimados)');
 
         try {
             for (let i = 0; i < actions.length; i += this.BATCH_SIZE) {

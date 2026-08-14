@@ -162,6 +162,7 @@ const ChatbotRoamProcessing = {
 
         while ((match = regex.exec(contenido)) !== null) {
             const posInicio = match.index;
+            const marcadorOriginal = match[0]; // Marcador exacto tal como vino en el archivo (ej: "## User:", "## Prompt:", etc.)
             // Normalizar: "User" -> "Prompt", "Assistant" / "Gemini" -> "Response"
             let tipo = match[1];
             if (tipo === 'User') tipo = 'Prompt';
@@ -189,6 +190,7 @@ const ChatbotRoamProcessing = {
             bloques.push({
                 pos: posInicio,
                 tipo: tipo,
+                marcadorOriginal: marcadorOriginal,
                 lineNumber: lineNumber,
                 extracto: extracto || '(vacío)',
                 tieneMCP: tieneMCP
