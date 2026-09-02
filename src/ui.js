@@ -234,15 +234,17 @@ const ChatbotRoamUI = {
             return { valid: false, error: 'El archivo esta vacio.', warning: null };
         }
 
-        // Verificar marcadores de conversacion (incluye Antigravity, NotebookLM y Claude V2)
-        // NotebookLM uses Chinese: 🧑 用户 (user) and 🤖 助手 (assistant)
+        // Verificar marcadores de conversacion (incluye Antigravity, NotebookLM, Claude V2 y Gemini)
         const tienePrompt = content.includes('## Prompt:') ||
             content.includes('### User Input') ||
             content.includes('## User:') ||
+            (ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_MARKER && new RegExp(ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_MARKER.source, 'mi').test(content)) ||
             (ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR && content.includes(ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR));
         const tieneResponse = content.includes('## Response:') ||
             content.includes('### Planner Response') ||
             content.includes('## Assistant:') ||
+            content.includes('## Gemini:') ||
+            (ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_MARKER && new RegExp(ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_MARKER.source, 'mi').test(content)) ||
             (ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR && content.includes(ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR));
 
         if (!tienePrompt && !tieneResponse) {
@@ -256,9 +258,9 @@ const ChatbotRoamUI = {
         // Warning si falta alguno
         let warning = null;
         if (!tienePrompt) {
-            warning = 'Advertencia: No se encontraron marcadores "## Prompt:"';
+            warning = 'Advertencia: No se encontraron marcadores de Prompt (ej: "## User:" o "## Prompt:")';
         } else if (!tieneResponse) {
-            warning = 'Advertencia: No se encontraron marcadores "## Response:"';
+            warning = 'Advertencia: No se encontraron marcadores de Respuesta (ej: "## Response:", "## Assistant:" o "## Gemini:")';
         }
 
         return { valid: true, error: null, warning: warning };

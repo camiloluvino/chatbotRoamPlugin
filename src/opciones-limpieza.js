@@ -115,6 +115,22 @@ const OPCIONES_LIMPIEZA = [
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarThinkingGemini(texto); }
     },
     {
+        id: 'eliminar_ejecucion_codigo_gemini',
+        label: 'Eliminar ejecuci\u00f3n de c\u00f3digo / Tools (Gemini)',
+        chatbots: ['gemini'],
+        defaultActivo: false,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarEjecucionCodigoGemini(texto); }
+    },
+    {
+        id: 'limpiar_etiquetas_codigo_gemini',
+        label: 'Limpiar par\u00e1metros en c\u00f3digo (?code_...)',
+        chatbots: ['gemini'],
+        defaultActivo: true,
+        aplicarA: 'respuesta',
+        cleaner: function (texto) { return ChatbotRoamCleaners.limpiarEtiquetasCodigoGemini(texto); }
+    },
+    {
         id: 'eliminar_footer_gemini',
         label: 'Footer Gemini Exporter',
         chatbots: ['gemini'],

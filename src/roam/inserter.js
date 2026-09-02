@@ -194,7 +194,16 @@ const ChatbotRoamInserter = {
             let texto = bloque.text;
             let headingLevel = 0;
 
-            if (texto.startsWith('### ')) {
+            if (texto.startsWith('###### ')) {
+                headingLevel = 3;
+                texto = texto.substring(7).trim();
+            } else if (texto.startsWith('##### ')) {
+                headingLevel = 3;
+                texto = texto.substring(6).trim();
+            } else if (texto.startsWith('#### ')) {
+                headingLevel = 3;
+                texto = texto.substring(5).trim();
+            } else if (texto.startsWith('### ')) {
                 headingLevel = 3;
                 texto = texto.substring(4).trim();
             } else if (texto.startsWith('## ')) {

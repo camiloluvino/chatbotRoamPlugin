@@ -8,15 +8,16 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 - 🗂️ **Agrupación Jerárquica** - Organiza automáticamente cada conversación bajo un bloque con su nombre de archivo.
 - 🤖 **Multi-chatbot** - Soporta Claude, ChatGPT, Google Gemini, Antigravity y NotebookLM
 - 🔍 **Auto-detección** - Detecta el tipo de chatbot y aplica el preset correspondiente
-- 🎛️ **17 opciones de limpieza** - Configura exactamente qué limpiar
+- 🎛️ **18 opciones de limpieza** - Configura exactamente qué limpiar
 - 👁️ **Vista previa** - Previsualiza el resultado antes de insertar
 - ⚡ **Inserción directa** - Inserta como hijo del bloque seleccionado
 - 💻 **Preserva code blocks** - Los bloques de código se insertan correctamente formateados y protegidos de neutralización
-- 🛡️ **Zero-Backtick Bundle (v1.4.9)** - Compatibilidad nativa estricta con bloques `{{[[roam/js]]}}` sin interferir con el parser de Roam
+- 🛡️ **Zero-Backtick Bundle (v1.5.1)** - Compatibilidad nativa estricta con bloques `{{[[roam/js]]}}` sin interferir con el parser de Roam
 - ⚠️ **Diagnóstico de Advertencias Mejorado (v1.4.9)** - Muestra mensajes detallados y descriptivos en el dropzone cuando un archivo requiere atención
 - 🔄 **Editor de Clasificación Seguro (v1.4.9)** - Intercambio de roles (Prompt/Response) sin corrupción de texto ni desajuste de índices
 - 📐 **Indentación bajo headings** - El contenido bajo headings markdown (`#`, `##`, `###`) se anida automáticamente
 - 🚀 **Rate Limit Safe** - Adaptación automática al límite oficial de Roam (1500 mutaciones/60s). Lotes de 50 bloques con delay seguro y dinámico (~2.5s entre lotes) para evitar errores de API.
+- 🤖 **NotebookLM Multilingüe (v1.5.2)** - Soporte completo para exportaciones en inglés (`### 🧑 **User**` / `### 🤖 **NotebookLM**`), español y chino, con limpieza de `Exported at:`, fechas de sección, bloque `Thoughts` y filtrado de citas `> **Sources:**`.
 - 🤖 **Soporte Gemini Exporter V2** - Reconocimiento del nuevo formato de exportación (`## User:` / `## Gemini:`) y eliminación automática de bloques de pensamiento (`> **Thinking steps**`).
 - 🤖 **Soporte Claude V2** - Reconocimiento automático del nuevo formato de exportación (`## User:`), timestamps en blockquotes y eliminación de bloques de pensamiento en blockquotes (v1.4.7).
 - 🧹 **NotebookLM Pro** - Resolución de colisiones sintácticas (`**Título**Texto`) y soporte de jerarquía automática para líneas en negrita (v1.4.6).
@@ -53,6 +54,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 | Bloques de pensamiento (Claude V2) | Elimina blockquotes iterativos de pensamiento |
 | Logs de búsqueda | Elimina project_knowledge_search |
 | Bloques Thinking (Gemini) | Elimina `> Thinking:` blockquotes |
+| Ejecución de código / Tools (Gemini) | Elimina bloques y salidas de ejecución de código Python (`?code_reference`, `?code_stdout`) |
 | Timestamps y referencias | Elimina fechas y `> File:` |
 | Thought process (ChatGPT) | Elimina bloques de razonamiento |
 | Footer Gemini Exporter | Elimina pie de página |

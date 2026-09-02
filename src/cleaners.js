@@ -321,17 +321,21 @@ const ChatbotRoamCleaners = {
     // ========================================================================
 
     /**
-     * Elimina bloques de 'Thinking:' específicos de Gemini.
+     * Elimina bloques de 'Thinking:' y 'Thinking steps' específicos de Gemini.
+     * Soporta variaciones de formato y saltos de linea dentro del bloque de pensamiento.
      */
     eliminarThinkingGemini(texto) {
+        if (!texto) return '';
         const lineas = texto.split('\n');
         const lineasLimpias = [];
         let enBloqueThinking = false;
 
-        for (const linea of lineas) {
+        for (let i = 0; i < lineas.length; i++) {
+            const linea = lineas[i];
             const lineaStripped = linea.trim();
 
-            if (lineaStripped.startsWith('> Thinking:') || lineaStripped.startsWith('> **Thinking steps**')) {
+            const isThinkingStart = /^>\s*(?:\*{1,2})?Thinking(?:\s+steps|\s+process)?:?(?:\*{1,2})?/i.test(lineaStripped);
+            if (isThinkingStart) {
                 enBloqueThinking = true;
                 continue;
             }
@@ -339,6 +343,22 @@ const ChatbotRoamCleaners = {
             if (enBloqueThinking) {
                 if (lineaStripped.startsWith('>')) {
                     continue;
+                } else if (lineaStripped === '') {
+                    // Si es linea vacia pero la siguiente linea todavia es blockquote, seguir en thinking
+                    let sigueQuote = false;
+                    for (let k = i + 1; k < lineas.length; k++) {
+                        const nextTrim = lineas[k].trim();
+                        if (nextTrim === '') continue;
+                        if (nextTrim.startsWith('>')) {
+                            sigueQuote = true;
+                        }
+                        break;
+                    }
+                    if (sigueQuote) {
+                        continue;
+                    } else {
+                        enBloqueThinking = false;
+                    }
                 } else {
                     enBloqueThinking = false;
                 }
@@ -380,7 +400,29 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Elimina metadata específica de Gemini.
+     * Elimina bloques de ejecución de código Python y salida stdout de Gemini (?code_reference, ?code_stdout, ?code_interpreter).
+     */
+    eliminarEjecucionCodigoGemini(texto) {
+        return this._safeRegexReplace(texto, ChatbotRoamPatterns.GEMINI_CODE_EXECUTION, ChatbotRoamPatterns.BT3);
+    },
+
+    /**
+     * Limpia parametros y tags de ejecucion en fences de codigo de Gemini (?code_reference, ?code_stdout, etc.)
+     * preservando el bloque de codigo y su lenguaje limpio para Roam.
+     */
+    limpiarEtiquetasCodigoGemini(texto) {
+        if (!texto) return '';
+        const BT3 = ChatbotRoamPatterns.BT3;
+        const BT4 = ChatbotRoamPatterns.BT4;
+        // Limpiar parametros tipo ?code_reference&... dejando solo el lenguaje (ej: BT3+python?code_... -> BT3+python)
+        texto = texto.replace(new RegExp('(' + BT4 + '|' + BT3 + ')([a-zA-Z0-9_-]+)\\?[^\\n\\r\\x60]*', 'g'), '$1$2');
+        // Si no tenia nombre de lenguaje: BT3+?code_... -> BT3
+        texto = texto.replace(new RegExp('(' + BT4 + '|' + BT3 + ')\\?[^\\n\\r\\x60]*', 'g'), '$1');
+        return texto;
+    },
+
+    /**
+     * Elimina metadata específica de Gemini (footers de exportador, separadores y timestamps).
      */
     limpiarMetadataGemini(texto) {
         const lineas = texto.split('\n');
@@ -390,8 +432,10 @@ const ChatbotRoamCleaners = {
             const lineaStripped = linea.trim();
 
             if (lineaStripped.startsWith('> ') && lineaStripped.includes(' - MD')) continue;
-            if (linea.includes('Powered by') && linea.includes('Gemini Exporter')) continue;
-            if (lineaStripped === '---') continue;
+            if (linea.includes('Powered by') && (linea.includes('Gemini Exporter') || linea.includes('ai-chat-exporter'))) continue;
+            if (lineaStripped === '---' || lineaStripped === '***' || lineaStripped === '___') continue;
+            if (ChatbotRoamPatterns.TIMESTAMP_BLOCKQUOTE.test(lineaStripped)) continue;
+            if (ChatbotRoamPatterns.TIMESTAMP_COMPLETO.test(lineaStripped)) continue;
 
             lineasLimpias.push(linea);
         }
@@ -456,30 +500,33 @@ const ChatbotRoamCleaners = {
 
     /**
      * Elimina el header YAML y título de NotebookLM
-     * Formato: ---\nexported: ...\nsource: NotebookLM\n---\n# Título\n导出时间: ...\n---
+     * Formato: ---\nexported: ...\nsource: NotebookLM\n---\n# Título\nExported at: ...\n---
      */
     eliminarHeaderNotebookLM(texto) {
         // Eliminar bloque YAML (---...---)
         texto = texto.replace(/^---[\s\S]*?---\n*/m, '');
-        // Eliminar título # y línea de exportación china
-        texto = texto.replace(/^# [^\n]+\n+导出时间:[^\n]+\n+---+\n*/m, '');
+        // Eliminar título # y línea de exportación (chino, inglés, español, etc.)
+        texto = texto.replace(/^# [^\n]+\n+(?:导出时间|Exported at|Exportado el|Exported on)[^\n]*\n*/gmi, '');
         // Limpiar separadores --- sueltos
-        texto = texto.replace(/^---+\s*\n/gm, '');
+        texto = texto.replace(/^---+\s*\n*/gm, '');
         return texto;
     },
 
     /**
-     * Elimina timestamps de sección como "## 🕒 Today • 3:06 PM"
+     * Elimina timestamps de sección como "## 🕒 Today • 3:06 PM" o "## 📅 Monday, August 31"
      */
     eliminarTimestampNotebookLM(texto) {
-        // Eliminar líneas tipo "## 🕒 Today • 3:06 PM" o similares
-        return texto.replace(/^## [^\n]*(?:Today|Yesterday|AM|PM)[^\n]*\n*/gm, '');
+        // Eliminar líneas de timestamp / fecha de sección de NotebookLM
+        return texto.replace(/^##\s+[^#\n]*(?:Today|Yesterday|Hoy|Ayer|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Lunes|Martes|Mi[eé]rcoles|Jueves|Viernes|S[aá]bado|Domingo|January|February|March|April|May|June|July|August|September|October|November|December|Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre|\d{1,2}\/\d{1,2}|\d{1,2}:\d{2}|AM|PM|a\.m\.|p\.m\.)[^\n]*\n*/gmi, '');
     },
 
     /**
-     * Limpia escapes innecesarios de NotebookLM, como "1\." que debería ser "1."
+     * Limpia escapes innecesarios de NotebookLM, como "1\." que debería ser "1.",
+     * y elimina el prefijo "Thoughts" aislado al inicio de respuestas.
      */
     limpiarEscapesNotebookLM(texto) {
+        // Eliminar línea aislada "Thoughts" al inicio de respuesta
+        texto = texto.replace(/^Thoughts\s*\n+/i, '');
         // Reemplazar "numero\." por "numero."
         texto = texto.replace(/(\d+)\\\./g, '$1.');
         // Reemplazar "\-" por "-" (por si acaso)
@@ -490,11 +537,11 @@ const ChatbotRoamCleaners = {
     /**
      * Elimina el bloque de fuentes citado por NotebookLM al final de la respuesta.
      * Ejemplo:
-     * > **来源：**
+     * > **Sources:**
      * > [1] archivo.pdf
      */
     eliminarFuentesNotebookLM(texto) {
-        return texto.replace(/> \*\*(?:来源：|Sources:)\*\*(?:\n> \[\d+\].*)*/g, '');
+        return texto.replace(/> \*\*(?:来源[:：]|Sources[:：]|Fuentes[:：])\*\*(?:\r?\n> \[\d+\].*)*/gi, '');
     },
 
     // ========================================================================

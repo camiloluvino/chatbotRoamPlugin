@@ -16,7 +16,7 @@ const NOTEBOOKLM_ASSISTANT = String.fromCharCode(0x52A9, 0x624B);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.4.8",
+    VERSION: "1.5.2",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -24,8 +24,10 @@ const ChatbotRoamPatterns = {
 
     // FORMATO MARKDOWN
     LINEAS_VACIAS_EXCESIVAS: /\n{3,}/g,
-    CODIGO_CUATRO_BACKTICKS: new RegExp(BT4 + "(\\w+)", "g"),
-    CODIGO_TRES_BACKTICKS: new RegExp(BT3 + "(\\w+)", "g"),
+    CODIGO_CUATRO_BACKTICKS: new RegExp(BT4 + "[^\\n\\r\\x60]+", "g"),
+    CODIGO_TRES_BACKTICKS: new RegExp(BT3 + "[^\\n\\r\\x60]+", "g"),
+    GEMINI_CODE_EXECUTION: new RegExp(BT3 + "(?:\\w+)?\\?(?:code_reference|code_stdout|code_interpreter)[^\\n\\r\\x60]*[\\s\\S]*?" + BT3, "g"),
+    GEMINI_CODE_TAG: new RegExp(BT3 + "([a-zA-Z0-9_-]+)?\\?[^\\n\\r\\x60]*", "g"),
 
     // TIMESTAMPS
     TIMESTAMP_COMPLETO: /^\d{1,2}\/\d{1,2}\/\d{4},\s+\d{1,2}:\d{2}:\d{2}\s+[ap]\.m\.$/,
@@ -69,11 +71,11 @@ const ChatbotRoamPatterns = {
     CCI_LINKS: /\(cci:\d+:\/\/file:\/\/\/[^)]+\)/g,
     TIMESTAMP_HORA_SUELTA: /^\d{1,2}:\d{2}\s+[ap]\.m\.$/,
 
-    // NOTEBOOKLM FORMAT - Using runtime-generated constants
-    NOTEBOOKLM_PROMPT_MARKER: null,    // Initialized below
-    NOTEBOOKLM_RESPONSE_MARKER: null,  // Initialized below
-    NOTEBOOKLM_PROMPT_STR: null,       // For string matching
-    NOTEBOOKLM_RESPONSE_STR: null,     // For string matching
+    // NOTEBOOKLM FORMAT
+    NOTEBOOKLM_PROMPT_MARKER: /^###\s+(?:[^\s*#]+\s+)?(?:\*\*)?(?:User|Usuario|\u7528\u6237|Prompt)(?:\*\*)?\s*$/gmi,
+    NOTEBOOKLM_RESPONSE_MARKER: /^###\s+(?:[^\s*#]+\s+)?(?:\*\*)?(?:NotebookLM|Assistant|Asistente|\u52A9\u624B|Response)(?:\*\*)?\s*$/gmi,
+    NOTEBOOKLM_PROMPT_STR: null,       // For backwards compatibility string matching
+    NOTEBOOKLM_RESPONSE_STR: null,     // For backwards compatibility string matching
 
     // DETECCION DE TIPO DE CHATBOT
     DETECT_ANTIGRAVITY: /^### (?:User Input|Planner Response)$/m,
@@ -86,13 +88,22 @@ const ChatbotRoamPatterns = {
 
     // Helper for NotebookLM detection
     isNotebookLM(content) {
-        return content.includes(this.NOTEBOOKLM_PROMPT_STR) ||
-            content.includes(this.NOTEBOOKLM_RESPONSE_STR);
+        if (!content) return false;
+        if (/source:\s*NotebookLM/i.test(content)) return true;
+        if (this.NOTEBOOKLM_PROMPT_MARKER &&
+            new RegExp(this.NOTEBOOKLM_PROMPT_MARKER.source, 'mi').test(content) &&
+            this.NOTEBOOKLM_RESPONSE_MARKER &&
+            new RegExp(this.NOTEBOOKLM_RESPONSE_MARKER.source, 'mi').test(content)) {
+            return true;
+        }
+        if (/^###\s+(?:[^\s*#]+\s+)?(?:\*\*)?NotebookLM(?:\*\*)?\s*$/mi.test(content)) {
+            return true;
+        }
+        return (this.NOTEBOOKLM_PROMPT_STR && content.includes(this.NOTEBOOKLM_PROMPT_STR)) ||
+            (this.NOTEBOOKLM_RESPONSE_STR && content.includes(this.NOTEBOOKLM_RESPONSE_STR));
     }
 };
 
-// Initialize NotebookLM patterns after object creation (using runtime-generated strings)
+// Initialize NotebookLM legacy string patterns after object creation
 ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR = '### ' + NOTEBOOKLM_PERSON + ' **' + NOTEBOOKLM_USER + '**';
 ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR = '### ' + NOTEBOOKLM_ROBOT + ' **' + NOTEBOOKLM_ASSISTANT + '**';
-ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_MARKER = new RegExp('^' + ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'gm');
-ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_MARKER = new RegExp('^' + ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'gm');

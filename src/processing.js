@@ -21,7 +21,7 @@ const ChatbotRoamProcessing = {
         // Detectar formato Claude V2 (## User: / ## Assistant:)
         const esClaudeV2 = contenido.includes('## User:') && contenido.includes('## Assistant:');
         // Detectar formato Gemini Exporter (## User: / ## Gemini:)
-        const esGeminiV2 = contenido.includes('## User:') && contenido.includes('## Gemini:');
+        const esGeminiV2 = (contenido.includes('## User:') || contenido.includes('## Prompt:')) && contenido.includes('## Gemini:');
 
         // Usar marcadores segun formato
         let promptPattern, responsePattern;
@@ -34,8 +34,8 @@ const ChatbotRoamProcessing = {
         } else if (esClaudeV2) {
             promptPattern = ChatbotRoamPatterns.PROMPT_MARKER_V2;
             responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER_V2;
-        } else if (esGeminiV2) {
-            promptPattern = ChatbotRoamPatterns.PROMPT_MARKER_V2;
+        } else if (esGeminiV2 || contenido.includes('## Gemini:')) {
+            promptPattern = contenido.includes('## User:') ? ChatbotRoamPatterns.PROMPT_MARKER_V2 : ChatbotRoamPatterns.PROMPT_MARKER;
             responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER_GEMINI;
         } else {
             promptPattern = ChatbotRoamPatterns.PROMPT_MARKER;
@@ -44,13 +44,13 @@ const ChatbotRoamProcessing = {
 
         // Encontrar todos los prompts
         let match;
-        const promptRegex = new RegExp(promptPattern.source, 'gm');
+        const promptRegex = new RegExp(promptPattern.source, promptPattern.flags || 'gm');
         while ((match = promptRegex.exec(contenido)) !== null) {
             marcadores.push({ tipo: 'PROMPT', pos: match.index });
         }
 
         // Encontrar todas las respuestas
-        const responseRegex = new RegExp(responsePattern.source, 'gm');
+        const responseRegex = new RegExp(responsePattern.source, responsePattern.flags || 'gm');
         while ((match = responseRegex.exec(contenido)) !== null) {
             marcadores.push({ tipo: 'RESPONSE', pos: match.index });
         }
@@ -81,33 +81,33 @@ const ChatbotRoamProcessing = {
             }
 
             if (tipo === 'PROMPT') {
-                // Extraer contenido del prompt
-                const nextNewLine = contenido.indexOf('\n', pos);
-                const lineLength = nextNewLine === -1 ? contenido.length - pos : nextNewLine - pos;
-                let siguienteLineaPos = pos + lineLength + 1;
-                let inicioContenido = siguienteLineaPos;
-
-                if (skipTimestamp) {
-                    const restoLimitado = contenido.substring(siguienteLineaPos, siguienteLineaPos + 1000);
+                // Helper para saltar timestamps y lineas vacias iniciales
+                const calcularInicioContenido = (inicioPos) => {
+                    if (!skipTimestamp) return inicioPos;
+                    const restoLimitado = contenido.substring(inicioPos, inicioPos + 1000);
                     const lineasResto = restoLimitado.split('\n');
                     let lineasSaltadas = 0;
-                    // Saltar líneas vacías entre el marcador y el timestamp
                     while (lineasSaltadas < lineasResto.length && lineasResto[lineasSaltadas].trim() === '') {
                         lineasSaltadas++;
                     }
                     const lineaCandidata = lineasSaltadas < lineasResto.length ? lineasResto[lineasSaltadas].trim() : '';
-                    // Detectar timestamp normal o en formato blockquote (> fecha)
                     const lineaCandidataSinQuote = lineaCandidata.replace(/^>\s*/, '');
                     if (ChatbotRoamPatterns.TIMESTAMP_FECHA.test(lineaCandidataSinQuote) ||
                         ChatbotRoamPatterns.TIMESTAMP_BLOCKQUOTE.test(lineaCandidata)) {
-                        // Calcular cuántos bytes saltar (líneas vacías + línea del timestamp)
                         let bytesASaltar = 0;
                         for (let k = 0; k <= lineasSaltadas; k++) {
                             bytesASaltar += lineasResto[k].length + 1;
                         }
-                        inicioContenido = siguienteLineaPos + bytesASaltar;
+                        return inicioPos + bytesASaltar;
                     }
-                }
+                    return inicioPos;
+                };
+
+                // Extraer contenido del prompt
+                const nextNewLine = contenido.indexOf('\n', pos);
+                const lineLength = nextNewLine === -1 ? contenido.length - pos : nextNewLine - pos;
+                const siguienteLineaPos = pos + lineLength + 1;
+                const inicioContenido = calcularInicioContenido(siguienteLineaPos);
 
                 const finPrompt = i + 1 < marcadores.length ? marcadores[i + 1].pos : contenido.length;
                 const promptBloque = contenido.substring(inicioContenido, finPrompt).trim();
@@ -121,8 +121,9 @@ const ChatbotRoamProcessing = {
                     const respNextNewLine = contenido.indexOf('\n', respPos);
                     const respLineLength = respNextNewLine === -1 ? contenido.length - respPos : respNextNewLine - respPos;
                     const respSiguienteLineaPos = respPos + respLineLength + 1;
+                    const inicioRespContenido = calcularInicioContenido(respSiguienteLineaPos);
                     const finResp = j + 1 < marcadores.length ? marcadores[j + 1].pos : contenido.length;
-                    const respBloque = contenido.substring(respSiguienteLineaPos, finResp).trim();
+                    const respBloque = contenido.substring(inicioRespContenido, finResp).trim();
 
                     if (respBloque) {
                         responseParts.push(respBloque);
@@ -342,7 +343,7 @@ const ChatbotRoamProcessing = {
 
         const tieneThinkingGemini = ChatbotRoamPatterns.DETECT_GEMINI_THINKING.test(contenido);
         const tieneGeminiFooter = contenido.includes('Gemini Exporter');
-        const esGeminiV2 = contenido.includes('## User:') && contenido.includes('## Gemini:');
+        const esGeminiV2 = contenido.includes('## Gemini:');
 
         if (tieneThinkingGemini || tieneGeminiFooter || esGeminiV2) {
             return 'gemini';

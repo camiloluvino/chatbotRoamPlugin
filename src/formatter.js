@@ -10,7 +10,7 @@ const ChatbotRoamFormatter = {
 
     /**
      * Formatea una respuesta limpia para estructura de bloques Roam
-     * Maneja headings markdown, listas, bloques de codigo, tablas Roam y texto normal
+     * Maneja headings markdown (h1 a h6), listas anidadas, bloques de codigo, tablas Roam y texto normal
      * 
      * @param {string} responseLimpio - Texto de respuesta ya limpiado
      * @returns {Array<string>} - Lineas formateadas con indentacion correcta
@@ -22,8 +22,11 @@ const ChatbotRoamFormatter = {
         var lineasResponse = responseLimpio.split('\n');
         var enBloqueCodigo = false;
         var codigoBuffer = [];
-        var bajoHeading = false;
         var enTablaRoam = false;
+
+        // Pila para rastrear la profundidad de headings (#, ##, ###, etc.)
+        // Cada elemento es { hLevel: number, indentSpaces: number }
+        var headingStack = [];
 
         // Definir backtick directamente para evitar problemas de resolucion
         var BACKTICK = String.fromCharCode(96);
@@ -37,8 +40,10 @@ const ChatbotRoamFormatter = {
             // ================================================================
             if (lineaStripped === '{{[[table]]}}') {
                 enTablaRoam = true;
-                var indentTabla = bajoHeading ? this.INDENT_HEADING : this.INDENT_BASE;
-                resultado.push(indentTabla + lineaStripped);
+                var currentIndent = headingStack.length > 0
+                    ? headingStack[headingStack.length - 1].indentSpaces + 4
+                    : 4;
+                resultado.push(' '.repeat(currentIndent) + lineaStripped);
                 continue;
             }
 
@@ -53,14 +58,15 @@ const ChatbotRoamFormatter = {
 
                 // Línea de tabla (tiene indentación y empieza con "- ")
                 if (linea.match(/^\s+- /)) {
-                    var indentTabla = bajoHeading ? this.INDENT_HEADING : this.INDENT_BASE;
-                    // Preservar la indentación original de la línea de tabla
-                    resultado.push(indentTabla + linea);
+                    var espaciosTabla = 0;
+                    while (espaciosTabla < linea.length && linea[espaciosTabla] === ' ') espaciosTabla++;
+                    var currentBaseIndent = headingStack.length > 0
+                        ? headingStack[headingStack.length - 1].indentSpaces
+                        : 0;
+                    resultado.push(' '.repeat(currentBaseIndent + espaciosTabla) + linea.trim());
                     continue;
                 } else {
-                    // Línea que no es parte de tabla = salir de tabla
                     enTablaRoam = false;
-                    // NO hacer continue, procesar esta línea normalmente abajo
                 }
             }
 
@@ -77,8 +83,10 @@ const ChatbotRoamFormatter = {
                 } else {
                     // Fin de bloque de codigo - unir todo en un solo item
                     codigoBuffer.push(lineaStripped);
-                    var indentCodigo = bajoHeading ? this.INDENT_HEADING : this.INDENT_BASE;
-                    resultado.push(indentCodigo + '[CODE]' + codigoBuffer.join('{{NL}}'));
+                    var currentIndent = headingStack.length > 0
+                        ? headingStack[headingStack.length - 1].indentSpaces + 4
+                        : 4;
+                    resultado.push(' '.repeat(currentIndent) + '[CODE]' + codigoBuffer.join('{{NL}}'));
                     codigoBuffer = [];
                     enBloqueCodigo = false;
                 }
@@ -101,26 +109,61 @@ const ChatbotRoamFormatter = {
                 continue;
             }
 
-            // Headings markdown (#, ##, ###, etc.) o lineas completamente en negrita (**Texto**)
-            if (lineaStripped.startsWith('#') || (lineaStripped.startsWith('**') && lineaStripped.endsWith('**') && lineaStripped.length > 4)) {
-                bajoHeading = true;  // Activar indentacion para contenido siguiente
-                resultado.push(this.INDENT_BASE + lineaStripped);
+            // Headings markdown (#, ##, ###, ####, etc.)
+            var matchHeading = lineaStripped.match(/^(#{1,6})\s+(.*)$/);
+            var esNegritaCompleta = lineaStripped.startsWith('**') && lineaStripped.endsWith('**') && lineaStripped.length > 4 && !lineaStripped.substring(2, lineaStripped.length - 2).includes('**');
+
+            if (matchHeading) {
+                var hLevel = matchHeading[1].length;
+
+                // Desapilar headings de nivel igual o mayor
+                while (headingStack.length > 0 && headingStack[headingStack.length - 1].hLevel >= hLevel) {
+                    headingStack.pop();
+                }
+
+                var indent = headingStack.length > 0
+                    ? headingStack[headingStack.length - 1].indentSpaces + 4
+                    : 4;
+
+                headingStack.push({ hLevel: hLevel, indentSpaces: indent });
+                resultado.push(' '.repeat(indent) + lineaStripped);
             }
-            // Listas
-            else if (lineaStripped.startsWith('* ') || lineaStripped.startsWith('- ')) {
-                var indentLista = bajoHeading ? this.INDENT_HEADING : this.INDENT_BASE;
-                resultado.push(indentLista + linea.trim());
+            else if (esNegritaCompleta) {
+                // Linea completamente en negrita tratada como encabezado
+                var indent = headingStack.length > 0
+                    ? headingStack[headingStack.length - 1].indentSpaces + 4
+                    : 4;
+                headingStack.push({ hLevel: 99, indentSpaces: indent });
+                resultado.push(' '.repeat(indent) + lineaStripped);
+            }
+            // Listas (*, -, o numeradas)
+            else if (lineaStripped.startsWith('* ') || lineaStripped.startsWith('- ') || /^\d+\.\s+/.test(lineaStripped)) {
+                var espaciosOriginales = 0;
+                while (espaciosOriginales < linea.length && linea[espaciosOriginales] === ' ') espaciosOriginales++;
+                var nivelListaExtra = Math.floor(espaciosOriginales / 2) * 4;
+
+                var indentBase = headingStack.length > 0
+                    ? headingStack[headingStack.length - 1].indentSpaces + 4
+                    : 4;
+
+                var itemText = lineaStripped.replace(/^[\*\-]\s+/, '');
+                resultado.push(' '.repeat(indentBase + nivelListaExtra) + '* ' + itemText);
             }
             // Texto normal
             else {
-                var indentTexto = bajoHeading ? this.INDENT_HEADING : this.INDENT_BASE;
-                resultado.push(indentTexto + '* ' + lineaStripped);
+                var indent = headingStack.length > 0
+                    ? headingStack[headingStack.length - 1].indentSpaces + 4
+                    : 4;
+                resultado.push(' '.repeat(indent) + '* ' + lineaStripped);
             }
         }
 
         // Si quedo codigo sin cerrar, agregarlo
         if (codigoBuffer.length > 0) {
-            resultado.push(this.INDENT_BASE + '[CODE]' + codigoBuffer.join('{{NL}}'));
+            var currentIndent = headingStack.length > 0
+                ? headingStack[headingStack.length - 1].indentSpaces + 4
+                : 4;
+            resultado.push(' '.repeat(currentIndent) + '[CODE]' + codigoBuffer.join('{{NL}}'));
         }
 
         return resultado;

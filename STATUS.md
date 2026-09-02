@@ -1,23 +1,28 @@
 # Status - Chatbot Roam Plugin
  
  ## Versión Actual
-- **v1.4.9** | Build: 2026-08-14
+- **v1.5.2** | Build: 2026-09-02
 
 ### Resumen de Estado
 - **Plugin:** Funcional, estable y totalmente compatible con `roam/js`.
 - **Compatibilidad Roam/JS:** Eliminación total de template literals / backticks en el bundle para evitar que el parser de bloques de Roam rompa el script.
-- **Robustez UI & Limpieza:** Mensajes de advertencia descriptivos en el dropzone, intercambio seguro de clasificación sin corrupción de texto y neutralización de sintaxis con protección de bloques de código.
+- **Soporte NotebookLM Mejorado (v1.5.2):** Compatibilidad completa con el nuevo formato de exportación en inglés (`### 🧑 **User**` / `### 🤖 **NotebookLM**`), español y chino retrocompatible. Limpieza mejorada de encabezados `Exported at:`, fechas de sección (`## 📅 Monday...`), bloque `Thoughts` y fuentes `> **Sources:**`.
+- **Soporte Gemini Mejorado (v1.5.1):** Jerarquía de bloques multinivel (h1 a h6, sub-headings y listas anidadas), preservación y saneamiento de etiquetas en bloques de código (`limpiar_etiquetas_codigo_gemini`), y eliminación robusta de bloques multilínea de Thinking steps.
 
 ---
 
 ## 🚀 Estado
 - **Funcionalidad:** Estable
-- **Pruebas:** Bundle verificado sin backticks, syntax check superado, estilos y UI validados.
+- **Pruebas:** Bundle verificado sin backticks, build superado con 0 errores, syntax check superado.
 
 ## Estado de Funcionalidades
 
 ### ✅ Funcionando
-- **Zero-Backtick Bundle (v1.4.9):** 0 backticks en todo el código compilado para compatibilidad nativa con `{{[[roam/js]]}}`.
+- **Soporte NotebookLM Multilingüe (v1.5.2):** Auto-detección y parsing de exportaciones en inglés, español y chino antiguo sin rechazos en dropzone.
+- **Jerarquía Multinivel Unificada (v1.5.1):** El parser de Roam y el formateador ahora manejan cualquier profundidad de encabezados markdown (# a ######) y listas anidadas mediante árbol basado en pila (stack).
+- **Limpieza de Parámetros en Fences de Código (v1.5.1):** Nueva opción activa por defecto `limpiar_etiquetas_codigo_gemini` para conservar el código y lenguaje en Roam limpiando parámetros internos (`?code_reference`, etc.).
+- **Thinking Steps Robusto (v1.5.1):** Soporte para variaciones de formato y líneas intermedias en bloques de pensamiento de Gemini.
+- **Zero-Backtick Bundle (v1.5.1):** 0 backticks en todo el código compilado (incluyendo regex y comentarios) para compatibilidad nativa con `{{[[roam/js]]}}`.
 - **Diagnóstico Descriptivo de Advertencias (v1.4.9):** El dropzone muestra el detalle exacto de las advertencias encontradas (ej: archivo vacío, estructura no reconocida).
 - **Editor de Clasificación Seguro (v1.4.9):** Intercambio de roles Prompt/Response preservando marcadores originales y evitando desfase de índices.
 - **Protección de Bloques de Código en Limpieza (v1.4.9):** La neutralización de `::` y `[[ ]]` no altera el contenido dentro de bloques de código (fenced code blocks).
@@ -27,11 +32,20 @@
 - **Importador Múltiple (v1.4.2):** Carga simultánea de archivos con agrupación jerárquica por nombre de archivo.
 - Drag & drop de archivos .md
 - Auto-detección de tipo de chatbot (Claude, ChatGPT, Gemini, Antigravity, NotebookLM)
-- 17 opciones de limpieza configurables (registro centralizado)
+- 18 opciones de limpieza configurables (registro centralizado)
 - Vista previa antes de insertar con búsqueda incremental
 - Inserción jerárquica en Roam con preservación de bloques de código y tablas Markdown
 
 ## 📋 Cambios Recientes
+- **v1.5.2 (2026-09-02):**
+  - **Soporte Nuevo Formato NotebookLM:** Reconocimiento de marcadores en inglés (`### 🧑 **User**` y `### 🤖 **NotebookLM**`), español y chino legacy en validación y extracción.
+  - **Limpieza Ampliada NotebookLM:** Detección de línea de exportación `Exported at:`, fechas de sección (`## 📅 ...`), eliminación de `Thoughts` inicial y filtrado de citas `> **Sources:**` / `> **Fuentes:**`.
+- **v1.5.1 (2026-08-14):**
+  - **Jerarquía Multinivel en Parser & Formatter:** Reemplazo de lógica rígida de 2 niveles por un algoritmo stack-based que soporta headings h1..h6, sub-headings y listas anidadas con sangría precisa en Roam.
+  - **Opción de Limpieza de Fences de Código:** Agregada opción `limpiar_etiquetas_codigo_gemini` para sanear delimitadores de código preservando el contenido (` ```python?code_... ` -> ` ```python `).
+  - **Filtro Thinking Steps Flexible:** Detección mejorada para saltos de línea internos y variantes de encabezados en el pensamiento de Gemini.
+  - **Soporte de Headings h4..h6 en Inserter:** Mapeo de `####`, `#####`, `######` a heading 3 en Roam Alpha API.
+  - **Cero Backticks Estricto:** Eliminación de backticks literales en regex (`\x60`) y comentarios en todo el código fuente.
 - **v1.4.9 (2026-08-14):**
   - **Eliminación Total de Backticks:** Reemplazo integral de template literals por concatenación y `join()` en toda la base de código para compatibilidad estricta con bloques `roam/js`.
   - **Fix de Visibilidad del Modal:** Corrección de la propiedad `position: fixed;` en `.chatbot-roam-overlay` tras la migración de estilos.
@@ -76,6 +90,9 @@
 ## Historial Reciente
 
 | Fecha | Cambio |
+| 2026-09-02 | v1.5.2: Soporte para nuevo formato de exportación NotebookLM (inglés, español y chino retrocompatible), fechas de sección y filtro Thoughts/Sources |
+| 2026-08-14 | v1.5.1: Jerarquía multinivel h1..h6 y anidación stack-based en parser/formatter, opción limpiar_etiquetas_codigo_gemini y filtro robusto de Thinking steps |
+| 2026-08-14 | v1.5.0: Soporte actualizado Gemini (limpieza de tools/python code execution, omisión de timestamps en respuestas y delimitadores de código limpios) |
 | 2026-08-14 | v1.4.9: Zero-backtick bundle para compatibilidad total con roam/js, fix de modal overlay, advertencias descriptivas, fix editor de clasificación y neutralización segura de sintaxis |
 | 2026-07-29 | Soporte Gemini Exporter V2 (## User / ## Gemini, y filtro de > **Thinking steps**) |
 | 2026-07-05 | v1.4.8: Optimización de rendimiento para archivos grandes y mitigación del rate limit (1500 ops/60s) en inserción y rollback |
