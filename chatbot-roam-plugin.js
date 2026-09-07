@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.5.2
+// CHATBOT ROAM PLUGIN v1.5.3
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-09-02 02:38:29
+// Generated: 2026-09-07 14:06:49
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -22,7 +22,7 @@ const NOTEBOOKLM_ASSISTANT = String.fromCharCode(0x52A9, 0x624B);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.5.2",
+    VERSION: "1.5.3",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -1175,6 +1175,7 @@ const ChatbotRoamFormatter = {
         var enBloqueCodigo = false;
         var codigoBuffer = [];
         var enTablaRoam = false;
+        var indentTablaActual = 0;
 
         // Pila para rastrear la profundidad de headings (#, ##, ###, etc.)
         // Cada elemento es { hLevel: number, indentSpaces: number }
@@ -1195,6 +1196,7 @@ const ChatbotRoamFormatter = {
                 var currentIndent = headingStack.length > 0
                     ? headingStack[headingStack.length - 1].indentSpaces + 4
                     : 4;
+                indentTablaActual = currentIndent;
                 resultado.push(' '.repeat(currentIndent) + lineaStripped);
                 continue;
             }
@@ -1212,10 +1214,7 @@ const ChatbotRoamFormatter = {
                 if (linea.match(/^\s+- /)) {
                     var espaciosTabla = 0;
                     while (espaciosTabla < linea.length && linea[espaciosTabla] === ' ') espaciosTabla++;
-                    var currentBaseIndent = headingStack.length > 0
-                        ? headingStack[headingStack.length - 1].indentSpaces
-                        : 0;
-                    resultado.push(' '.repeat(currentBaseIndent + espaciosTabla) + linea.trim());
+                    resultado.push(' '.repeat(indentTablaActual + espaciosTabla) + linea.trim());
                     continue;
                 } else {
                     enTablaRoam = false;
@@ -1341,7 +1340,8 @@ const ChatbotRoamFormatter = {
     formatExchange(promptLimpio, responseLimpio) {
         var resultado = [];
 
-        if (!promptLimpio) return resultado;
+        if (!promptLimpio && !responseLimpio) return resultado;
+        if (!promptLimpio) promptLimpio = '[sin texto]';
 
         // Agregar prompt como bullet principal
         resultado.push('* ' + promptLimpio);
@@ -2531,10 +2531,11 @@ const ChatbotRoamInserter = {
     /**
      * Ejecuta un lote de acciones, con fallback a ejecución individual
      * @param {Array} actions - Array de acciones batch
+     * @param {Array} [createdUids] - Array donde registrar UIDs creados (mutado in-place)
      * @returns {Promise<void>}
      * @private
      */
-    async _executeBatch(actions) {
+    async _executeBatch(actions, createdUids) {
         if (this._checkBatchApi()) {
             try {
                 if (this._batchApiType === 'actions') {
@@ -2545,10 +2546,19 @@ const ChatbotRoamInserter = {
                 } else if (this._batchApiType === 'function') {
                     await window.roamAlphaAPI.data.batch(actions);
                 }
+                // Batch exitoso — registrar todos los UIDs de creates
+                if (createdUids) {
+                    for (const action of actions) {
+                        if (action.action === 'create-block') {
+                            createdUids.push(action.block.uid);
+                        }
+                    }
+                }
                 return; // Batch exitoso, salir
             } catch (batchError) {
                 // Si es rate limit, NO invalidar la API — solo propagar el error
-                if (batchError && batchError.message && batchError.message.includes('rate limit')) {
+                const errMsg = String(batchError?.message || batchError || '').toLowerCase();
+                if (errMsg.includes('rate limit') || errMsg.includes('ratelimit')) {
                     throw batchError;
                 }
                 // Batch API falló por otra razón — invalidar cache y usar fallback
@@ -2565,6 +2575,8 @@ const ChatbotRoamInserter = {
                     location: action.location,
                     block: action.block
                 });
+                // Registrar UID inmediatamente después de creación exitosa
+                if (createdUids) createdUids.push(action.block.uid);
             } else if (action.action === 'delete-block') {
                 await window.roamAlphaAPI.deleteBlock({
                     block: action.block
@@ -2602,7 +2614,8 @@ const ChatbotRoamInserter = {
                 deleted += actions.length;
             } catch (e) {
                 // Si es rate limit durante rollback, esperar más y reintentar
-                if (e && e.message && e.message.includes('rate limit')) {
+                const errMsg = String(e?.message || e || '').toLowerCase();
+                if (errMsg.includes('rate limit') || errMsg.includes('ratelimit')) {
                     console.warn('Rollback: rate limit alcanzado, esperando 10s antes de reintentar...');
                     await this._delay(10000);
                     try {
@@ -2714,10 +2727,7 @@ const ChatbotRoamInserter = {
 
                 const batchActions = actions.slice(i, i + this.BATCH_SIZE);
 
-                await this._executeBatch(batchActions);
-
-                const batchUids = batchActions.map(a => a.block.uid);
-                allInsertedUids.push(...batchUids);
+                await this._executeBatch(batchActions, allInsertedUids);
 
                 if (onProgress) {
                     onProgress(allInsertedUids.length, totalOpsEstimate);
@@ -3794,7 +3804,7 @@ const ChatbotRoamUI = {
 // Main entry point - registers commands with Roam
 
 const ChatbotRoamPlugin = {
-    VERSION: "1.5.1",
+    VERSION: "1.5.3",
 
     // Lista de comandos registrados (para cleanup en recargas)
     _registeredCommands: [
@@ -3823,7 +3833,7 @@ const ChatbotRoamPlugin = {
             "default-hotkey": "ctrl-shift-i"
         });
 
-        console.log('Chatbot Roam Plugin v1.5.1 loaded');
+        console.log('Chatbot Roam Plugin v1.5.3 loaded');
         console.log('   Usa Ctrl+Shift+I o busca "Importar Conversacion" en el command palette.');
     }
 };

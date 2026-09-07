@@ -23,6 +23,7 @@ const ChatbotRoamFormatter = {
         var enBloqueCodigo = false;
         var codigoBuffer = [];
         var enTablaRoam = false;
+        var indentTablaActual = 0;
 
         // Pila para rastrear la profundidad de headings (#, ##, ###, etc.)
         // Cada elemento es { hLevel: number, indentSpaces: number }
@@ -43,6 +44,7 @@ const ChatbotRoamFormatter = {
                 var currentIndent = headingStack.length > 0
                     ? headingStack[headingStack.length - 1].indentSpaces + 4
                     : 4;
+                indentTablaActual = currentIndent;
                 resultado.push(' '.repeat(currentIndent) + lineaStripped);
                 continue;
             }
@@ -60,10 +62,7 @@ const ChatbotRoamFormatter = {
                 if (linea.match(/^\s+- /)) {
                     var espaciosTabla = 0;
                     while (espaciosTabla < linea.length && linea[espaciosTabla] === ' ') espaciosTabla++;
-                    var currentBaseIndent = headingStack.length > 0
-                        ? headingStack[headingStack.length - 1].indentSpaces
-                        : 0;
-                    resultado.push(' '.repeat(currentBaseIndent + espaciosTabla) + linea.trim());
+                    resultado.push(' '.repeat(indentTablaActual + espaciosTabla) + linea.trim());
                     continue;
                 } else {
                     enTablaRoam = false;
@@ -189,7 +188,8 @@ const ChatbotRoamFormatter = {
     formatExchange(promptLimpio, responseLimpio) {
         var resultado = [];
 
-        if (!promptLimpio) return resultado;
+        if (!promptLimpio && !responseLimpio) return resultado;
+        if (!promptLimpio) promptLimpio = '[sin texto]';
 
         // Agregar prompt como bullet principal
         resultado.push('* ' + promptLimpio);

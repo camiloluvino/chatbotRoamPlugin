@@ -16,7 +16,7 @@ const NOTEBOOKLM_ASSISTANT = String.fromCharCode(0x52A9, 0x624B);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.5.2",
+    VERSION: "1.5.3",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,

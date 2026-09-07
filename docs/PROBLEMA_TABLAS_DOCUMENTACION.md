@@ -1,11 +1,13 @@
 # Problema: Conversión de Tablas Markdown a Roam - Documentación Completa
 
 > [!NOTE]
-> **RESUELTO** (2026-01-18) - El fix está en `parser.js` v1.3.2
+> **RESUELTO DEFINITIVAMENTE** (2026-09-07) - Fix en `formatter.js` v1.5.3
 > 
-> **Causa raíz**: `parser.js` solo manejaba 4 y 8 espacios de indentación, descartando líneas con 12+ espacios silenciosamente.
+> **Causa raíz restante**: `formatter.js` emitía `{{[[table]]}}` con 4 espacios y las filas de datos con `0 + 4 = 4` espacios (usando `currentBaseIndent`). Al tener la misma indentación de 4 espacios, la condición `stack[stack.length - 1].indent >= indent` en `parser.js` expulsaba a `{{[[table]]}}` de la pila y colocaba las filas como elementos hermanos sueltos, dejando la tabla vacía en Roam.
 > 
-> **Solución**: Nueva función `_parseIndentedBlocks()` que construye jerarquía basada en indentación arbitraria para tablas Roam.
+> **Solución definitiva**: Variable `indentTablaActual` en `formatter.js` que garantiza que las filas de la tabla se emitan con `indentTablaActual + espaciosTabla` (8+ espacios), quedando anidadas correctamente como hijas dentro de `{{[[table]]}}`.
+> 
+> *(Histórico previo 2026-01-18: parser.js v1.3.2 introdujo `_parseIndentedBlocks()` para soportar indentación arbitraria).*
 
 ## Contexto del Proyecto
 

@@ -82,10 +82,11 @@ const ChatbotRoamInserter = {
     /**
      * Ejecuta un lote de acciones, con fallback a ejecución individual
      * @param {Array} actions - Array de acciones batch
+     * @param {Array} [createdUids] - Array donde registrar UIDs creados (mutado in-place)
      * @returns {Promise<void>}
      * @private
      */
-    async _executeBatch(actions) {
+    async _executeBatch(actions, createdUids) {
         if (this._checkBatchApi()) {
             try {
                 if (this._batchApiType === 'actions') {
@@ -96,10 +97,19 @@ const ChatbotRoamInserter = {
                 } else if (this._batchApiType === 'function') {
                     await window.roamAlphaAPI.data.batch(actions);
                 }
+                // Batch exitoso — registrar todos los UIDs de creates
+                if (createdUids) {
+                    for (const action of actions) {
+                        if (action.action === 'create-block') {
+                            createdUids.push(action.block.uid);
+                        }
+                    }
+                }
                 return; // Batch exitoso, salir
             } catch (batchError) {
                 // Si es rate limit, NO invalidar la API — solo propagar el error
-                if (batchError && batchError.message && batchError.message.includes('rate limit')) {
+                const errMsg = String(batchError?.message || batchError || '').toLowerCase();
+                if (errMsg.includes('rate limit') || errMsg.includes('ratelimit')) {
                     throw batchError;
                 }
                 // Batch API falló por otra razón — invalidar cache y usar fallback
@@ -116,6 +126,8 @@ const ChatbotRoamInserter = {
                     location: action.location,
                     block: action.block
                 });
+                // Registrar UID inmediatamente después de creación exitosa
+                if (createdUids) createdUids.push(action.block.uid);
             } else if (action.action === 'delete-block') {
                 await window.roamAlphaAPI.deleteBlock({
                     block: action.block
@@ -153,7 +165,8 @@ const ChatbotRoamInserter = {
                 deleted += actions.length;
             } catch (e) {
                 // Si es rate limit durante rollback, esperar más y reintentar
-                if (e && e.message && e.message.includes('rate limit')) {
+                const errMsg = String(e?.message || e || '').toLowerCase();
+                if (errMsg.includes('rate limit') || errMsg.includes('ratelimit')) {
                     console.warn('Rollback: rate limit alcanzado, esperando 10s antes de reintentar...');
                     await this._delay(10000);
                     try {
@@ -265,10 +278,7 @@ const ChatbotRoamInserter = {
 
                 const batchActions = actions.slice(i, i + this.BATCH_SIZE);
 
-                await this._executeBatch(batchActions);
-
-                const batchUids = batchActions.map(a => a.block.uid);
-                allInsertedUids.push(...batchUids);
+                await this._executeBatch(batchActions, allInsertedUids);
 
                 if (onProgress) {
                     onProgress(allInsertedUids.length, totalOpsEstimate);

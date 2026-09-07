@@ -1,11 +1,14 @@
 # Status - Chatbot Roam Plugin
  
  ## Versión Actual
-- **v1.5.2** | Build: 2026-09-02
+- **v1.5.3** | Build: 2026-09-07
 
 ### Resumen de Estado
 - **Plugin:** Funcional, estable y totalmente compatible con `roam/js`.
 - **Compatibilidad Roam/JS:** Eliminación total de template literals / backticks en el bundle para evitar que el parser de bloques de Roam rompa el script.
+- **Tablas Nativas Roam Anidadas (v1.5.3):** Corrección definitiva de indentación en `formatter.js` (`indentTablaActual`), anidando correctamente columnas y filas bajo el bloque contenedor `{{[[table]]}}` sin desapilarlas en el parser.
+- **Inserción Robusta Anti-Orphans (v1.5.3):** Registro incremental de UIDs en tiempo real dentro de `_executeBatch` para garantizar rollback íntegro si un lote falla a mitad de camino, y detección case-insensitive de errores de rate limit de Roam.
+- **Preservación de Respuestas de IA (v1.5.3):** Prevención de descarte silencioso de respuestas extensas cuando el prompt queda vacío tras la limpieza (ej: subida de solo imágenes o filtros de timestamps), utilizando el placeholder `* [sin texto]`.
 - **Soporte NotebookLM Mejorado (v1.5.2):** Compatibilidad completa con el nuevo formato de exportación en inglés (`### 🧑 **User**` / `### 🤖 **NotebookLM**`), español y chino retrocompatible. Limpieza mejorada de encabezados `Exported at:`, fechas de sección (`## 📅 Monday...`), bloque `Thoughts` y fuentes `> **Sources:**`.
 - **Soporte Gemini Mejorado (v1.5.1):** Jerarquía de bloques multinivel (h1 a h6, sub-headings y listas anidadas), preservación y saneamiento de etiquetas en bloques de código (`limpiar_etiquetas_codigo_gemini`), y eliminación robusta de bloques multilínea de Thinking steps.
 
@@ -13,11 +16,14 @@
 
 ## 🚀 Estado
 - **Funcionalidad:** Estable
-- **Pruebas:** Bundle verificado sin backticks, build superado con 0 errores, syntax check superado.
+- **Pruebas:** Bundle verificado sin backticks, build superado con 0 errores, syntax check superado, tests de estructura de tablas y prompt vacío verificados con Node.js.
 
 ## Estado de Funcionalidades
 
 ### ✅ Funcionando
+- **Tablas Roam Nativas Anidadas (v1.5.3):** Jerarquía correcta bajo `{{[[table]]}}` para tablas Markdown importadas.
+- **Rollback Anti-Orphans (v1.5.3):** Rastreabilidad en tiempo real de UIDs creados durante ejecución en lote y fallback individual.
+- **Protección de Datos en Prompts Vacíos (v1.5.3):** Fallback `* [sin texto]` para preservar respuestas de IA.
 - **Soporte NotebookLM Multilingüe (v1.5.2):** Auto-detección y parsing de exportaciones en inglés, español y chino antiguo sin rechazos en dropzone.
 - **Jerarquía Multinivel Unificada (v1.5.1):** El parser de Roam y el formateador ahora manejan cualquier profundidad de encabezados markdown (# a ######) y listas anidadas mediante árbol basado en pila (stack).
 - **Limpieza de Parámetros en Fences de Código (v1.5.1):** Nueva opción activa por defecto `limpiar_etiquetas_codigo_gemini` para conservar el código y lenguaje en Roam limpiando parámetros internos (`?code_reference`, etc.).
@@ -37,6 +43,12 @@
 - Inserción jerárquica en Roam con preservación de bloques de código y tablas Markdown
 
 ## 📋 Cambios Recientes
+- **v1.5.3 (2026-09-07):**
+  - **Corrección Definitiva de Tablas Roam:** Introducción de `indentTablaActual` en `formatter.js` para asegurar que las filas se aniden como hijas directas de `{{[[table]]}}` y sus columnas subsiguientes (8+ espacios), evitando que el parser las desapile como elementos hermanos.
+  - **Inserción Robusta Anti-Orphans:** Parámetro `createdUids` en `_executeBatch` que registra cada bloque en tiempo real. En caso de fallo a mitad de un lote en fallback individual, los bloques ya creados son revertidos por el rollback automático.
+  - **Detección Normalizada de Rate Limits:** Tratamiento insensible a mayúsculas/minúsculas (`.toLowerCase()`) de mensajes de cuota de Roam en inserción y rollback.
+  - **Preservación de Respuestas con Prompt Vacío:** `formatExchange` ahora asigna el placeholder `* [sin texto]` cuando el prompt queda vacío pero la respuesta contiene datos, evitando el descarte silencioso de contenido.
+  - **Sincronización de Versiones:** Unificación de versión `1.5.3` en `build.ps1`, `src/index.js`, `src/patterns.js`, y documentación.
 - **v1.5.2 (2026-09-02):**
   - **Soporte Nuevo Formato NotebookLM:** Reconocimiento de marcadores en inglés (`### 🧑 **User**` y `### 🤖 **NotebookLM**`), español y chino legacy en validación y extracción.
   - **Limpieza Ampliada NotebookLM:** Detección de línea de exportación `Exported at:`, fechas de sección (`## 📅 ...`), eliminación de `Thoughts` inicial y filtrado de citas `> **Sources:**` / `> **Fuentes:**`.
@@ -90,6 +102,7 @@
 ## Historial Reciente
 
 | Fecha | Cambio |
+| 2026-09-07 | v1.5.3: Corrección definitiva de anidación de tablas Roam, tracking incremental de UIDs anti-orphans en inserción/rollback, rate limit case-insensitive y preservación de respuestas con prompt vacío |
 | 2026-09-02 | v1.5.2: Soporte para nuevo formato de exportación NotebookLM (inglés, español y chino retrocompatible), fechas de sección y filtro Thoughts/Sources |
 | 2026-08-14 | v1.5.1: Jerarquía multinivel h1..h6 y anidación stack-based en parser/formatter, opción limpiar_etiquetas_codigo_gemini y filtro robusto de Thinking steps |
 | 2026-08-14 | v1.5.0: Soporte actualizado Gemini (limpieza de tools/python code execution, omisión de timestamps en respuestas y delimitadores de código limpios) |

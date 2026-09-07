@@ -4,6 +4,9 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 
 ## ✨ Características
 
+- 📊 **Tablas Nativas de Roam (v1.5.3)** - Conversión e inserción jerárquica precisa de tablas Markdown en contenedores `{{[[table]]}}`, resolviendo el anidamiento de columnas y filas.
+- 🛡️ **Inserción Robusta Anti-Orphans (v1.5.3)** - Registro incremental de UIDs en tiempo real para garantizar rollback íntegro ante fallas intermedias y detección insensible a mayúsculas/minúsculas de rate limits.
+- 💬 **Preservación de Respuestas de IA (v1.5.3)** - Protección contra pérdida de datos cuando el prompt queda vacío tras la limpieza (ej: solo imágenes o timestamps eliminados), anidando la respuesta bajo `* [sin texto]`.
 - 📁 **Multi-file Drag & Drop** - Arrastra múltiples archivos .md simultáneamente (v1.4.2)
 - 🗂️ **Agrupación Jerárquica** - Organiza automáticamente cada conversación bajo un bloque con su nombre de archivo.
 - 🤖 **Multi-chatbot** - Soporta Claude, ChatGPT, Google Gemini, Antigravity y NotebookLM
