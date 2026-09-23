@@ -160,6 +160,8 @@ const ChatbotRoamProcessing = {
         const bloques = [];
         const regex = /^## (Prompt|Response|User|Assistant|Gemini):/gm;
         let match;
+        let lastPos = 0;
+        let currentLine = 1;
 
         while ((match = regex.exec(contenido)) !== null) {
             const posInicio = match.index;
@@ -169,8 +171,12 @@ const ChatbotRoamProcessing = {
             if (tipo === 'User') tipo = 'Prompt';
             if (tipo === 'Assistant' || tipo === 'Gemini') tipo = 'Response';
 
-            // Calcular número de línea
-            const lineNumber = contenido.substring(0, posInicio).split('\n').length;
+            // Calcular número de línea incrementalmente
+            for (let k = lastPos; k < posInicio; k++) {
+                if (contenido.charCodeAt(k) === 10) currentLine++;
+            }
+            lastPos = posInicio;
+            const lineNumber = currentLine;
 
             // Encontrar el fin de este bloque (siguiente ## o fin de archivo)
             const restoContenido = contenido.substring(posInicio);
@@ -242,11 +248,13 @@ const ChatbotRoamProcessing = {
 
         // Procesar cada par de prompt/respuesta
         const resultado = [];
+        let lastYield = performance.now();
 
         for (let i = 0; i < conversacionRaw.length; i++) {
-            // Yield al main thread cada 20 items para mantener UI responsiva
-            if (i > 0 && i % 20 === 0) {
+            // Yield al main thread cada ~16ms para mantener UI fluida a 60fps
+            if (performance.now() - lastYield > 16) {
                 await new Promise(resolve => setTimeout(resolve, 0));
+                lastYield = performance.now();
             }
 
             const item = conversacionRaw[i];
@@ -266,7 +274,9 @@ const ChatbotRoamProcessing = {
 
             // --- FORMATEAR PARA ROAM (usa modulo Formatter) ---
             const lineasFormateadas = ChatbotRoamFormatter.formatExchange(promptLimpio, responseLimpio);
-            resultado.push(...lineasFormateadas);
+            for (let k = 0; k < lineasFormateadas.length; k++) {
+                resultado.push(lineasFormateadas[k]);
+            }
         }
 
         return {
@@ -289,7 +299,7 @@ const ChatbotRoamProcessing = {
         promptTemp = ChatbotRoamCleaners.neutralizarSintaxisRoam(promptTemp);
 
         promptTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(promptTemp);
-        return ChatbotRoamCleaners.limpiarContenido(promptTemp).split('\n').join(' ').trim();
+        return promptTemp.split('\n').join(' ').trim();
     },
 
     /**

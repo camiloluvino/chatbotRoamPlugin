@@ -27,8 +27,8 @@ const OPCIONES_LIMPIEZA = [
         label: 'Imagenes Base64',
         chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
         defaultActivo: true,
-        aplicarA: 'ambos',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarImagenesEmbedidas(texto); }
+        aplicarA: 'none', // Se ejecuta una sola vez en el preproceso global
+        cleaner: function (texto) { return texto; }
     },
     {
         id: 'eliminar_metadata',

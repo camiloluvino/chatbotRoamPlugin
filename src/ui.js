@@ -171,7 +171,11 @@ const ChatbotRoamUI = {
 
         // Search functionality
         const searchInput = modal.querySelector('[data-element="search-input"]');
-        searchInput.addEventListener('input', (e) => this._performSearch(e.target.value));
+        let searchTimer = null;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => this._performSearch(e.target.value), 250);
+        });
 
         // Navigation buttons
         modal.querySelector('[data-action="prev-match"]').addEventListener('click', () => this._navigateMatch(-1));
@@ -334,7 +338,7 @@ const ChatbotRoamUI = {
 
             // Detectar tipo de chatbot y aplicar preset (usa todo el bloque de texto)
             const tipo = ChatbotRoamProcessing.detectarTipoChatbot(this._fileContent);
-            this._applyPreset(tipo);
+            this._applyPreset(tipo, true);
 
             // Restaurar intencion de revisar si estaba activa
             if (intencionRevisar) {
@@ -447,19 +451,20 @@ const ChatbotRoamUI = {
         const dropzone = this._modalContainer.querySelector('[data-action="dropzone"]');
         dropzone.parentNode.insertBefore(panel, dropzone.nextSibling);
 
-        // Event listeners
-        panel.querySelectorAll('[data-action="swap"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = parseInt(e.target.dataset.idx);
+        // Event listeners con delegación
+        panel.addEventListener('click', (e) => {
+            const swapBtn = e.target.closest('[data-action="swap"]');
+            if (swapBtn) {
+                const idx = parseInt(swapBtn.dataset.idx);
                 this._intercambiarClasificacion(idx);
-            });
-        });
-
-        panel.querySelectorAll('[data-action="chain"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = parseInt(e.target.dataset.idx);
+                return;
+            }
+            const chainBtn = e.target.closest('[data-action="chain"]');
+            if (chainBtn) {
+                const idx = parseInt(chainBtn.dataset.idx);
                 this._invertirDesdeAqui(idx);
-            });
+                return;
+            }
         });
 
         panel.querySelector('[data-action="continue-editor"]').addEventListener('click', () => {
@@ -480,7 +485,7 @@ const ChatbotRoamUI = {
     /**
      * Intercambia la clasificación de un bloque (Prompt ↔ Response)
      */
-    _intercambiarClasificacion(idx) {
+    _intercambiarClasificacion(idx, skipDom = false) {
         if (idx < 0 || idx >= this._todosLosBloques.length) return;
 
         const bloque = this._todosLosBloques[idx];
@@ -510,19 +515,21 @@ const ChatbotRoamUI = {
             this._bloquesModificados.add(idx);
         }
 
-        // Actualizar UI del item
-        this._actualizarItemEditor(idx);
+        if (!skipDom) {
+            // Actualizar UI del item
+            this._actualizarItemEditor(idx);
 
-        // Actualizar contador
-        const countSpan = this._modalContainer.querySelector('[data-element="modified-count"]');
-        if (countSpan) {
-            countSpan.textContent = 'Modificados: ' + this._bloquesModificados.size;
-        }
+            // Actualizar contador
+            const countSpan = this._modalContainer.querySelector('[data-element="modified-count"]');
+            if (countSpan) {
+                countSpan.textContent = 'Modificados: ' + this._bloquesModificados.size;
+            }
 
-        // Habilitar botón restaurar si hay modificaciones
-        const restoreBtn = this._modalContainer.querySelector('[data-action="restore-editor"]');
-        if (restoreBtn) {
-            restoreBtn.disabled = this._bloquesModificados.size === 0;
+            // Habilitar botón restaurar si hay modificaciones
+            const restoreBtn = this._modalContainer.querySelector('[data-action="restore-editor"]');
+            if (restoreBtn) {
+                restoreBtn.disabled = this._bloquesModificados.size === 0;
+            }
         }
     },
 
@@ -538,17 +545,10 @@ const ChatbotRoamUI = {
         const tipoIcon = bloque.tipo === 'Prompt' ? '🔵' : '🟢';
 
         // Actualizar clases
-        item.classList.remove('prompt', 'response');
-        item.classList.add(tipoClass);
+        item.className = 'chatbot-roam-editor-item ' + tipoClass +
+            (this._bloquesModificados.has(idx) ? ' modified' : '');
 
-        // Marcar como modificado visualmente
-        if (this._bloquesModificados.has(idx)) {
-            item.classList.add('modified');
-        } else {
-            item.classList.remove('modified');
-        }
-
-        // Actualizar icono y texto
+        // Actualizar texto e icono del tipo
         item.querySelector('.chatbot-roam-editor-icon').textContent = tipoIcon;
         item.querySelector('.chatbot-roam-editor-tipo').textContent = bloque.tipo.toUpperCase();
     },
@@ -576,16 +576,31 @@ const ChatbotRoamUI = {
             return;
         }
 
-        // Procesar en orden DESCENDENTE para no corromper posiciones
+        // Procesar en orden DESCENDENTE para no corromper posiciones (saltando actualización DOM)
         for (let i = this._todosLosBloques.length - 1; i >= idx; i--) {
-            this._intercambiarClasificacion(i);
+            this._intercambiarClasificacion(i, true);
+        }
+
+        // Actualizar UI en batch
+        for (let i = idx; i < this._todosLosBloques.length; i++) {
+            this._actualizarItemEditor(i);
+        }
+
+        const countSpan = this._modalContainer.querySelector('[data-element="modified-count"]');
+        if (countSpan) {
+            countSpan.textContent = 'Modificados: ' + this._bloquesModificados.size;
+        }
+
+        const restoreBtn = this._modalContainer.querySelector('[data-action="restore-editor"]');
+        if (restoreBtn) {
+            restoreBtn.disabled = this._bloquesModificados.size === 0;
         }
     },
 
     // ========================================================================
     // OPTIONS MANAGEMENT
     // ========================================================================
-    _applyPreset(preset) {
+    _applyPreset(preset, skipProcess = false) {
         if (preset === 'limpiar') {
             // Generar objeto con todas las opciones en false
             this._currentOpciones = {};
@@ -607,7 +622,7 @@ const ChatbotRoamUI = {
             checkbox.checked = this._currentOpciones[option] || false;
         });
 
-        if (this._fileContent) {
+        if (!skipProcess && this._fileContent) {
             this._processAndPreview();
         }
     },
@@ -632,7 +647,8 @@ const ChatbotRoamUI = {
                 this._modalContainer.querySelector('.chatbot-roam-editor-panel').remove();
             }
 
-            this._processAndPreview();
+            clearTimeout(this._updateTimer);
+            this._updateTimer = setTimeout(() => this._processAndPreview(), 300);
         }
     },
 
@@ -651,8 +667,8 @@ const ChatbotRoamUI = {
         this._toggleInputs(false);
 
         try {
-            // Dar tiempo al UI para renderizar el mensaje de carga
-            await new Promise(resolve => setTimeout(resolve, 50));
+            // Dar tiempo al browser para renderizar el mensaje de carga
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
             const { resultado, numIntercambios } = await ChatbotRoamProcessing.procesarConOpcionesIndividuales(
                 this._fileContent,
@@ -755,6 +771,13 @@ const ChatbotRoamUI = {
     _navigateMatch(direction) {
         if (this._searchMatches.length === 0) return;
 
+        // Quitar highlight del match actual
+        const prevMark = this._modalContainer.querySelector('#current-match');
+        if (prevMark) {
+            prevMark.classList.remove('current');
+            prevMark.removeAttribute('id');
+        }
+
         this._currentMatchIndex += direction;
         if (this._currentMatchIndex < 0) {
             this._currentMatchIndex = this._searchMatches.length - 1;
@@ -762,7 +785,14 @@ const ChatbotRoamUI = {
             this._currentMatchIndex = 0;
         }
 
-        this._renderPreviewWithHighlights();
+        // Poner highlight en el nuevo match sin reconstruir todo el innerHTML
+        const marks = this._modalContainer.querySelectorAll('.chatbot-roam-preview mark');
+        if (marks[this._currentMatchIndex]) {
+            marks[this._currentMatchIndex].classList.add('current');
+            marks[this._currentMatchIndex].id = 'current-match';
+        }
+
+        this._updateSearchButtons();
         this._scrollToCurrentMatch();
     },
 
@@ -830,7 +860,7 @@ const ChatbotRoamUI = {
     _scrollToCurrentMatch() {
         const currentMark = this._modalContainer.querySelector('#current-match');
         if (currentMark) {
-            currentMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            currentMark.scrollIntoView({ behavior: 'auto', block: 'center' });
         }
     },
 
@@ -888,10 +918,17 @@ const ChatbotRoamUI = {
         cutIndicator.textContent = '[OK] Cortado';
 
         // Contar intercambios restantes
-        const lines = this._processedContent.split('\n');
         let numIntercambios = 0;
-        for (const line of lines) {
-            if (line.startsWith('* ')) numIntercambios++;
+        let searchPos = 0;
+        while (true) {
+            const lineStart = searchPos === 0 ? 0 : this._processedContent.indexOf('\n', searchPos - 1) + 1;
+            if (lineStart === 0 && searchPos > 0) break;
+            if (this._processedContent.charCodeAt(lineStart) === 42 && this._processedContent.charCodeAt(lineStart + 1) === 32) {
+                numIntercambios++;
+            }
+            const nextNewline = this._processedContent.indexOf('\n', lineStart);
+            if (nextNewline === -1) break;
+            searchPos = nextNewline + 1;
         }
 
         this._updatePreview(this._processedContent, numIntercambios);
@@ -1015,8 +1052,22 @@ const ChatbotRoamUI = {
             this._modalContainer = null;
             this._fileContent = null;
             this._processedContent = null;
+            this._originalProcessedContent = null;
+            this._originalFileContent = null;
+            this._todosLosBloques = null;
+            this._bloquesModificados = null;
+            this._searchMatches = [];
+            this._currentMatchIndex = -1;
             this._savedBlockUid = null;
         }
+
+        // Limpiar estilos inyectados
+        const styleEl = document.getElementById('chatbot-roam-styles');
+        if (styleEl) styleEl.remove();
+
+        // Limpiar timers pendientes
+        clearTimeout(this._updateTimer);
+
         // Restaurar foco al bloque original
         if (savedUid) {
             setTimeout(function () {

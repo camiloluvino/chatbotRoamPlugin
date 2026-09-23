@@ -4,6 +4,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 
 ## ✨ Características
 
+- ⚡ **Rendimiento Ultra Liviano (v1.5.4)** - Eliminación del `backdrop-filter: blur()` y fondo translúcido pesado, aceleración de inserción hasta 10x (delay base de 250ms), conteo lineal $O(N)$ de bloques, búsqueda con debounce y navegación sin rebuilds de DOM.
 - 📊 **Tablas Nativas de Roam (v1.5.3)** - Conversión e inserción jerárquica precisa de tablas Markdown en contenedores `{{[[table]]}}`, resolviendo el anidamiento de columnas y filas.
 - 🛡️ **Inserción Robusta Anti-Orphans (v1.5.3)** - Registro incremental de UIDs en tiempo real para garantizar rollback íntegro ante fallas intermedias y detección insensible a mayúsculas/minúsculas de rate limits.
 - 💬 **Preservación de Respuestas de IA (v1.5.3)** - Protección contra pérdida de datos cuando el prompt queda vacío tras la limpieza (ej: solo imágenes o timestamps eliminados), anidando la respuesta bajo `* [sin texto]`.
@@ -19,7 +20,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 - ⚠️ **Diagnóstico de Advertencias Mejorado (v1.4.9)** - Muestra mensajes detallados y descriptivos en el dropzone cuando un archivo requiere atención
 - 🔄 **Editor de Clasificación Seguro (v1.4.9)** - Intercambio de roles (Prompt/Response) sin corrupción de texto ni desajuste de índices
 - 📐 **Indentación bajo headings** - El contenido bajo headings markdown (`#`, `##`, `###`) se anida automáticamente
-- 🚀 **Rate Limit Safe** - Adaptación automática al límite oficial de Roam (1500 mutaciones/60s). Lotes de 50 bloques con delay seguro y dinámico (~2.5s entre lotes) para evitar errores de API.
+- 🚀 **Rate Limit Adaptativo y Ágil (v1.5.4)** - Inserción veloz con delay de 250ms entre lotes para importaciones de hasta 1,000 bloques, activando espaciado dinámico seguro únicamente ante cargas muy masivas para respetar el límite de 1500 mutaciones/60s.
 - 🤖 **NotebookLM Multilingüe (v1.5.2)** - Soporte completo para exportaciones en inglés (`### 🧑 **User**` / `### 🤖 **NotebookLM**`), español y chino, con limpieza de `Exported at:`, fechas de sección, bloque `Thoughts` y filtrado de citas `> **Sources:**`.
 - 🤖 **Soporte Gemini Exporter V2** - Reconocimiento del nuevo formato de exportación (`## User:` / `## Gemini:`) y eliminación automática de bloques de pensamiento (`> **Thinking steps**`).
 - 🤖 **Soporte Claude V2** - Reconocimiento automático del nuevo formato de exportación (`## User:`), timestamps en blockquotes y eliminación de bloques de pensamiento en blockquotes (v1.4.7).
@@ -45,7 +46,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 5. **Selecciona un bloque** en Roam donde insertar
 6. **Click en "Insertar en Roam"**
 
-> **Nota sobre velocidad:** Para proteger tu base de datos y evitar errores de API (como `maximum mutation rate limit exceeded`), la inserción se realiza en lotes de 50 bloques con un retraso dinámico de ~2.5 segundos. Una conversación grande (1,600 bloques) tomará aproximadamente 80 segundos.
+> **Nota sobre velocidad:** La inserción se realiza en lotes de 50 bloques con un delay ágil de ~250ms para conversaciones estándar (<1,000 bloques), tardando solo unos segundos. Para importaciones masivas (>1,000 bloques), el plugin calcula automáticamente un retraso seguro para proteger la cuota oficial de Roam (1500 mutaciones/60s).
 
 > **Nota sobre cancelación:** Si cancelas durante la inserción, el plugin intentará borrar los bloques que ya insertó. Este proceso de limpieza también es lento para ser seguro. **¡No cierres el navegador mientras dice "Limpiando..."!**
 

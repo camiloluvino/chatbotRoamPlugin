@@ -179,7 +179,9 @@ const ChatbotRoamCleaners = {
                 if (bloqueActual.length > 0) {
                     const esThinkingBlock = bloqueActual.some(line => /- \*\*Done\*\*/i.test(line));
                     if (!esThinkingBlock) {
-                        lineasLimpias.push(...bloqueActual);
+                        for (let k = 0; k < bloqueActual.length; k++) {
+                            lineasLimpias.push(bloqueActual[k]);
+                        }
                     }
                     bloqueActual = [];
                 }
@@ -190,7 +192,9 @@ const ChatbotRoamCleaners = {
         if (bloqueActual.length > 0) {
             const esThinkingBlock = bloqueActual.some(line => /- \*\*Done\*\*/i.test(line));
             if (!esThinkingBlock) {
-                lineasLimpias.push(...bloqueActual);
+                for (let k = 0; k < bloqueActual.length; k++) {
+                    lineasLimpias.push(bloqueActual[k]);
+                }
             }
         }
 
@@ -243,39 +247,37 @@ const ChatbotRoamCleaners = {
         // Procesar en reversa para no afectar los indices
         for (let i = matches.length - 1; i >= 0; i--) {
             const { start, nombre } = matches[i];
+            let cursor = start + nombre.length;
 
             // Buscar *Request* despues del nombre
-            const despuesNombre = texto.substring(start + nombre.length);
-            const posRequest = despuesNombre.indexOf('*Request*');
-            if (posRequest === -1 || posRequest > 50) continue; // Muy lejos, no es parte del bloque
+            const posRequest = texto.indexOf('*Request*', cursor);
+            if (posRequest === -1 || posRequest - cursor > 50) continue; // Muy lejos, no es parte del bloque
+            cursor = posRequest + 9;
 
             // Buscar el primer bloque de codigo (BT4 + lang ... BT4)
-            const despuesRequest = despuesNombre.substring(posRequest + 9);
-            const posAbreCode1 = despuesRequest.indexOf(BT4);
-            if (posAbreCode1 === -1 || posAbreCode1 > 50) continue;
+            const posAbreCode1 = texto.indexOf(BT4, cursor);
+            if (posAbreCode1 === -1 || posAbreCode1 - cursor > 50) continue;
+            cursor = posAbreCode1 + 4;
 
-            const despuesAbre1 = despuesRequest.substring(posAbreCode1 + 4);
-            const posCierraCode1 = despuesAbre1.indexOf(BT4);
+            const posCierraCode1 = texto.indexOf(BT4, cursor);
             if (posCierraCode1 === -1) continue;
+            cursor = posCierraCode1 + 4;
 
             // Buscar *Response* despues del primer bloque
-            const despuesCierra1 = despuesAbre1.substring(posCierraCode1 + 4);
-            const posResponse = despuesCierra1.indexOf('*Response*');
-            if (posResponse === -1 || posResponse > 50) continue;
+            const posResponse = texto.indexOf('*Response*', cursor);
+            if (posResponse === -1 || posResponse - cursor > 50) continue;
+            cursor = posResponse + 10;
 
             // Buscar el segundo bloque de codigo
-            const despuesResponse = despuesCierra1.substring(posResponse + 10);
-            const posAbreCode2 = despuesResponse.indexOf(BT4);
-            if (posAbreCode2 === -1 || posAbreCode2 > 50) continue;
+            const posAbreCode2 = texto.indexOf(BT4, cursor);
+            if (posAbreCode2 === -1 || posAbreCode2 - cursor > 50) continue;
+            cursor = posAbreCode2 + 4;
 
-            const despuesAbre2 = despuesResponse.substring(posAbreCode2 + 4);
-            const posCierraCode2 = despuesAbre2.indexOf(BT4);
+            const posCierraCode2 = texto.indexOf(BT4, cursor);
             if (posCierraCode2 === -1) continue;
 
             // Calcular el fin del bloque completo
-            const finBloque = start + nombre.length + posRequest + 9 + posAbreCode1 + 4 +
-                posCierraCode1 + 4 + posResponse + 10 + posAbreCode2 + 4 +
-                posCierraCode2 + 4;
+            const finBloque = posCierraCode2 + 4;
 
             // Eliminar el bloque
             texto = texto.substring(0, start) + texto.substring(finBloque);
@@ -595,7 +597,9 @@ const ChatbotRoamCleaners = {
 
                     // Convertir a formato Roam
                     const tablaRoam = this._convertirTablaARoam(tablaLineas);
-                    resultado.push(...tablaRoam);
+                    for (let k = 0; k < tablaRoam.length; k++) {
+                        resultado.push(tablaRoam[k]);
+                    }
 
                     i = j; // Saltar las líneas procesadas
                     continue;

@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.5.3
+// CHATBOT ROAM PLUGIN v1.5.4
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-09-07 14:06:49
+// Generated: 2026-09-23 01:54:05
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -22,7 +22,7 @@ const NOTEBOOKLM_ASSISTANT = String.fromCharCode(0x52A9, 0x624B);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.5.3",
+    VERSION: "1.5.4",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -297,7 +297,9 @@ const ChatbotRoamCleaners = {
                 if (bloqueActual.length > 0) {
                     const esThinkingBlock = bloqueActual.some(line => /- \*\*Done\*\*/i.test(line));
                     if (!esThinkingBlock) {
-                        lineasLimpias.push(...bloqueActual);
+                        for (let k = 0; k < bloqueActual.length; k++) {
+                            lineasLimpias.push(bloqueActual[k]);
+                        }
                     }
                     bloqueActual = [];
                 }
@@ -308,7 +310,9 @@ const ChatbotRoamCleaners = {
         if (bloqueActual.length > 0) {
             const esThinkingBlock = bloqueActual.some(line => /- \*\*Done\*\*/i.test(line));
             if (!esThinkingBlock) {
-                lineasLimpias.push(...bloqueActual);
+                for (let k = 0; k < bloqueActual.length; k++) {
+                    lineasLimpias.push(bloqueActual[k]);
+                }
             }
         }
 
@@ -361,39 +365,37 @@ const ChatbotRoamCleaners = {
         // Procesar en reversa para no afectar los indices
         for (let i = matches.length - 1; i >= 0; i--) {
             const { start, nombre } = matches[i];
+            let cursor = start + nombre.length;
 
             // Buscar *Request* despues del nombre
-            const despuesNombre = texto.substring(start + nombre.length);
-            const posRequest = despuesNombre.indexOf('*Request*');
-            if (posRequest === -1 || posRequest > 50) continue; // Muy lejos, no es parte del bloque
+            const posRequest = texto.indexOf('*Request*', cursor);
+            if (posRequest === -1 || posRequest - cursor > 50) continue; // Muy lejos, no es parte del bloque
+            cursor = posRequest + 9;
 
             // Buscar el primer bloque de codigo (BT4 + lang ... BT4)
-            const despuesRequest = despuesNombre.substring(posRequest + 9);
-            const posAbreCode1 = despuesRequest.indexOf(BT4);
-            if (posAbreCode1 === -1 || posAbreCode1 > 50) continue;
+            const posAbreCode1 = texto.indexOf(BT4, cursor);
+            if (posAbreCode1 === -1 || posAbreCode1 - cursor > 50) continue;
+            cursor = posAbreCode1 + 4;
 
-            const despuesAbre1 = despuesRequest.substring(posAbreCode1 + 4);
-            const posCierraCode1 = despuesAbre1.indexOf(BT4);
+            const posCierraCode1 = texto.indexOf(BT4, cursor);
             if (posCierraCode1 === -1) continue;
+            cursor = posCierraCode1 + 4;
 
             // Buscar *Response* despues del primer bloque
-            const despuesCierra1 = despuesAbre1.substring(posCierraCode1 + 4);
-            const posResponse = despuesCierra1.indexOf('*Response*');
-            if (posResponse === -1 || posResponse > 50) continue;
+            const posResponse = texto.indexOf('*Response*', cursor);
+            if (posResponse === -1 || posResponse - cursor > 50) continue;
+            cursor = posResponse + 10;
 
             // Buscar el segundo bloque de codigo
-            const despuesResponse = despuesCierra1.substring(posResponse + 10);
-            const posAbreCode2 = despuesResponse.indexOf(BT4);
-            if (posAbreCode2 === -1 || posAbreCode2 > 50) continue;
+            const posAbreCode2 = texto.indexOf(BT4, cursor);
+            if (posAbreCode2 === -1 || posAbreCode2 - cursor > 50) continue;
+            cursor = posAbreCode2 + 4;
 
-            const despuesAbre2 = despuesResponse.substring(posAbreCode2 + 4);
-            const posCierraCode2 = despuesAbre2.indexOf(BT4);
+            const posCierraCode2 = texto.indexOf(BT4, cursor);
             if (posCierraCode2 === -1) continue;
 
             // Calcular el fin del bloque completo
-            const finBloque = start + nombre.length + posRequest + 9 + posAbreCode1 + 4 +
-                posCierraCode1 + 4 + posResponse + 10 + posAbreCode2 + 4 +
-                posCierraCode2 + 4;
+            const finBloque = posCierraCode2 + 4;
 
             // Eliminar el bloque
             texto = texto.substring(0, start) + texto.substring(finBloque);
@@ -713,7 +715,9 @@ const ChatbotRoamCleaners = {
 
                     // Convertir a formato Roam
                     const tablaRoam = this._convertirTablaARoam(tablaLineas);
-                    resultado.push(...tablaRoam);
+                    for (let k = 0; k < tablaRoam.length; k++) {
+                        resultado.push(tablaRoam[k]);
+                    }
 
                     i = j; // Saltar las líneas procesadas
                     continue;
@@ -848,8 +852,8 @@ const OPCIONES_LIMPIEZA = [
         label: 'Imagenes Base64',
         chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
         defaultActivo: true,
-        aplicarA: 'ambos',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarImagenesEmbedidas(texto); }
+        aplicarA: 'none', // Se ejecuta una sola vez en el preproceso global
+        cleaner: function (texto) { return texto; }
     },
     {
         id: 'eliminar_metadata',
@@ -1523,6 +1527,8 @@ const ChatbotRoamProcessing = {
         const bloques = [];
         const regex = /^## (Prompt|Response|User|Assistant|Gemini):/gm;
         let match;
+        let lastPos = 0;
+        let currentLine = 1;
 
         while ((match = regex.exec(contenido)) !== null) {
             const posInicio = match.index;
@@ -1532,8 +1538,12 @@ const ChatbotRoamProcessing = {
             if (tipo === 'User') tipo = 'Prompt';
             if (tipo === 'Assistant' || tipo === 'Gemini') tipo = 'Response';
 
-            // Calcular número de línea
-            const lineNumber = contenido.substring(0, posInicio).split('\n').length;
+            // Calcular número de línea incrementalmente
+            for (let k = lastPos; k < posInicio; k++) {
+                if (contenido.charCodeAt(k) === 10) currentLine++;
+            }
+            lastPos = posInicio;
+            const lineNumber = currentLine;
 
             // Encontrar el fin de este bloque (siguiente ## o fin de archivo)
             const restoContenido = contenido.substring(posInicio);
@@ -1605,11 +1615,13 @@ const ChatbotRoamProcessing = {
 
         // Procesar cada par de prompt/respuesta
         const resultado = [];
+        let lastYield = performance.now();
 
         for (let i = 0; i < conversacionRaw.length; i++) {
-            // Yield al main thread cada 20 items para mantener UI responsiva
-            if (i > 0 && i % 20 === 0) {
+            // Yield al main thread cada ~16ms para mantener UI fluida a 60fps
+            if (performance.now() - lastYield > 16) {
                 await new Promise(resolve => setTimeout(resolve, 0));
+                lastYield = performance.now();
             }
 
             const item = conversacionRaw[i];
@@ -1629,7 +1641,9 @@ const ChatbotRoamProcessing = {
 
             // --- FORMATEAR PARA ROAM (usa modulo Formatter) ---
             const lineasFormateadas = ChatbotRoamFormatter.formatExchange(promptLimpio, responseLimpio);
-            resultado.push(...lineasFormateadas);
+            for (let k = 0; k < lineasFormateadas.length; k++) {
+                resultado.push(lineasFormateadas[k]);
+            }
         }
 
         return {
@@ -1652,7 +1666,7 @@ const ChatbotRoamProcessing = {
         promptTemp = ChatbotRoamCleaners.neutralizarSintaxisRoam(promptTemp);
 
         promptTemp = ChatbotRoamCleaners.limpiarFormatoMarkdownBasico(promptTemp);
-        return ChatbotRoamCleaners.limpiarContenido(promptTemp).split('\n').join(' ').trim();
+        return promptTemp.split('\n').join(' ').trim();
     },
 
     /**
@@ -1740,8 +1754,7 @@ const ChatbotRoamStyles = {
             '                left: 0;',
             '                width: 100%;',
             '                height: 100%;',
-            '                background: rgba(7, 54, 66, 0.85);',
-            '                backdrop-filter: blur(6px);',
+            '                background: rgba(0, 0, 0, 0.6);',
             '                z-index: 10000;',
             '                display: flex;',
             '                align-items: center;',
@@ -1755,7 +1768,7 @@ const ChatbotRoamStyles = {
             '                max-width: 90vw;',
             '                max-height: 90vh;',
             '                overflow: hidden;',
-            '                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(88, 110, 117, 0.3);',
+            '                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(88, 110, 117, 0.3);',
             '                display: flex;',
             '                flex-direction: column;',
             '            }',
@@ -1804,7 +1817,7 @@ const ChatbotRoamStyles = {
             '                padding: 40px 20px;',
             '                text-align: center;',
             '                cursor: pointer;',
-            '                transition: all 0.2s ease;',
+            '                transition: border-color 0.2s ease, background-color 0.2s ease;',
             '                background: #073642;',
             '            }',
             '',
@@ -1905,7 +1918,7 @@ const ChatbotRoamStyles = {
             '                border-radius: 4px;',
             '                font-size: 12px;',
             '                cursor: pointer;',
-            '                transition: all 0.15s;',
+            '                transition: background-color 0.15s, color 0.15s, border-color 0.15s;',
             '            }',
             '',
             '            .chatbot-roam-preset-btn:hover {',
@@ -1921,6 +1934,7 @@ const ChatbotRoamStyles = {
             '                padding: 12px;',
             '                max-height: 250px;',
             '                overflow-y: auto;',
+            '                contain: content;',
             '                font-family: \'SF Mono\', \'Consolas\', \'Monaco\', monospace;',
             '                font-size: 12px;',
             '                color: #839496;',
@@ -1963,7 +1977,7 @@ const ChatbotRoamStyles = {
             '                border-radius: 4px;',
             '                font-size: 13px;',
             '                cursor: pointer;',
-            '                transition: all 0.15s;',
+            '                transition: background-color 0.15s, color 0.15s;',
             '            }',
             '',
             '            .chatbot-roam-btn-cancel {',
@@ -2050,7 +2064,7 @@ const ChatbotRoamStyles = {
             '                display: flex;',
             '                align-items: center;',
             '                justify-content: center;',
-            '                transition: all 0.15s;',
+            '                transition: background-color 0.15s, color 0.15s;',
             '            }',
             '',
             '            .chatbot-roam-search-btn:hover:not(:disabled) {',
@@ -2149,6 +2163,7 @@ const ChatbotRoamStyles = {
             '            .chatbot-roam-editor-list {',
             '                max-height: 400px;',
             '                overflow-y: auto;',
+            '                contain: layout style;',
             '            }',
             '',
             '            .chatbot-roam-editor-item {',
@@ -2172,7 +2187,7 @@ const ChatbotRoamStyles = {
             '            }',
             '',
             '            .chatbot-roam-editor-item.modified {',
-            '                box-shadow: 0 0 8px rgba(203, 75, 22, 0.4);',
+            '                border-left-color: #cb4b16;',
             '            }',
             '',
             '            .chatbot-roam-editor-item-header {',
@@ -2252,7 +2267,7 @@ const ChatbotRoamStyles = {
             '                display: flex;',
             '                align-items: center;',
             '                justify-content: center;',
-            '                transition: all 0.15s;',
+            '                transition: background-color 0.15s, color 0.15s, border-color 0.15s;',
             '            }',
             '',
             '            .chatbot-roam-editor-swap-btn:hover {',
@@ -2330,7 +2345,6 @@ const ChatbotRoamStyles = {
             '                opacity: 0.4;',
             '                cursor: not-allowed;',
             '            }',
-            '    }',
         ].join('\n');
     }
 };
@@ -2462,6 +2476,7 @@ const ChatbotRoamInserter = {
     ROAM_RATE_LIMIT: 1500,        // mutaciones máximas por ventana
     ROAM_RATE_WINDOW_MS: 60000,   // ventana del rate limit (60s)
     RATE_LIMIT_SAFETY: 0.80,      // usar 80% del límite para dejar margen
+    BASE_DELAY_MS: 250,           // delay base ágil para lotes ordinarios
 
     // Flag para detectar disponibilidad del batch API (se evalúa una sola vez)
     _batchApiChecked: false,
@@ -2471,13 +2486,19 @@ const ChatbotRoamInserter = {
     /**
      * Calcula el delay necesario entre lotes para respetar el rate limit
      * @param {number} batchSize - Tamaño del lote enviado
+     * @param {number} totalActions - Total de acciones a procesar
      * @returns {number} - Milisegundos de espera
      * @private
      */
-    _calculateDelay(batchSize) {
+    _calculateDelay(batchSize, totalActions = 0) {
+        // Para importaciones estándar (<1000 bloques), usar delay base de 250ms para inserción rápida
+        if (totalActions <= 1000) {
+            return this.BASE_DELAY_MS;
+        }
+        // Para importaciones muy masivas (>1000 bloques), espaciar para respetar el rate limit
         const effectiveLimit = this.ROAM_RATE_LIMIT * this.RATE_LIMIT_SAFETY;
         const batchesPerWindow = effectiveLimit / batchSize;
-        return Math.ceil(this.ROAM_RATE_WINDOW_MS / batchesPerWindow);
+        return Math.max(this.BASE_DELAY_MS, Math.ceil(this.ROAM_RATE_WINDOW_MS / batchesPerWindow));
     },
 
     /**
@@ -2647,8 +2668,8 @@ const ChatbotRoamInserter = {
      * Aplana un árbol de bloques en un array de acciones de creación
      * @private
      */
-    _flattenBlocks(parentUid, bloques, startOrder) {
-        let actions = [];
+    _flattenBlocks(parentUid, bloques, startOrder, actions) {
+        if (!actions) actions = [];
         for (let i = 0; i < bloques.length; i++) {
             const bloque = bloques[i];
             const blockUid = window.roamAlphaAPI.util.generateUID();
@@ -2689,8 +2710,7 @@ const ChatbotRoamInserter = {
             actions.push(action);
 
             if (bloque.children && bloque.children.length > 0) {
-                const childActions = this._flattenBlocks(blockUid, bloque.children, 0);
-                actions = actions.concat(childActions);
+                this._flattenBlocks(blockUid, bloque.children, 0, actions);
             }
         }
         return actions;
@@ -2702,8 +2722,8 @@ const ChatbotRoamInserter = {
      * Si ocurre un error o se cancela, automaticamente elimina los bloques ya insertados
      * 
      * @param {string} parentUid - UID del bloque padre
-     * @param {Array} bloques - Array de bloques a insertar
-     * @param {number} startOrder - Orden inicial para los bloques
+     * @param {Array} bloques - Array de bloques en formato de árbol
+     * @param {number} startOrder - Orden inicial para los bloques de nivel superior
      * @param {Object} cancelToken - Objeto { cancelled: boolean } compartido con UI
      * @param {Function} onProgress - Callback opcional (insertedCount, total) => void
      * @returns {Promise<Object>} - { success, insertedBlocks, insertedCount, error, rolledBackCount }
@@ -2714,7 +2734,7 @@ const ChatbotRoamInserter = {
         const allInsertedUids = [];
 
         // Calcular delay basado en rate limit
-        const batchDelay = this._calculateDelay(this.BATCH_SIZE);
+        const batchDelay = this._calculateDelay(this.BATCH_SIZE, actions.length);
         const totalBatches = Math.ceil(actions.length / this.BATCH_SIZE);
         const estimatedSeconds = Math.ceil((totalBatches * batchDelay) / 1000);
         console.log('ChatbotRoamInserter: ' + actions.length + ' bloques en ' + totalBatches + ' lotes de ' + this.BATCH_SIZE + ', delay ' + batchDelay + 'ms (~' + estimatedSeconds + 's estimados)');
@@ -2941,7 +2961,11 @@ const ChatbotRoamUI = {
 
         // Search functionality
         const searchInput = modal.querySelector('[data-element="search-input"]');
-        searchInput.addEventListener('input', (e) => this._performSearch(e.target.value));
+        let searchTimer = null;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => this._performSearch(e.target.value), 250);
+        });
 
         // Navigation buttons
         modal.querySelector('[data-action="prev-match"]').addEventListener('click', () => this._navigateMatch(-1));
@@ -3104,7 +3128,7 @@ const ChatbotRoamUI = {
 
             // Detectar tipo de chatbot y aplicar preset (usa todo el bloque de texto)
             const tipo = ChatbotRoamProcessing.detectarTipoChatbot(this._fileContent);
-            this._applyPreset(tipo);
+            this._applyPreset(tipo, true);
 
             // Restaurar intencion de revisar si estaba activa
             if (intencionRevisar) {
@@ -3217,19 +3241,20 @@ const ChatbotRoamUI = {
         const dropzone = this._modalContainer.querySelector('[data-action="dropzone"]');
         dropzone.parentNode.insertBefore(panel, dropzone.nextSibling);
 
-        // Event listeners
-        panel.querySelectorAll('[data-action="swap"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = parseInt(e.target.dataset.idx);
+        // Event listeners con delegación
+        panel.addEventListener('click', (e) => {
+            const swapBtn = e.target.closest('[data-action="swap"]');
+            if (swapBtn) {
+                const idx = parseInt(swapBtn.dataset.idx);
                 this._intercambiarClasificacion(idx);
-            });
-        });
-
-        panel.querySelectorAll('[data-action="chain"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = parseInt(e.target.dataset.idx);
+                return;
+            }
+            const chainBtn = e.target.closest('[data-action="chain"]');
+            if (chainBtn) {
+                const idx = parseInt(chainBtn.dataset.idx);
                 this._invertirDesdeAqui(idx);
-            });
+                return;
+            }
         });
 
         panel.querySelector('[data-action="continue-editor"]').addEventListener('click', () => {
@@ -3250,7 +3275,7 @@ const ChatbotRoamUI = {
     /**
      * Intercambia la clasificación de un bloque (Prompt ↔ Response)
      */
-    _intercambiarClasificacion(idx) {
+    _intercambiarClasificacion(idx, skipDom = false) {
         if (idx < 0 || idx >= this._todosLosBloques.length) return;
 
         const bloque = this._todosLosBloques[idx];
@@ -3280,19 +3305,21 @@ const ChatbotRoamUI = {
             this._bloquesModificados.add(idx);
         }
 
-        // Actualizar UI del item
-        this._actualizarItemEditor(idx);
+        if (!skipDom) {
+            // Actualizar UI del item
+            this._actualizarItemEditor(idx);
 
-        // Actualizar contador
-        const countSpan = this._modalContainer.querySelector('[data-element="modified-count"]');
-        if (countSpan) {
-            countSpan.textContent = 'Modificados: ' + this._bloquesModificados.size;
-        }
+            // Actualizar contador
+            const countSpan = this._modalContainer.querySelector('[data-element="modified-count"]');
+            if (countSpan) {
+                countSpan.textContent = 'Modificados: ' + this._bloquesModificados.size;
+            }
 
-        // Habilitar botón restaurar si hay modificaciones
-        const restoreBtn = this._modalContainer.querySelector('[data-action="restore-editor"]');
-        if (restoreBtn) {
-            restoreBtn.disabled = this._bloquesModificados.size === 0;
+            // Habilitar botón restaurar si hay modificaciones
+            const restoreBtn = this._modalContainer.querySelector('[data-action="restore-editor"]');
+            if (restoreBtn) {
+                restoreBtn.disabled = this._bloquesModificados.size === 0;
+            }
         }
     },
 
@@ -3308,17 +3335,10 @@ const ChatbotRoamUI = {
         const tipoIcon = bloque.tipo === 'Prompt' ? '🔵' : '🟢';
 
         // Actualizar clases
-        item.classList.remove('prompt', 'response');
-        item.classList.add(tipoClass);
+        item.className = 'chatbot-roam-editor-item ' + tipoClass +
+            (this._bloquesModificados.has(idx) ? ' modified' : '');
 
-        // Marcar como modificado visualmente
-        if (this._bloquesModificados.has(idx)) {
-            item.classList.add('modified');
-        } else {
-            item.classList.remove('modified');
-        }
-
-        // Actualizar icono y texto
+        // Actualizar texto e icono del tipo
         item.querySelector('.chatbot-roam-editor-icon').textContent = tipoIcon;
         item.querySelector('.chatbot-roam-editor-tipo').textContent = bloque.tipo.toUpperCase();
     },
@@ -3346,16 +3366,31 @@ const ChatbotRoamUI = {
             return;
         }
 
-        // Procesar en orden DESCENDENTE para no corromper posiciones
+        // Procesar en orden DESCENDENTE para no corromper posiciones (saltando actualización DOM)
         for (let i = this._todosLosBloques.length - 1; i >= idx; i--) {
-            this._intercambiarClasificacion(i);
+            this._intercambiarClasificacion(i, true);
+        }
+
+        // Actualizar UI en batch
+        for (let i = idx; i < this._todosLosBloques.length; i++) {
+            this._actualizarItemEditor(i);
+        }
+
+        const countSpan = this._modalContainer.querySelector('[data-element="modified-count"]');
+        if (countSpan) {
+            countSpan.textContent = 'Modificados: ' + this._bloquesModificados.size;
+        }
+
+        const restoreBtn = this._modalContainer.querySelector('[data-action="restore-editor"]');
+        if (restoreBtn) {
+            restoreBtn.disabled = this._bloquesModificados.size === 0;
         }
     },
 
     // ========================================================================
     // OPTIONS MANAGEMENT
     // ========================================================================
-    _applyPreset(preset) {
+    _applyPreset(preset, skipProcess = false) {
         if (preset === 'limpiar') {
             // Generar objeto con todas las opciones en false
             this._currentOpciones = {};
@@ -3377,7 +3412,7 @@ const ChatbotRoamUI = {
             checkbox.checked = this._currentOpciones[option] || false;
         });
 
-        if (this._fileContent) {
+        if (!skipProcess && this._fileContent) {
             this._processAndPreview();
         }
     },
@@ -3402,7 +3437,8 @@ const ChatbotRoamUI = {
                 this._modalContainer.querySelector('.chatbot-roam-editor-panel').remove();
             }
 
-            this._processAndPreview();
+            clearTimeout(this._updateTimer);
+            this._updateTimer = setTimeout(() => this._processAndPreview(), 300);
         }
     },
 
@@ -3421,8 +3457,8 @@ const ChatbotRoamUI = {
         this._toggleInputs(false);
 
         try {
-            // Dar tiempo al UI para renderizar el mensaje de carga
-            await new Promise(resolve => setTimeout(resolve, 50));
+            // Dar tiempo al browser para renderizar el mensaje de carga
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
             const { resultado, numIntercambios } = await ChatbotRoamProcessing.procesarConOpcionesIndividuales(
                 this._fileContent,
@@ -3525,6 +3561,13 @@ const ChatbotRoamUI = {
     _navigateMatch(direction) {
         if (this._searchMatches.length === 0) return;
 
+        // Quitar highlight del match actual
+        const prevMark = this._modalContainer.querySelector('#current-match');
+        if (prevMark) {
+            prevMark.classList.remove('current');
+            prevMark.removeAttribute('id');
+        }
+
         this._currentMatchIndex += direction;
         if (this._currentMatchIndex < 0) {
             this._currentMatchIndex = this._searchMatches.length - 1;
@@ -3532,7 +3575,14 @@ const ChatbotRoamUI = {
             this._currentMatchIndex = 0;
         }
 
-        this._renderPreviewWithHighlights();
+        // Poner highlight en el nuevo match sin reconstruir todo el innerHTML
+        const marks = this._modalContainer.querySelectorAll('.chatbot-roam-preview mark');
+        if (marks[this._currentMatchIndex]) {
+            marks[this._currentMatchIndex].classList.add('current');
+            marks[this._currentMatchIndex].id = 'current-match';
+        }
+
+        this._updateSearchButtons();
         this._scrollToCurrentMatch();
     },
 
@@ -3600,7 +3650,7 @@ const ChatbotRoamUI = {
     _scrollToCurrentMatch() {
         const currentMark = this._modalContainer.querySelector('#current-match');
         if (currentMark) {
-            currentMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            currentMark.scrollIntoView({ behavior: 'auto', block: 'center' });
         }
     },
 
@@ -3658,10 +3708,17 @@ const ChatbotRoamUI = {
         cutIndicator.textContent = '[OK] Cortado';
 
         // Contar intercambios restantes
-        const lines = this._processedContent.split('\n');
         let numIntercambios = 0;
-        for (const line of lines) {
-            if (line.startsWith('* ')) numIntercambios++;
+        let searchPos = 0;
+        while (true) {
+            const lineStart = searchPos === 0 ? 0 : this._processedContent.indexOf('\n', searchPos - 1) + 1;
+            if (lineStart === 0 && searchPos > 0) break;
+            if (this._processedContent.charCodeAt(lineStart) === 42 && this._processedContent.charCodeAt(lineStart + 1) === 32) {
+                numIntercambios++;
+            }
+            const nextNewline = this._processedContent.indexOf('\n', lineStart);
+            if (nextNewline === -1) break;
+            searchPos = nextNewline + 1;
         }
 
         this._updatePreview(this._processedContent, numIntercambios);
@@ -3785,8 +3842,22 @@ const ChatbotRoamUI = {
             this._modalContainer = null;
             this._fileContent = null;
             this._processedContent = null;
+            this._originalProcessedContent = null;
+            this._originalFileContent = null;
+            this._todosLosBloques = null;
+            this._bloquesModificados = null;
+            this._searchMatches = [];
+            this._currentMatchIndex = -1;
             this._savedBlockUid = null;
         }
+
+        // Limpiar estilos inyectados
+        const styleEl = document.getElementById('chatbot-roam-styles');
+        if (styleEl) styleEl.remove();
+
+        // Limpiar timers pendientes
+        clearTimeout(this._updateTimer);
+
         // Restaurar foco al bloque original
         if (savedUid) {
             setTimeout(function () {
@@ -3804,7 +3875,7 @@ const ChatbotRoamUI = {
 // Main entry point - registers commands with Roam
 
 const ChatbotRoamPlugin = {
-    VERSION: "1.5.3",
+    VERSION: "1.5.4",
 
     // Lista de comandos registrados (para cleanup en recargas)
     _registeredCommands: [
@@ -3833,7 +3904,7 @@ const ChatbotRoamPlugin = {
             "default-hotkey": "ctrl-shift-i"
         });
 
-        console.log('Chatbot Roam Plugin v1.5.3 loaded');
+        console.log('Chatbot Roam Plugin v1.5.4 loaded');
         console.log('   Usa Ctrl+Shift+I o busca "Importar Conversacion" en el command palette.');
     }
 };

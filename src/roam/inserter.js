@@ -13,6 +13,7 @@ const ChatbotRoamInserter = {
     ROAM_RATE_LIMIT: 1500,        // mutaciones máximas por ventana
     ROAM_RATE_WINDOW_MS: 60000,   // ventana del rate limit (60s)
     RATE_LIMIT_SAFETY: 0.80,      // usar 80% del límite para dejar margen
+    BASE_DELAY_MS: 250,           // delay base ágil para lotes ordinarios
 
     // Flag para detectar disponibilidad del batch API (se evalúa una sola vez)
     _batchApiChecked: false,
@@ -22,13 +23,19 @@ const ChatbotRoamInserter = {
     /**
      * Calcula el delay necesario entre lotes para respetar el rate limit
      * @param {number} batchSize - Tamaño del lote enviado
+     * @param {number} totalActions - Total de acciones a procesar
      * @returns {number} - Milisegundos de espera
      * @private
      */
-    _calculateDelay(batchSize) {
+    _calculateDelay(batchSize, totalActions = 0) {
+        // Para importaciones estándar (<1000 bloques), usar delay base de 250ms para inserción rápida
+        if (totalActions <= 1000) {
+            return this.BASE_DELAY_MS;
+        }
+        // Para importaciones muy masivas (>1000 bloques), espaciar para respetar el rate limit
         const effectiveLimit = this.ROAM_RATE_LIMIT * this.RATE_LIMIT_SAFETY;
         const batchesPerWindow = effectiveLimit / batchSize;
-        return Math.ceil(this.ROAM_RATE_WINDOW_MS / batchesPerWindow);
+        return Math.max(this.BASE_DELAY_MS, Math.ceil(this.ROAM_RATE_WINDOW_MS / batchesPerWindow));
     },
 
     /**
@@ -198,8 +205,8 @@ const ChatbotRoamInserter = {
      * Aplana un árbol de bloques en un array de acciones de creación
      * @private
      */
-    _flattenBlocks(parentUid, bloques, startOrder) {
-        let actions = [];
+    _flattenBlocks(parentUid, bloques, startOrder, actions) {
+        if (!actions) actions = [];
         for (let i = 0; i < bloques.length; i++) {
             const bloque = bloques[i];
             const blockUid = window.roamAlphaAPI.util.generateUID();
@@ -240,8 +247,7 @@ const ChatbotRoamInserter = {
             actions.push(action);
 
             if (bloque.children && bloque.children.length > 0) {
-                const childActions = this._flattenBlocks(blockUid, bloque.children, 0);
-                actions = actions.concat(childActions);
+                this._flattenBlocks(blockUid, bloque.children, 0, actions);
             }
         }
         return actions;
@@ -253,8 +259,8 @@ const ChatbotRoamInserter = {
      * Si ocurre un error o se cancela, automaticamente elimina los bloques ya insertados
      * 
      * @param {string} parentUid - UID del bloque padre
-     * @param {Array} bloques - Array de bloques a insertar
-     * @param {number} startOrder - Orden inicial para los bloques
+     * @param {Array} bloques - Array de bloques en formato de árbol
+     * @param {number} startOrder - Orden inicial para los bloques de nivel superior
      * @param {Object} cancelToken - Objeto { cancelled: boolean } compartido con UI
      * @param {Function} onProgress - Callback opcional (insertedCount, total) => void
      * @returns {Promise<Object>} - { success, insertedBlocks, insertedCount, error, rolledBackCount }
@@ -265,7 +271,7 @@ const ChatbotRoamInserter = {
         const allInsertedUids = [];
 
         // Calcular delay basado en rate limit
-        const batchDelay = this._calculateDelay(this.BATCH_SIZE);
+        const batchDelay = this._calculateDelay(this.BATCH_SIZE, actions.length);
         const totalBatches = Math.ceil(actions.length / this.BATCH_SIZE);
         const estimatedSeconds = Math.ceil((totalBatches * batchDelay) / 1000);
         console.log('ChatbotRoamInserter: ' + actions.length + ' bloques en ' + totalBatches + ' lotes de ' + this.BATCH_SIZE + ', delay ' + batchDelay + 'ms (~' + estimatedSeconds + 's estimados)');
