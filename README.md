@@ -4,6 +4,7 @@ Plugin para Roam Research que permite importar conversaciones exportadas de chat
 
 ## ✨ Características
 
+- 🎯 **Jerarquía Precisa en Negritas (v1.5.5)** - Resuelve la indentación progresiva y anidamiento involuntario en líneas de títulos en negrita (`**título**`), manteniéndolas en el mismo nivel jerárquico junto a sus listas hijas.
 - ⚡ **Rendimiento Ultra Liviano (v1.5.4)** - Eliminación del `backdrop-filter: blur()` y fondo translúcido pesado, aceleración de inserción hasta 10x (delay base de 250ms), conteo lineal $O(N)$ de bloques, búsqueda con debounce y navegación sin rebuilds de DOM.
 - 📊 **Tablas Nativas de Roam (v1.5.3)** - Conversión e inserción jerárquica precisa de tablas Markdown en contenedores `{{[[table]]}}`, resolviendo el anidamiento de columnas y filas.
 - 🛡️ **Inserción Robusta Anti-Orphans (v1.5.3)** - Registro incremental de UIDs en tiempo real para garantizar rollback íntegro ante fallas intermedias y detección insensible a mayúsculas/minúsculas de rate limits.

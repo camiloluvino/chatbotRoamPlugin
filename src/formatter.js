@@ -129,6 +129,11 @@ const ChatbotRoamFormatter = {
             }
             else if (esNegritaCompleta) {
                 // Linea completamente en negrita tratada como encabezado
+                // Desapilar negritas previas o encabezados de igual/mayor nivel para mantener nivel entre pares
+                while (headingStack.length > 0 && headingStack[headingStack.length - 1].hLevel >= 99) {
+                    headingStack.pop();
+                }
+
                 var indent = headingStack.length > 0
                     ? headingStack[headingStack.length - 1].indentSpaces + 4
                     : 4;

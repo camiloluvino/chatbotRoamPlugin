@@ -1,10 +1,11 @@
 # Status - Chatbot Roam Plugin
  
  ## Versión Actual
-- **v1.5.4** | Build: 2026-09-23
+- **v1.5.5** | Build: 2026-09-23
 
 ### Resumen de Estado
 - **Plugin:** Funcional, estable, de alto rendimiento y totalmente compatible con `roam/js`.
+- **Jerarquía Plana para Encabezados en Negrita (v1.5.5):** Corrección de indentación progresiva/anidamiento no deseado en bloques en negrita (`**título**`). Se añadió el desapilado automático de encabezados en el `headingStack` para nivel $\ge 99$, garantizando que los encabezados en negrita hermanos permanezcan en el mismo nivel y las listas subsiguientes se aniden adecuadamente bajo su encabezado directo.
 - **Rendimiento Ultra Liviano (v1.5.4):** Eliminación total del `backdrop-filter: blur(6px)` y del fondo azul translúcido pesado en el modal overlay, aliviando la composición GPU y cancelando el reflow/repaint continuo del DOM de Roam.
 - **Inserción Acelerada Adaptativa (v1.5.4):** Delay base de 250ms por lote para importaciones de hasta 1,000 bloques (~10x más rápido), protegiendo automáticamente la cuota de mutación de Roam solo en importaciones masivas.
 - **Conteo Lineal O(N) y Algoritmos Seguros (v1.5.4):** Escaneo acumulativo para conteo de líneas en `extraerTodosLosBloques`, loops seguros reemplazando `push(...spread)` (eliminando riesgo de `RangeError` por stack overflow) y rendimiento fluido en bucles mediante yielding temporal (~16ms).
@@ -49,6 +50,8 @@
 - Inserción jerárquica en Roam con preservación de bloques de código y tablas Markdown
 
 ## 📋 Cambios Recientes
+- **v1.5.5 (2026-09-23):**
+  - **Corrección de Jerarquía en Encabezados en Negrita:** Se solucionó la indentación progresiva y el anidamiento en cascada de bloques que contienen líneas en negrita completa (`**título**`). Se añadió el bucle `while (headingStack.length > 0 && headingStack[...].hLevel >= 99) headingStack.pop()` en `formatter.js` antes de registrar un nuevo encabezado en negrita, garantizando que los bloques de negrita consecutivos mantengan el mismo nivel de indentación y sus ítems de lista no se aniden indefinidamente.
 - **v1.5.4 (2026-09-23):**
   - **Eliminación de Backdrop Blur y Fondo Pesado:** Eliminado `backdrop-filter: blur(6px)` y sustituido el fondo Solarized azul translúcido (`rgba(7, 54, 66, 0.85)`) por un overlay oscuro simple (`rgba(0, 0, 0, 0.6)`), reduciendo drásticamente la carga de la GPU.
   - **Optimización de Inserción (Pacing Adaptativo):** Delay entre lotes de mutación reducido a 250ms para chats de hasta 1,000 bloques (~10x más rápido). Cálculo adaptativo para importaciones masivas preservando el límite oficial de 1500 mutaciones/60s.
