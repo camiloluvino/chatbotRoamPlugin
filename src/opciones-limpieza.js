@@ -25,7 +25,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'eliminar_imagenes',
         label: 'Imagenes Base64',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm', 'generico'],
         defaultActivo: true,
         aplicarA: 'none', // Se ejecuta una sola vez en el preproceso global
         cleaner: function (texto) { return texto; }
@@ -41,7 +41,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'neutralizar_sintaxis',
         label: 'Neutralizar sintaxis Roam (::, [[ ]]) en la IA',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm', 'generico'],
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.neutralizarSintaxisRoam(texto); }
@@ -242,7 +242,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'convertir_tablas_roam',
         label: 'Convertir tablas a Roam',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm', 'generico'],
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.convertirTablasMarkdownARoam(texto); }

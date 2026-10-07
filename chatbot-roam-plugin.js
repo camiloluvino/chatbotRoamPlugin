@@ -1,7 +1,7 @@
-// CHATBOT ROAM PLUGIN v1.5.5
+// CHATBOT ROAM PLUGIN v1.5.6
 // Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-09-23 23:14:22
+// Generated: 2026-10-07 21:59:28
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -22,7 +22,7 @@ const NOTEBOOKLM_ASSISTANT = String.fromCharCode(0x52A9, 0x624B);
 
 const ChatbotRoamPatterns = {
     // Version info
-    VERSION: "1.5.5",
+    VERSION: "1.5.6",
 
     // IMAGENES BASE64
     IMAGEN_COMPLETA: /!\[[^\]]*\]\(data:image\/[^)]*\)/g,
@@ -623,8 +623,10 @@ const ChatbotRoamCleaners = {
      * Formato: ---\nexported: ...\nsource: NotebookLM\n---\n# Título\nExported at: ...\n---
      */
     eliminarHeaderNotebookLM(texto) {
-        // Eliminar bloque YAML (---...---)
-        texto = texto.replace(/^---[\s\S]*?---\n*/m, '');
+        // Eliminar bloques YAML (---...---) compuestos solo por lineas "clave: valor" y que
+        // incluyan la clave exported: o source: del exportador. Se exige esa forma para no
+        // borrar contenido entre dos separadores --- de una respuesta (ej: "---\nNota: algo\n---").
+        texto = texto.replace(/^---[ \t]*\r?\n(?=(?:[\w-]+:[^\n]*\r?\n)*?(?:exported|source):)(?:[\w-]+:[^\n]*\r?\n)+---[ \t]*(?:\r?\n)*/gm, '');
         // Eliminar título # y línea de exportación (chino, inglés, español, etc.)
         texto = texto.replace(/^# [^\n]+\n+(?:导出时间|Exported at|Exportado el|Exported on)[^\n]*\n*/gmi, '');
         // Limpiar separadores --- sueltos
@@ -636,8 +638,11 @@ const ChatbotRoamCleaners = {
      * Elimina timestamps de sección como "## 🕒 Today • 3:06 PM" o "## 📅 Monday, August 31"
      */
     eliminarTimestampNotebookLM(texto) {
-        // Eliminar líneas de timestamp / fecha de sección de NotebookLM
-        return texto.replace(/^##\s+[^#\n]*(?:Today|Yesterday|Hoy|Ayer|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Lunes|Martes|Mi[eé]rcoles|Jueves|Viernes|S[aá]bado|Domingo|January|February|March|April|May|June|July|August|September|October|November|December|Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre|\d{1,2}\/\d{1,2}|\d{1,2}:\d{2}|AM|PM|a\.m\.|p\.m\.)[^\n]*\n*/gmi, '');
+        // Eliminar líneas de timestamp / fecha de sección de NotebookLM.
+        // Se exige el icono inicial (🕒, 📅 o un caracter dañado) seguido de inmediato por una
+        // palabra de fecha completa, para no borrar headings legítimos de las respuestas
+        // (ej: "## Programación" contiene "am" y antes se eliminaba).
+        return texto.replace(/^##[ \t]+[^\w\s#]+[ \t]+(?:Today|Yesterday|Hoy|Ayer|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Lunes|Martes|Mi[eé]rcoles|Jueves|Viernes|S[aá]bado|Domingo|January|February|March|April|May|June|July|August|September|October|November|December|Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre|\d{1,2}[\/.:-]\d{1,2})\b[^\n]*(?:\r?\n)*/gmi, '');
     },
 
     /**
@@ -850,7 +855,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'eliminar_imagenes',
         label: 'Imagenes Base64',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm', 'generico'],
         defaultActivo: true,
         aplicarA: 'none', // Se ejecuta una sola vez en el preproceso global
         cleaner: function (texto) { return texto; }
@@ -866,7 +871,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'neutralizar_sintaxis',
         label: 'Neutralizar sintaxis Roam (::, [[ ]]) en la IA',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm', 'generico'],
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.neutralizarSintaxisRoam(texto); }
@@ -1067,7 +1072,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'convertir_tablas_roam',
         label: 'Convertir tablas a Roam',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
+        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm', 'generico'],
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.convertirTablasMarkdownARoam(texto); }
@@ -1598,10 +1603,9 @@ const ChatbotRoamProcessing = {
      * @returns {Promise<Object>} - { resultado: string, numIntercambios: number }
      */
     async procesarConOpcionesIndividuales(contenido, opciones) {
-        // Eliminar header Antigravity ANTES de procesar
-        if (opciones.eliminar_header_antigravity) {
-            contenido = ChatbotRoamCleaners.eliminarHeaderAntigravity(contenido);
-        }
+        // Aplicar las opciones de preproceso (headers Antigravity/NotebookLM, timestamps de seccion)
+        // sobre el contenido completo ANTES de extraer la conversacion
+        contenido = ChatbotRoamOpciones.aplicarLimpieza(contenido, opciones, 'preproceso');
 
         // Eliminar imágenes ANTES de extraer (si está marcado)
         if (opciones.eliminar_imagenes) {
@@ -1714,6 +1718,18 @@ const ChatbotRoamProcessing = {
         const esClaudeV2 = contenido.includes('## User:') && contenido.includes('## Assistant:');
         if (esClaudeV2) {
             return 'claude';
+        }
+
+        // Detectar ChatGPT por la metadata del exportador: enlace a la conversacion en el
+        // encabezado (antes del primer mensaje) o firma "ChatGPT Exporter" en el pie.
+        // No se busca en el cuerpo para no confundir una conversacion que solo menciona chatgpt.com.
+        // Va antes que Claude clasico porque los bloques "Thought process" de ChatGPT
+        // tambien usan BT4 + plaintext y se confundirian con Claude.
+        const primerMensaje = contenido.search(/^## (?:Prompt|User|Response|Assistant):/m);
+        const encabezado = contenido.substring(0, primerMensaje === -1 ? 1500 : primerMensaje);
+        const pie = contenido.substring(contenido.length - 500);
+        if (/chatgpt\.com|chat\.openai\.com|ChatGPT Exporter/i.test(encabezado) || /ChatGPT Exporter/i.test(pie)) {
+            return 'chatgpt';
         }
 
         const tieneToolCalls = ChatbotRoamPatterns.DETECT_CLAUDE_TOOLS.test(contenido);
@@ -3880,7 +3896,7 @@ const ChatbotRoamUI = {
 // Main entry point - registers commands with Roam
 
 const ChatbotRoamPlugin = {
-    VERSION: "1.5.5",
+    VERSION: "1.5.6",
 
     // Lista de comandos registrados (para cleanup en recargas)
     _registeredCommands: [
@@ -3909,7 +3925,7 @@ const ChatbotRoamPlugin = {
             "default-hotkey": "ctrl-shift-i"
         });
 
-        console.log('Chatbot Roam Plugin v1.5.5 loaded');
+        console.log('Chatbot Roam Plugin v1.5.6 loaded');
         console.log('   Usa Ctrl+Shift+I o busca "Importar Conversacion" en el command palette.');
     }
 };

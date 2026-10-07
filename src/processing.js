@@ -226,10 +226,9 @@ const ChatbotRoamProcessing = {
      * @returns {Promise<Object>} - { resultado: string, numIntercambios: number }
      */
     async procesarConOpcionesIndividuales(contenido, opciones) {
-        // Eliminar header Antigravity ANTES de procesar
-        if (opciones.eliminar_header_antigravity) {
-            contenido = ChatbotRoamCleaners.eliminarHeaderAntigravity(contenido);
-        }
+        // Aplicar las opciones de preproceso (headers Antigravity/NotebookLM, timestamps de seccion)
+        // sobre el contenido completo ANTES de extraer la conversacion
+        contenido = ChatbotRoamOpciones.aplicarLimpieza(contenido, opciones, 'preproceso');
 
         // Eliminar imágenes ANTES de extraer (si está marcado)
         if (opciones.eliminar_imagenes) {
@@ -342,6 +341,18 @@ const ChatbotRoamProcessing = {
         const esClaudeV2 = contenido.includes('## User:') && contenido.includes('## Assistant:');
         if (esClaudeV2) {
             return 'claude';
+        }
+
+        // Detectar ChatGPT por la metadata del exportador: enlace a la conversacion en el
+        // encabezado (antes del primer mensaje) o firma "ChatGPT Exporter" en el pie.
+        // No se busca en el cuerpo para no confundir una conversacion que solo menciona chatgpt.com.
+        // Va antes que Claude clasico porque los bloques "Thought process" de ChatGPT
+        // tambien usan BT4 + plaintext y se confundirian con Claude.
+        const primerMensaje = contenido.search(/^## (?:Prompt|User|Response|Assistant):/m);
+        const encabezado = contenido.substring(0, primerMensaje === -1 ? 1500 : primerMensaje);
+        const pie = contenido.substring(contenido.length - 500);
+        if (/chatgpt\.com|chat\.openai\.com|ChatGPT Exporter/i.test(encabezado) || /ChatGPT Exporter/i.test(pie)) {
+            return 'chatgpt';
         }
 
         const tieneToolCalls = ChatbotRoamPatterns.DETECT_CLAUDE_TOOLS.test(contenido);

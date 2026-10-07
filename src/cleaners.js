@@ -505,8 +505,10 @@ const ChatbotRoamCleaners = {
      * Formato: ---\nexported: ...\nsource: NotebookLM\n---\n# Título\nExported at: ...\n---
      */
     eliminarHeaderNotebookLM(texto) {
-        // Eliminar bloque YAML (---...---)
-        texto = texto.replace(/^---[\s\S]*?---\n*/m, '');
+        // Eliminar bloques YAML (---...---) compuestos solo por lineas "clave: valor" y que
+        // incluyan la clave exported: o source: del exportador. Se exige esa forma para no
+        // borrar contenido entre dos separadores --- de una respuesta (ej: "---\nNota: algo\n---").
+        texto = texto.replace(/^---[ \t]*\r?\n(?=(?:[\w-]+:[^\n]*\r?\n)*?(?:exported|source):)(?:[\w-]+:[^\n]*\r?\n)+---[ \t]*(?:\r?\n)*/gm, '');
         // Eliminar título # y línea de exportación (chino, inglés, español, etc.)
         texto = texto.replace(/^# [^\n]+\n+(?:导出时间|Exported at|Exportado el|Exported on)[^\n]*\n*/gmi, '');
         // Limpiar separadores --- sueltos
@@ -518,8 +520,11 @@ const ChatbotRoamCleaners = {
      * Elimina timestamps de sección como "## 🕒 Today • 3:06 PM" o "## 📅 Monday, August 31"
      */
     eliminarTimestampNotebookLM(texto) {
-        // Eliminar líneas de timestamp / fecha de sección de NotebookLM
-        return texto.replace(/^##\s+[^#\n]*(?:Today|Yesterday|Hoy|Ayer|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Lunes|Martes|Mi[eé]rcoles|Jueves|Viernes|S[aá]bado|Domingo|January|February|March|April|May|June|July|August|September|October|November|December|Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre|\d{1,2}\/\d{1,2}|\d{1,2}:\d{2}|AM|PM|a\.m\.|p\.m\.)[^\n]*\n*/gmi, '');
+        // Eliminar líneas de timestamp / fecha de sección de NotebookLM.
+        // Se exige el icono inicial (🕒, 📅 o un caracter dañado) seguido de inmediato por una
+        // palabra de fecha completa, para no borrar headings legítimos de las respuestas
+        // (ej: "## Programación" contiene "am" y antes se eliminaba).
+        return texto.replace(/^##[ \t]+[^\w\s#]+[ \t]+(?:Today|Yesterday|Hoy|Ayer|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Lunes|Martes|Mi[eé]rcoles|Jueves|Viernes|S[aá]bado|Domingo|January|February|March|April|May|June|July|August|September|October|November|December|Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre|\d{1,2}[\/.:-]\d{1,2})\b[^\n]*(?:\r?\n)*/gmi, '');
     },
 
     /**

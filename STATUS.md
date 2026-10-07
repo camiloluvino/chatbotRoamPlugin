@@ -1,9 +1,10 @@
 # Status - Chatbot Roam Plugin
  
  ## Versión Actual
-- **v1.5.5** | Build: 2026-09-23
+- **v1.5.6** | Build: 2026-10-07
 
 ### Resumen de Estado
+- **Preproceso y detección corregidos (v1.5.6):** Las opciones de preproceso (`aplicarA: 'preproceso'`) ahora se ejecutan realmente: el header YAML y las fechas de sección de NotebookLM (`## 📅 Monday...`, `## 🕒 Today • 3:06 PM`) se eliminan, en vez de quedar como encabezados dentro de la respuesta anterior. Ambas regex se acotaron para no borrar contenido legítimo (headings con "am"/"May", texto entre separadores `---`). ChatGPT se detecta por la metadata del exportador (enlace `chatgpt.com` en el encabezado o firma "ChatGPT Exporter"), y el preset `generico` activa por defecto imágenes Base64, neutralización de sintaxis Roam y tablas.
 - **Plugin:** Funcional, estable, de alto rendimiento y totalmente compatible con `roam/js`.
 - **Jerarquía Plana para Encabezados en Negrita (v1.5.5):** Corrección de indentación progresiva/anidamiento no deseado en bloques en negrita (`**título**`). Se añadió el desapilado automático de encabezados en el `headingStack` para nivel $\ge 99$, garantizando que los encabezados en negrita hermanos permanezcan en el mismo nivel y las listas subsiguientes se aniden adecuadamente bajo su encabezado directo.
 - **Rendimiento Ultra Liviano (v1.5.4):** Eliminación total del `backdrop-filter: blur(6px)` y del fondo azul translúcido pesado en el modal overlay, aliviando la composición GPU y cancelando el reflow/repaint continuo del DOM de Roam.
