@@ -43,8 +43,7 @@ tipo: notebooklm
     - ### 3. El Estilo, lo "Esco" (_-esque_) y lo Anómalo
       - El autor introduce conceptos estéticos para explicar cómo opera este devenir en la literatura.
       - **La firma afectiva:** Lo que se captura no es la biología del animal, sino su estilo de movimiento, su vitalidad. El texto habla de la cualidad _"-esque"_ (lo _-esco_), como la "cucarachidad" (_cockroachity_) de la cucaracha o la "ballenidad" de la ballena. Es el exceso performativo o el estilo singular que define a ese animal más allá de su especie.
-      - **El Anómalo (****
-      - The Anomal****):** Moby Dick es presentado como el ejemplo perfecto del "Anómalo". No es una ballena promedio que representa a su especie; es una excepción, una fuerza supernormal. Moby Dick es el "horizonte de ser-ballena" que retrocede, una envoltura de potencial puro.
+      - **El Anómalo (****The Anomal****):** Moby Dick es presentado como el ejemplo perfecto del "Anómalo". No es una ballena promedio que representa a su especie; es una excepción, una fuerza supernormal. Moby Dick es el "horizonte de ser-ballena" que retrocede, una envoltura de potencial puro.
       - **Participación contra natura:** Escribir "como una rata mueve la cola" no es una metáfora. Es una "participación no natural" o contra natura, que sigue las tendencias supernormales de la naturaleza misma llevándolas al límite absoluto.
     - ### 4. La Superioridad de la Escritura sobre la Actuación Física
       - El texto argumenta que el devenir-animal en la escritura es más intenso y "político" que el devenir físico.
@@ -108,8 +107,7 @@ tipo: notebooklm
       - El texto concluye que la política animal no debe limitarse a la denuncia, sino buscar la reinvención y la fuga.
       - **Más allá de la Denuncia:** Denunciar el zoológico es fácil y "demasiado humano". La denuncia a menudo cae en la misma trampa sentimental.
       - **Ecología Enactiva:** La propuesta es una "ecología enactiva" de prácticas. Se trata de encontrar, incluso bajo el espectáculo opresivo, las "microfisuras" por donde la vida puede escapar.
-      - **Porcupinidad (****
-      - Porcupinetude****):** La metáfora final invita a encontrar la "porcupinidad" debajo del espectáculo: lanzar las "púas" de la invención, abrir escotillas de escape analógicas y extrapolar tensores hacia lo desconocido para reinventar la importancia de la vida.
+      - **Porcupinidad (****Porcupinetude****):** La metáfora final invita a encontrar la "porcupinidad" debajo del espectáculo: lanzar las "púas" de la invención, abrir escotillas de escape analógicas y extrapolar tensores hacia lo desconocido para reinventar la importancia de la vida.
   - resume con detalle este texto
     - Este texto, titulado "Supplement 3: Six Theses on the Animal to Be Avoided" (Seis tesis sobre el animal que hay que evitar), presenta una serie de advertencias metodológicas y filosóficas para no caer en errores categóricos al pensar la relación entre lo humano, lo animal y la vida. El autor profundiza en la noción de un "continuo animal integral" y rechaza las divisiones binarias tradicionales.
     - A continuación, resumo detalladamente los puntos clave organizados según las tesis presentadas:
@@ -121,14 +119,12 @@ tipo: notebooklm
     - ### 2. Crítica a lo "Posthumano" y Defensa de lo "Más-que-humano"
       - El autor critica las profecías sobre el fin de lo humano o la era "posthumana".
       - **El peligro del Zombie y la IA:** Si trascender lo humano implica trascender lo animal, se llega a lo "post-vital". Separar la conciencia de la vida animal conduce a fantasías de inteligencia artificial desencarnada ("cerebros en cubetas") o a la figura del "zombie" (cuerpo sin conciencia).
-      - **Lo Más-que-humano (****
-      - More-than-human****):** En lugar de buscar un "post-", debemos reconocer que ya somos "más-que-humanos". Estamos mutuamente incluidos en un continuo animal que siempre está en proceso de autsuperación inmanente.
+      - **Lo Más-que-humano (****More-than-human****):** En lugar de buscar un "post-", debemos reconocer que ya somos "más-que-humanos". Estamos mutuamente incluidos en un continuo animal que siempre está en proceso de autsuperación inmanente.
       - **Inclusión mutua:** La naturaleza misma es paradójicamente artificial debido a su tendencia creativa. No hay que buscar una nueva tipología, sino entender dónde fallan las categorías y construir una lógica de "inclusión mutua diferencial".
     - ### 3. La Animalidad Interior y la "Actividad Desnuda"
       - El texto establece que lo "más-que-humano" no está afuera (en el medio ambiente), sino en la propia constitución del ser humano.
       - **Sujetos Larvarios:** El cuerpo humano es un cuerpo animal compuesto por procesos químicos y fisiológicos no conscientes (hormonas, sistema nervioso entérico, "memoria muscular"). Deleuze llama a estos eventos infraindividuales "sujetos larvarios".
-      - **Actividad Desnuda (****
-      - Bare Activity****):** Contraponiéndose al concepto de "vida desnuda" (_bare life_) de Agamben —que depende de la distinción entre _zoe_ y _bios_—, Massumi propone la "actividad desnuda". Esta concibe el adentro y el afuera como fases de un mismo proceso de inclusión mutua, donde lo transindividual se pliega en lo infraindividual.
+      - **Actividad Desnuda (****Bare Activity****):** Contraponiéndose al concepto de "vida desnuda" (_bare life_) de Agamben —que depende de la distinción entre _zoe_ y _bios_—, Massumi propone la "actividad desnuda". Esta concibe el adentro y el afuera como fases de un mismo proceso de inclusión mutua, donde lo transindividual se pliega en lo infraindividual.
       - **El Humano como Membrana:** El humano no es una entidad sólida, sino una membrana precaria en medio de movimientos que lo atraviesan y lo superan. "En el corazón de lo humano, no hay nada humano".
     - ### 4. Continuidad entre Materia, Vida y Abstracción
       - Se rechaza la idea de que la materia inorgánica sirva como línea divisoria.
@@ -139,8 +135,7 @@ tipo: notebooklm
       - La tesis final aborda la ontología de la acción y el sujeto.
       - **El Mapa Hace el Territorio:** "Es la marca la que hace el territorio". El acto expresivo crea el espacio-tiempo de su propia operación; las funciones no preexisten al acto.
       - **Subjetividad sin Sujeto:** No hay un sujeto preexistente detrás del acto creativo. El sujeto es un **"superyecto"** (_superject_) que siempre está por delante de sí mismo, emergiendo del movimiento de expresión.
-      - **Cuerpos-haciéndose (****
-      - Bodyings****):** El texto advierte contra la idea de "cognición encarnada" si esta implica un cuerpo pasivo esperando una mente. Si todo está vivo, es porque los gestos expresivos de la naturaleza están constantemente "haciendo cuerpo" (_going a-bodying_). La vida vive su propia abstracción como una especulación pragmática.
+      - **Cuerpos-haciéndose (****Bodyings****):** El texto advierte contra la idea de "cognición encarnada" si esta implica un cuerpo pasivo esperando una mente. Si todo está vivo, es porque los gestos expresivos de la naturaleza están constantemente "haciendo cuerpo" (_going a-bodying_). La vida vive su propia abstracción como una especulación pragmática.
       - En resumen, este suplemento consolida la visión de una **política animal** que no se trata de derechos o gestión de especies, sino de reconocer la **actividad creativa, transindividual y abstracta** que atraviesa toda la materia, uniendo lo humano, lo animal y lo inorgánico en un único movimiento de autsuperación lúdica.
   - resume con detalle este texto
     - Este texto corresponde a las **notas finales y discusiones bibliográficas** del libro _What Animals Teach Us about Politics_. Aunque es una sección de referencias, contiene argumentos filosóficos densos y polémicas teóricas cruciales que fundamentan la "política animal" propuesta por el autor. Massumi utiliza estas notas para defender su postura frente al neodarwinismo, la sociobiología, la ontología orientada a objetos (OOO) y la filosofía de Giorgio Agamben.

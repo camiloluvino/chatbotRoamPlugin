@@ -1,7 +1,7 @@
 // CHATBOT ROAM PLUGIN v1.5.5
 // Importador de conversaciones de chatbots (Claude, Gemini, NotebookLM) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-10-29 13:12:45
+// Generated: 2026-10-29 13:13:54
 
 
 // --- limpieza-comun.js ---
@@ -276,14 +276,22 @@ const ChatbotRoamFormatoClaude = {
     ],
 
     /**
-     * Elimina los bloques de pensamiento que se presentan en formato blockquote
-     * (líneas consecutivas que empiezan con '>'). Solo los elimina si el bloque contiene
-     * la firma de finalización de pensamiento '- **Done**'.
+     * Elimina los bloques de pensamiento, que se presentan como citas (líneas consecutivas
+     * que empiezan con '>'). Es pensamiento la cita con la que empieza la respuesta, aunque
+     * sea de una sola línea, y cualquier cita que contenga la firma '- **Done**'.
      */
     eliminarPensamiento(texto) {
         const lineas = texto.split('\n');
         const lineasLimpias = [];
         let bloqueActual = [];
+
+        // Cita inicial: el exportador pone ahí el resumen del razonamiento
+        let inicio = 0;
+        while (inicio < lineas.length && lineas[inicio].trim() === '') inicio++;
+        if (inicio < lineas.length && lineas[inicio].trim().startsWith('>')) {
+            while (inicio < lineas.length && lineas[inicio].trim().startsWith('>')) inicio++;
+            lineas.splice(0, inicio);
+        }
 
         for (const linea of lineas) {
             const lineaStripped = linea.trim();
@@ -536,6 +544,28 @@ const ChatbotRoamFormatoNotebookLM = {
     ],
 
     /**
+     * Limpieza que siempre se aplica al archivo completo, antes de separar los turnos
+     */
+    limpiezaArchivo(contenido) {
+        return this.eliminarFechasDeSesion(contenido);
+    },
+
+    /**
+     * Elimina los encabezados que separan las sesiones del chat, como
+     * "## 📅 Monday, August 31" o "## 🕒 Today • 3:06 PM". Solo considera fecha un
+     * encabezado "##" que empieza con un emoji de calendario o reloj, o con un día
+     * de la semana, "Today" u "Hoy"; nunca por palabras que aparezcan más adelante.
+     */
+    eliminarFechasDeSesion(contenido) {
+        const emoji = /^##\s+(?:\u{1F4C5}|\u{1F4C6}|\u{1F552}|\u{1F55B}|\u{1F550}|\u{23F0}|\uFFFD)/u;
+        const dia = /^##\s+(?:\S+\s+)?(?:Today|Yesterday|Hoy|Ayer|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Lunes|Martes|Mi[eé]rcoles|Jueves|Viernes|S[aá]bado|Domingo)\b/i;
+        return contenido.split('\n').filter(linea => {
+            const l = linea.trim();
+            return !(emoji.test(l) || dia.test(l));
+        }).join('\n');
+    },
+
+    /**
      * Limpieza que siempre se aplica a las respuestas, al final del proceso
      */
     limpiezaFinalRespuesta(texto) {
@@ -568,10 +598,28 @@ const ChatbotRoamFormatoNotebookLM = {
 
     /**
      * Separa el texto colisionado tras un cierre de negritas
-     * Asegura que el patrón **Texto**Descripción se convierta en **Texto**\nDescripción
+     * Asegura que el patrón **Texto**Descripción se convierta en **Texto**\nDescripción.
+     * Distingue apertura de cierre contando los ** de cada línea, para no romper
+     * negritas que se abren tras un paréntesis o comillas, como (**Texto**).
      */
     separarHeadersColisionados(texto) {
-        return texto.replace(/(\S)\*\*([A-ZÁÉÍÓÚÑ¿¡])/g, '$1**\n$2');
+        return texto.split('\n').map(linea => {
+            let salida = '';
+            let abierta = false;
+            let i = 0;
+            while (i < linea.length) {
+                if (linea.startsWith('**', i)) {
+                    salida += '**';
+                    i += 2;
+                    if (abierta && /[A-ZÁÉÍÓÚÑ¿¡]/.test(linea.charAt(i))) salida += '\n';
+                    abierta = !abierta;
+                    continue;
+                }
+                salida += linea.charAt(i);
+                i++;
+            }
+            return salida;
+        }).join('\n');
     },
 
     /**
@@ -1066,8 +1114,8 @@ const ChatbotRoamProcessing = {
                 j++;
             }
 
-            // Solo crear par si hay al menos una respuesta
-            if (responseParts.length > 0) {
+            // Un prompt sin respuesta se conserva solo (p. ej. mensajes que activan herramientas)
+            if (responseParts.length > 0 || promptBloque) {
                 pares.push({
                     prompt: promptBloque,
                     response: responseParts.join('\n\n')
@@ -1102,7 +1150,10 @@ const ChatbotRoamProcessing = {
             const opcionesArchivo = opciones || ChatbotRoamOpciones.getDefaults([formato]);
             formatos.push({ archivo: archivo.name, formato: formato });
 
-            const contenido = ChatbotRoamOpciones.aplicarLimpieza(archivo.content, opcionesArchivo, formato, 'archivo');
+            let contenido = ChatbotRoamOpciones.aplicarLimpieza(archivo.content, opcionesArchivo, formato, 'archivo');
+            if (formato.limpiezaArchivo) {
+                contenido = formato.limpiezaArchivo(contenido);
+            }
             const pares = this.extraerConversacionRaw(contenido, formato);
 
             lineas.push('* 📁 ' + archivo.name);

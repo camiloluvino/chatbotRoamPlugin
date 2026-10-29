@@ -81,8 +81,8 @@ const ChatbotRoamProcessing = {
                 j++;
             }
 
-            // Solo crear par si hay al menos una respuesta
-            if (responseParts.length > 0) {
+            // Un prompt sin respuesta se conserva solo (p. ej. mensajes que activan herramientas)
+            if (responseParts.length > 0 || promptBloque) {
                 pares.push({
                     prompt: promptBloque,
                     response: responseParts.join('\n\n')
@@ -117,7 +117,10 @@ const ChatbotRoamProcessing = {
             const opcionesArchivo = opciones || ChatbotRoamOpciones.getDefaults([formato]);
             formatos.push({ archivo: archivo.name, formato: formato });
 
-            const contenido = ChatbotRoamOpciones.aplicarLimpieza(archivo.content, opcionesArchivo, formato, 'archivo');
+            let contenido = ChatbotRoamOpciones.aplicarLimpieza(archivo.content, opcionesArchivo, formato, 'archivo');
+            if (formato.limpiezaArchivo) {
+                contenido = formato.limpiezaArchivo(contenido);
+            }
             const pares = this.extraerConversacionRaw(contenido, formato);
 
             lineas.push('* 📁 ' + archivo.name);

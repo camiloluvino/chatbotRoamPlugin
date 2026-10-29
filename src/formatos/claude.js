@@ -27,14 +27,22 @@ const ChatbotRoamFormatoClaude = {
     ],
 
     /**
-     * Elimina los bloques de pensamiento que se presentan en formato blockquote
-     * (líneas consecutivas que empiezan con '>'). Solo los elimina si el bloque contiene
-     * la firma de finalización de pensamiento '- **Done**'.
+     * Elimina los bloques de pensamiento, que se presentan como citas (líneas consecutivas
+     * que empiezan con '>'). Es pensamiento la cita con la que empieza la respuesta, aunque
+     * sea de una sola línea, y cualquier cita que contenga la firma '- **Done**'.
      */
     eliminarPensamiento(texto) {
         const lineas = texto.split('\n');
         const lineasLimpias = [];
         let bloqueActual = [];
+
+        // Cita inicial: el exportador pone ahí el resumen del razonamiento
+        let inicio = 0;
+        while (inicio < lineas.length && lineas[inicio].trim() === '') inicio++;
+        if (inicio < lineas.length && lineas[inicio].trim().startsWith('>')) {
+            while (inicio < lineas.length && lineas[inicio].trim().startsWith('>')) inicio++;
+            lineas.splice(0, inicio);
+        }
 
         for (const linea of lineas) {
             const lineaStripped = linea.trim();

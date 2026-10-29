@@ -1,5 +1,7 @@
 tipo: gemini
 - **📁 gemini.md**
+  - conectate a @Roam Research
+  - conectate a biblioteca notas y dime si entiendes  ((Pq4rSt5Uv)) ((Lm8nOp1Qr)) estas conversaciones
   - Okay, perfecto. Entonces, hazme un cronograma o una lista completa de todo lo que falta para la feria del libro.
     - A partir de lo registrado en las conversaciones de `bibliotecaNotas`, este es el panorama completo.
     - ### 1. Cronograma día a día (10 al 17 de mayo)
