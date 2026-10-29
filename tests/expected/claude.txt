@@ -1,0 +1,47 @@
+tipo: claude
+- **📁 claude.md**
+  - en huerto notas revisa estas conversaciones: ((Ab3dEf9Gh)) ((Xy7zWq2Rt))  dime brevemente si entiendes el contexto y carga la última versión del plan de siembra
+    - Sí, entiendo el contexto. Son dos sesiones sobre el huerto.
+    - Una precisión sobre lo que leí. El registro de la segunda llegó cortado.
+  - Ok, y en la conversación anterior yo había dejado algunas notas.
+    - Sí. Las actualizaciones que dejaste anotadas ahí son dos:
+    - 1. **Mover los tomates al bancal 3.** Tiene más horas de sol por la tarde.
+    - 2. **Agregar albahaca junto a los tomates.** Se trata de la asociación de cultivos.
+    - Hay también algo que dijiste de pasada. Busqué en `huerto/registroSiembras` y en [ [cuadernoDeCampo] ].
+  - No, todavía no busques por variedad.
+    - > Evaluando una estrategia antes de responder.
+    - Tu preocupación tiene sentido.
+    - **Bancal 1 y 2 (febrero)**. Concentran casi todo.
+    - **Bancal 3 (marzo)**. Solo hay menciones sueltas.
+    - **Las tres semillas sobrantes.** Desde la versión 4, la lista tiene 3 variedades más.
+    - **El riego.** La palabra "goteo" se sacó en la versión 2.
+  - okey mira hice un ejercicio  pero como hice varios cambios  "Bueno, voy a leer el plan en voz alta.  Primero van las hortalizas de hoja. Después las de fruto."  dime si entiendes esto
+    - Esta es la reconstrucción:
+    - {{[[table]]}}
+      - Versión
+        - Quién
+          - Qué cambió
+            - Variedades
+      - 1
+        - Claude (sesión del 20 feb)
+          - Plan base
+            - 12
+      - entre 1 y 2
+        - Tú, desde la página
+          - Ediciones guardadas el 22
+            - —
+      - 4
+        - Claude
+          - Sale la lechuga. **Rúcula, acelga y espinaca quedan fuera del calendario**
+            - 10
+    - Hay dos cosas que se desprenden de esto.
+  - okey tienes claro entonces qué hacer?
+    - > Confirmando si procede eliminar las variedades sobrantes.
+    - Sí. Es esto:
+    - 1. **Leer la versión publicada en ese momento**, el calendario y las notas.
+    - 2. **Quitar del plan las tres variedades fuera del calendario:** rúcula, acelga y espinaca.
+  - dame la consulta para contar bloques con atributo: :valor y [ [enlaces] ]
+    - > Preparando la consulta.
+    - Esta consulta cuenta los bloques:
+    - ```\n[:find (count ?b) :where [?b :block/string ?s] [(clojure.string/includes? ?s "tipo::")]]\n```
+    - Fíjate en que tipo: : va dentro del string, y que [ [enlaces] ] dentro del código no se tocan.

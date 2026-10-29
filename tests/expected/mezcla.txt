@@ -1,0 +1,5 @@
+tipo: claude
+- **📁 a-claude.md**
+  - pregunta a claude
+    - respuesta de claude
+- **📁 b-gemini.md**

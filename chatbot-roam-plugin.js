@@ -1,7 +1,8 @@
 // CHATBOT ROAM PLUGIN v1.5.5
-// Importador de conversaciones de chatbots (Claude, ChatGPT, Gemini) a Roam
+// Importador de conversaciones de chatbots (Claude, Gemini, NotebookLM) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-09-23 23:14:22
+// Generated: 2026-10-29 13:06:41
+
 
 // --- patterns.js ---
 // CHATBOT ROAM PLUGIN - PATTERNS
@@ -2355,7 +2356,7 @@ const ChatbotRoamStyles = {
 };
 
 
-// --- roam\parser.js ---
+// --- roam/parser.js ---
 // ============================================================================
 // CHATBOT ROAM PLUGIN - ROAM PARSER
 // Converts lines into hierarchical block structure for Roam
@@ -2465,7 +2466,7 @@ const ChatbotRoamParser = {
 };
 
 
-// --- roam\inserter.js ---
+// --- roam/inserter.js ---
 // ============================================================================
 // CHATBOT ROAM PLUGIN - ROAM INSERTER
 // Handles block insertion into Roam using the Roam Alpha API

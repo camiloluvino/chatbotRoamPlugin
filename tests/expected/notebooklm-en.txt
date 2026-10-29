@@ -1,0 +1,27 @@
+tipo: notebooklm
+- **📁 notebooklm-en.md**
+  - resume el argumento central sobre la amistad
+    - El texto sostiene que la amistad moderna se define por la elección y no por la obligación.
+    - ## Amistad y sobrecarga
+      - Los autores muestran tres rasgos:
+      - 1. **La elección:** se elige a los amigos.
+      - 2. **La exigencia:** se espera disponibilidad.
+      - **Intimidad:** la confidencia distingue al amigo cercano.
+        - En mujeres es más cotidiana.
+      - **Carga:** sostener al otro tiene un costo.
+      - Recomiendan leer a Araujo (**
+      - Desafíos comunes**) y a “**
+      - Sennett**” juntos.
+      - **Conclusión**
+        - El argumento es comparativo.
+    - ## 🕒 Today
+      - 3:06 PM
+  - y qué dice sobre mayo del 68?
+    - No lo menciona. Solo hay una referencia a las 10:30 AM de una entrevista.
+    - {{[[table]]}}
+      - Autor
+        - Tema
+      - Araujo
+        - sobrecarga
+      - Sennett
+        - intimidad
