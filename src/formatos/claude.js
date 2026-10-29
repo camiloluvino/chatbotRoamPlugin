@@ -18,8 +18,9 @@ const ChatbotRoamFormatoClaude = {
 
     opciones: [
         {
-            id: 'eliminar_thinking_blockquotes_claude',
-            label: 'Bloques de pensamiento (Claude V2)',
+            id: 'eliminar_razonamiento',
+            label: 'Quitar el razonamiento del modelo',
+            visible: true,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamFormatoClaude.eliminarPensamiento(texto); }

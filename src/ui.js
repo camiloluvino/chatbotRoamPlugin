@@ -75,12 +75,6 @@ const ChatbotRoamUI = {
             '<div class="chatbot-roam-options">' +
             ChatbotRoamOpciones.generarCheckboxesHTML() +
             '</div>' +
-            '<div class="chatbot-roam-presets">' +
-            '<button class="chatbot-roam-preset-btn" data-preset="claude">Claude</button>' +
-            '<button class="chatbot-roam-preset-btn" data-preset="gemini">Gemini</button>' +
-            '<button class="chatbot-roam-preset-btn" data-preset="notebooklm">NotebookLM</button>' +
-            '<button class="chatbot-roam-preset-btn" data-preset="limpiar">Limpiar todo</button>' +
-            '</div>' +
             '<div class="chatbot-roam-section-title">IMPORTACION INCREMENTAL</div>' +
             '<div class="chatbot-roam-search-section">' +
             '<div class="chatbot-roam-search-row">' +
@@ -152,11 +146,6 @@ const ChatbotRoamUI = {
         fileInput.addEventListener('change', (e) => {
             const files = e.target.files;
             if (files && files.length > 0) this._handleFiles(files);
-        });
-
-        // Preset buttons
-        modal.querySelectorAll('[data-preset]').forEach(btn => {
-            btn.addEventListener('click', () => this._applyPreset(btn.dataset.preset));
         });
 
         // Checkbox changes
@@ -270,7 +259,7 @@ const ChatbotRoamUI = {
         dropzone.querySelector('.chatbot-roam-dropzone-icon').textContent = '!';
         dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML =
             '<strong style="color: #e94560;">Error</strong><br>' +
-            '<span style="color: #e94560;">' + message + '</span>';
+            '<span style="color: #e94560;">' + this._escapeHtml(message) + '</span>';
     },
 
     _handleFiles(fileList) {
@@ -329,7 +318,10 @@ const ChatbotRoamUI = {
             // Actualizar dropzone visual final
             dropzone.querySelector('.chatbot-roam-dropzone-icon').textContent = 'OK';
             
-            let namesText = filesArray.length > 1 ? filesArray.length + ' archivos' : filesArray[0].name;
+            // Nombre y formato detectado de cada archivo
+            let namesText = archivos.map((a, idx) =>
+                this._escapeHtml(a.name) + ' <span style="color: #2aa198;">(' + formatos[idx].nombre + ')</span>'
+            ).join('<br>');
             let statusText = '<span style="color: #4CAF50;">Cargados (' + (totalSize / 1024).toFixed(1) + ' KB)</span>';
             
             if (warnings.length > 0) {
@@ -350,18 +342,6 @@ const ChatbotRoamUI = {
     // ========================================================================
     // OPTIONS MANAGEMENT
     // ========================================================================
-    _applyPreset(preset) {
-        if (preset === 'limpiar') {
-            this._setOpciones(ChatbotRoamOpciones.getDefaults([]));
-        } else {
-            this._setOpciones(ChatbotRoamOpciones.getDefaults([ChatbotRoamFormatos.porId(preset)]));
-        }
-
-        if (this._archivos) {
-            this._processAndPreview();
-        }
-    },
-
     /**
      * Fija las opciones activas y actualiza los checkboxes
      */
@@ -432,11 +412,9 @@ const ChatbotRoamUI = {
      */
     _toggleInputs(enabled) {
         const checkboxes = this._modalContainer.querySelectorAll('input[type="checkbox"]');
-        const presets = this._modalContainer.querySelectorAll('.chatbot-roam-preset-btn');
         const fileInput = this._modalContainer.querySelector('.chatbot-roam-hidden-input');
 
         checkboxes.forEach(cb => cb.disabled = !enabled);
-        presets.forEach(btn => btn.disabled = !enabled);
         if (fileInput) fileInput.disabled = !enabled;
     },
 

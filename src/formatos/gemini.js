@@ -19,22 +19,17 @@ const ChatbotRoamFormatoGemini = {
 
     opciones: [
         {
-            id: 'eliminar_thinking_gemini',
-            label: 'Bloques Thinking (Gemini)',
+            id: 'eliminar_razonamiento',
+            label: 'Quitar el razonamiento del modelo',
+            visible: true,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamFormatoGemini.eliminarThinking(texto); }
         },
         {
-            id: 'limpiar_etiquetas_codigo_gemini',
-            label: 'Limpiar parámetros en código (?code_...)',
-            defaultActivo: true,
-            aplicarA: 'respuesta',
-            cleaner: function (texto) { return ChatbotRoamFormatoGemini.limpiarEtiquetasCodigo(texto); }
-        },
-        {
             id: 'eliminar_footer_gemini',
             label: 'Footer Gemini Exporter',
+            visible: false,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamFormatoGemini.limpiarMetadata(texto); }
@@ -42,6 +37,7 @@ const ChatbotRoamFormatoGemini = {
         {
             id: 'eliminar_adjuntos_gemini',
             label: 'Adjuntos Gemini',
+            visible: false,
             defaultActivo: true,
             aplicarA: 'ambos',
             cleaner: function (texto) { return ChatbotRoamFormatoGemini.eliminarAdjuntos(texto); }
@@ -125,21 +121,6 @@ const ChatbotRoamFormatoGemini = {
         }
 
         return lineasLimpias.join('\n');
-    },
-
-    /**
-     * Limpia parametros y tags de ejecucion en fences de codigo (?code_reference, ?code_stdout, etc.)
-     * preservando el bloque de codigo y su lenguaje limpio para Roam.
-     */
-    limpiarEtiquetasCodigo(texto) {
-        if (!texto) return '';
-        const BT3 = ChatbotRoamComun.BT3;
-        const BT4 = ChatbotRoamComun.BT4;
-        // Limpiar parametros tipo ?code_reference&... dejando solo el lenguaje (ej: BT3+python?code_... -> BT3+python)
-        texto = texto.replace(new RegExp('(' + BT4 + '|' + BT3 + ')([a-zA-Z0-9_-]+)\\?[^\\n\\r\\x60]*', 'g'), '$1$2');
-        // Si no tenia nombre de lenguaje: BT3+?code_... -> BT3
-        texto = texto.replace(new RegExp('(' + BT4 + '|' + BT3 + ')\\?[^\\n\\r\\x60]*', 'g'), '$1');
-        return texto;
     },
 
     /**

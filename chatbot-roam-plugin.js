@@ -1,7 +1,7 @@
 // CHATBOT ROAM PLUGIN v1.5.5
 // Importador de conversaciones de chatbots (Claude, Gemini, NotebookLM) a Roam
 // Uso: Ctrl+Shift+I o Command Palette
-// Generated: 2026-10-29 13:13:54
+// Generated: 2026-10-29 13:15:28
 
 
 // --- limpieza-comun.js ---
@@ -267,8 +267,9 @@ const ChatbotRoamFormatoClaude = {
 
     opciones: [
         {
-            id: 'eliminar_thinking_blockquotes_claude',
-            label: 'Bloques de pensamiento (Claude V2)',
+            id: 'eliminar_razonamiento',
+            label: 'Quitar el razonamiento del modelo',
+            visible: true,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamFormatoClaude.eliminarPensamiento(texto); }
@@ -348,22 +349,17 @@ const ChatbotRoamFormatoGemini = {
 
     opciones: [
         {
-            id: 'eliminar_thinking_gemini',
-            label: 'Bloques Thinking (Gemini)',
+            id: 'eliminar_razonamiento',
+            label: 'Quitar el razonamiento del modelo',
+            visible: true,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamFormatoGemini.eliminarThinking(texto); }
         },
         {
-            id: 'limpiar_etiquetas_codigo_gemini',
-            label: 'Limpiar parámetros en código (?code_...)',
-            defaultActivo: true,
-            aplicarA: 'respuesta',
-            cleaner: function (texto) { return ChatbotRoamFormatoGemini.limpiarEtiquetasCodigo(texto); }
-        },
-        {
             id: 'eliminar_footer_gemini',
             label: 'Footer Gemini Exporter',
+            visible: false,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamFormatoGemini.limpiarMetadata(texto); }
@@ -371,6 +367,7 @@ const ChatbotRoamFormatoGemini = {
         {
             id: 'eliminar_adjuntos_gemini',
             label: 'Adjuntos Gemini',
+            visible: false,
             defaultActivo: true,
             aplicarA: 'ambos',
             cleaner: function (texto) { return ChatbotRoamFormatoGemini.eliminarAdjuntos(texto); }
@@ -457,21 +454,6 @@ const ChatbotRoamFormatoGemini = {
     },
 
     /**
-     * Limpia parametros y tags de ejecucion en fences de codigo (?code_reference, ?code_stdout, etc.)
-     * preservando el bloque de codigo y su lenguaje limpio para Roam.
-     */
-    limpiarEtiquetasCodigo(texto) {
-        if (!texto) return '';
-        const BT3 = ChatbotRoamComun.BT3;
-        const BT4 = ChatbotRoamComun.BT4;
-        // Limpiar parametros tipo ?code_reference&... dejando solo el lenguaje (ej: BT3+python?code_... -> BT3+python)
-        texto = texto.replace(new RegExp('(' + BT4 + '|' + BT3 + ')([a-zA-Z0-9_-]+)\\?[^\\n\\r\\x60]*', 'g'), '$1$2');
-        // Si no tenia nombre de lenguaje: BT3+?code_... -> BT3
-        texto = texto.replace(new RegExp('(' + BT4 + '|' + BT3 + ')\\?[^\\n\\r\\x60]*', 'g'), '$1');
-        return texto;
-    },
-
-    /**
      * Elimina metadata del exportador (footers, separadores y timestamps).
      */
     limpiarMetadata(texto) {
@@ -523,6 +505,7 @@ const ChatbotRoamFormatoNotebookLM = {
         {
             id: 'separar_headers_colisionados_notebooklm',
             label: 'Separar títulos colisionados',
+            visible: false,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamFormatoNotebookLM.separarHeadersColisionados(texto); }
@@ -530,13 +513,15 @@ const ChatbotRoamFormatoNotebookLM = {
         {
             id: 'normalizar_vinetas_notebooklm',
             label: 'Normalizar viñetas (•, ◦)',
+            visible: false,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamFormatoNotebookLM.normalizarVinetas(texto); }
         },
         {
             id: 'eliminar_fuentes_notebooklm',
-            label: 'Eliminar fuentes/sources (NotebookLM)',
+            label: 'Quitar las fuentes citadas (NotebookLM)',
+            visible: true,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamFormatoNotebookLM.eliminarFuentes(texto); }
@@ -706,7 +691,9 @@ const ChatbotRoamFormatos = {
 // --- opciones.js ---
 // ============================================================================
 // CHATBOT ROAM PLUGIN - OPCIONES DE LIMPIEZA
-// Une las opciones comunes con las de cada formato
+// Une las opciones comunes con las de cada formato. Las opciones con
+// visible: true aparecen como casilla en el modal; las demas se aplican
+// siempre. Opciones de distintos formatos con el mismo id comparten casilla.
 // ============================================================================
 
 const ChatbotRoamOpciones = {
@@ -715,20 +702,23 @@ const ChatbotRoamOpciones = {
         {
             id: 'eliminar_imagenes',
             label: 'Imagenes Base64',
+            visible: false,
             defaultActivo: true,
             aplicarA: 'archivo', // Una vez sobre el archivo completo, antes de separar los turnos
             cleaner: function (texto) { return ChatbotRoamComun.eliminarImagenesEmbedidas(texto); }
         },
         {
             id: 'eliminar_metadata',
-            label: 'Timestamps y referencias',
+            label: 'Quitar fechas sueltas y líneas "> File:"',
+            visible: true,
             defaultActivo: false,
             aplicarA: 'ambos',
             cleaner: function (texto) { return ChatbotRoamComun.limpiarMetadataGenerico(texto); }
         },
         {
             id: 'neutralizar_sintaxis',
-            label: 'Neutralizar sintaxis Roam (::, [[ ]]) en la IA',
+            label: 'Neutralizar [[ ]] y :: en las respuestas',
+            visible: true,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamComun.neutralizarSintaxisRoam(texto); }
@@ -740,6 +730,7 @@ const ChatbotRoamOpciones = {
         {
             id: 'convertir_tablas_roam',
             label: 'Convertir tablas a Roam',
+            visible: false,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamComun.convertirTablasMarkdownARoam(texto); }
@@ -747,12 +738,13 @@ const ChatbotRoamOpciones = {
     ],
 
     /**
-     * Todas las opciones, comunes y de cada formato, en el orden en que se muestran
+     * Todas las opciones, comunes y de cada formato, sin repetir ids
      */
     getAll() {
         let todas = this.COMUNES_ANTES.slice();
         ChatbotRoamFormatos.lista().forEach(formato => { todas = todas.concat(formato.opciones); });
-        return todas.concat(this.COMUNES_DESPUES);
+        todas = todas.concat(this.COMUNES_DESPUES);
+        return todas.filter((opcion, idx) => todas.findIndex(o => o.id === opcion.id) === idx);
     },
 
     /**
@@ -804,7 +796,7 @@ const ChatbotRoamOpciones = {
      * Genera el HTML de los checkboxes para el modal
      */
     generarCheckboxesHTML() {
-        return this.getAll().map(opcion =>
+        return this.getAll().filter(opcion => opcion.visible).map(opcion =>
             '<label class="chatbot-roam-option">' +
             '<input type="checkbox" data-option="' + opcion.id + '">' +
             opcion.label +
@@ -1367,30 +1359,6 @@ const ChatbotRoamStyles = {
             '',
             '            .chatbot-roam-option input[type="checkbox"] {',
             '                accent-color: #2aa198;',
-            '            }',
-            '',
-            '            .chatbot-roam-presets {',
-            '                display: flex;',
-            '                gap: 8px;',
-            '                margin-top: 12px;',
-            '                flex-wrap: wrap;',
-            '            }',
-            '',
-            '            .chatbot-roam-preset-btn {',
-            '                background: transparent;',
-            '                border: 1px solid #586e75;',
-            '                color: #93a1a1;',
-            '                padding: 6px 14px;',
-            '                border-radius: 4px;',
-            '                font-size: 12px;',
-            '                cursor: pointer;',
-            '                transition: background-color 0.15s, color 0.15s, border-color 0.15s;',
-            '            }',
-            '',
-            '            .chatbot-roam-preset-btn:hover {',
-            '                background: #b58900;',
-            '                color: #002b36;',
-            '                border-color: #b58900;',
             '            }',
             '',
             '            .chatbot-roam-preview {',
@@ -2110,12 +2078,6 @@ const ChatbotRoamUI = {
             '<div class="chatbot-roam-options">' +
             ChatbotRoamOpciones.generarCheckboxesHTML() +
             '</div>' +
-            '<div class="chatbot-roam-presets">' +
-            '<button class="chatbot-roam-preset-btn" data-preset="claude">Claude</button>' +
-            '<button class="chatbot-roam-preset-btn" data-preset="gemini">Gemini</button>' +
-            '<button class="chatbot-roam-preset-btn" data-preset="notebooklm">NotebookLM</button>' +
-            '<button class="chatbot-roam-preset-btn" data-preset="limpiar">Limpiar todo</button>' +
-            '</div>' +
             '<div class="chatbot-roam-section-title">IMPORTACION INCREMENTAL</div>' +
             '<div class="chatbot-roam-search-section">' +
             '<div class="chatbot-roam-search-row">' +
@@ -2187,11 +2149,6 @@ const ChatbotRoamUI = {
         fileInput.addEventListener('change', (e) => {
             const files = e.target.files;
             if (files && files.length > 0) this._handleFiles(files);
-        });
-
-        // Preset buttons
-        modal.querySelectorAll('[data-preset]').forEach(btn => {
-            btn.addEventListener('click', () => this._applyPreset(btn.dataset.preset));
         });
 
         // Checkbox changes
@@ -2305,7 +2262,7 @@ const ChatbotRoamUI = {
         dropzone.querySelector('.chatbot-roam-dropzone-icon').textContent = '!';
         dropzone.querySelector('.chatbot-roam-dropzone-text').innerHTML =
             '<strong style="color: #e94560;">Error</strong><br>' +
-            '<span style="color: #e94560;">' + message + '</span>';
+            '<span style="color: #e94560;">' + this._escapeHtml(message) + '</span>';
     },
 
     _handleFiles(fileList) {
@@ -2364,7 +2321,10 @@ const ChatbotRoamUI = {
             // Actualizar dropzone visual final
             dropzone.querySelector('.chatbot-roam-dropzone-icon').textContent = 'OK';
             
-            let namesText = filesArray.length > 1 ? filesArray.length + ' archivos' : filesArray[0].name;
+            // Nombre y formato detectado de cada archivo
+            let namesText = archivos.map((a, idx) =>
+                this._escapeHtml(a.name) + ' <span style="color: #2aa198;">(' + formatos[idx].nombre + ')</span>'
+            ).join('<br>');
             let statusText = '<span style="color: #4CAF50;">Cargados (' + (totalSize / 1024).toFixed(1) + ' KB)</span>';
             
             if (warnings.length > 0) {
@@ -2385,18 +2345,6 @@ const ChatbotRoamUI = {
     // ========================================================================
     // OPTIONS MANAGEMENT
     // ========================================================================
-    _applyPreset(preset) {
-        if (preset === 'limpiar') {
-            this._setOpciones(ChatbotRoamOpciones.getDefaults([]));
-        } else {
-            this._setOpciones(ChatbotRoamOpciones.getDefaults([ChatbotRoamFormatos.porId(preset)]));
-        }
-
-        if (this._archivos) {
-            this._processAndPreview();
-        }
-    },
-
     /**
      * Fija las opciones activas y actualiza los checkboxes
      */
@@ -2467,11 +2415,9 @@ const ChatbotRoamUI = {
      */
     _toggleInputs(enabled) {
         const checkboxes = this._modalContainer.querySelectorAll('input[type="checkbox"]');
-        const presets = this._modalContainer.querySelectorAll('.chatbot-roam-preset-btn');
         const fileInput = this._modalContainer.querySelector('.chatbot-roam-hidden-input');
 
         checkboxes.forEach(cb => cb.disabled = !enabled);
-        presets.forEach(btn => btn.disabled = !enabled);
         if (fileInput) fileInput.disabled = !enabled;
     },
 

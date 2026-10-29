@@ -1,6 +1,8 @@
 // ============================================================================
 // CHATBOT ROAM PLUGIN - OPCIONES DE LIMPIEZA
-// Une las opciones comunes con las de cada formato
+// Une las opciones comunes con las de cada formato. Las opciones con
+// visible: true aparecen como casilla en el modal; las demas se aplican
+// siempre. Opciones de distintos formatos con el mismo id comparten casilla.
 // ============================================================================
 
 const ChatbotRoamOpciones = {
@@ -9,20 +11,23 @@ const ChatbotRoamOpciones = {
         {
             id: 'eliminar_imagenes',
             label: 'Imagenes Base64',
+            visible: false,
             defaultActivo: true,
             aplicarA: 'archivo', // Una vez sobre el archivo completo, antes de separar los turnos
             cleaner: function (texto) { return ChatbotRoamComun.eliminarImagenesEmbedidas(texto); }
         },
         {
             id: 'eliminar_metadata',
-            label: 'Timestamps y referencias',
+            label: 'Quitar fechas sueltas y líneas "> File:"',
+            visible: true,
             defaultActivo: false,
             aplicarA: 'ambos',
             cleaner: function (texto) { return ChatbotRoamComun.limpiarMetadataGenerico(texto); }
         },
         {
             id: 'neutralizar_sintaxis',
-            label: 'Neutralizar sintaxis Roam (::, [[ ]]) en la IA',
+            label: 'Neutralizar [[ ]] y :: en las respuestas',
+            visible: true,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamComun.neutralizarSintaxisRoam(texto); }
@@ -34,6 +39,7 @@ const ChatbotRoamOpciones = {
         {
             id: 'convertir_tablas_roam',
             label: 'Convertir tablas a Roam',
+            visible: false,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamComun.convertirTablasMarkdownARoam(texto); }
@@ -41,12 +47,13 @@ const ChatbotRoamOpciones = {
     ],
 
     /**
-     * Todas las opciones, comunes y de cada formato, en el orden en que se muestran
+     * Todas las opciones, comunes y de cada formato, sin repetir ids
      */
     getAll() {
         let todas = this.COMUNES_ANTES.slice();
         ChatbotRoamFormatos.lista().forEach(formato => { todas = todas.concat(formato.opciones); });
-        return todas.concat(this.COMUNES_DESPUES);
+        todas = todas.concat(this.COMUNES_DESPUES);
+        return todas.filter((opcion, idx) => todas.findIndex(o => o.id === opcion.id) === idx);
     },
 
     /**
@@ -98,7 +105,7 @@ const ChatbotRoamOpciones = {
      * Genera el HTML de los checkboxes para el modal
      */
     generarCheckboxesHTML() {
-        return this.getAll().map(opcion =>
+        return this.getAll().filter(opcion => opcion.visible).map(opcion =>
             '<label class="chatbot-roam-option">' +
             '<input type="checkbox" data-option="' + opcion.id + '">' +
             opcion.label +

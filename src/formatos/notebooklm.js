@@ -25,6 +25,7 @@ const ChatbotRoamFormatoNotebookLM = {
         {
             id: 'separar_headers_colisionados_notebooklm',
             label: 'Separar títulos colisionados',
+            visible: false,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamFormatoNotebookLM.separarHeadersColisionados(texto); }
@@ -32,13 +33,15 @@ const ChatbotRoamFormatoNotebookLM = {
         {
             id: 'normalizar_vinetas_notebooklm',
             label: 'Normalizar viñetas (•, ◦)',
+            visible: false,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamFormatoNotebookLM.normalizarVinetas(texto); }
         },
         {
             id: 'eliminar_fuentes_notebooklm',
-            label: 'Eliminar fuentes/sources (NotebookLM)',
+            label: 'Quitar las fuentes citadas (NotebookLM)',
+            visible: true,
             defaultActivo: true,
             aplicarA: 'respuesta',
             cleaner: function (texto) { return ChatbotRoamFormatoNotebookLM.eliminarFuentes(texto); }
