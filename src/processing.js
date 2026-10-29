@@ -15,9 +15,7 @@ const ChatbotRoamProcessing = {
         const marcadores = [];
 
         // Detectar formato especial
-        // NotebookLM uses Chinese markers: 用户 (user) and 助手 (assistant)
         const esNotebookLM = ChatbotRoamPatterns.isNotebookLM(contenido);
-        const esAntigravity = ChatbotRoamPatterns.DETECT_ANTIGRAVITY.test(contenido);
         // Detectar formato Claude V2 (## User: / ## Assistant:)
         const esClaudeV2 = contenido.includes('## User:') && contenido.includes('## Assistant:');
         // Detectar formato Gemini Exporter (## User: / ## Gemini:)
@@ -28,9 +26,6 @@ const ChatbotRoamProcessing = {
         if (esNotebookLM) {
             promptPattern = ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_MARKER;
             responsePattern = ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_MARKER;
-        } else if (esAntigravity) {
-            promptPattern = ChatbotRoamPatterns.ANTIGRAVITY_PROMPT_MARKER;
-            responsePattern = ChatbotRoamPatterns.ANTIGRAVITY_RESPONSE_MARKER;
         } else if (esClaudeV2) {
             promptPattern = ChatbotRoamPatterns.PROMPT_MARKER_V2;
             responsePattern = ChatbotRoamPatterns.RESPONSE_MARKER_V2;
@@ -150,70 +145,6 @@ const ChatbotRoamProcessing = {
         return pares;
     },
 
-    /**
-     * Extrae TODOS los bloques (Prompt y Response) del archivo con metadata.
-     * Para uso en el editor de clasificación manual.
-     * @param {string} contenido - Contenido raw del archivo
-     * @returns {Array} - [{pos, tipo, extracto, lineNumber}, ...]
-     */
-    extraerTodosLosBloques(contenido) {
-        const bloques = [];
-        const regex = /^## (Prompt|Response|User|Assistant|Gemini):/gm;
-        let match;
-        let lastPos = 0;
-        let currentLine = 1;
-
-        while ((match = regex.exec(contenido)) !== null) {
-            const posInicio = match.index;
-            const marcadorOriginal = match[0]; // Marcador exacto tal como vino en el archivo (ej: "## User:", "## Prompt:", etc.)
-            // Normalizar: "User" -> "Prompt", "Assistant" / "Gemini" -> "Response"
-            let tipo = match[1];
-            if (tipo === 'User') tipo = 'Prompt';
-            if (tipo === 'Assistant' || tipo === 'Gemini') tipo = 'Response';
-
-            // Calcular número de línea incrementalmente
-            for (let k = lastPos; k < posInicio; k++) {
-                if (contenido.charCodeAt(k) === 10) currentLine++;
-            }
-            lastPos = posInicio;
-            const lineNumber = currentLine;
-
-            // Encontrar el fin de este bloque (siguiente ## o fin de archivo)
-            const restoContenido = contenido.substring(posInicio);
-            const marcadorLen = match[0].length; // "## Prompt:" o "## Response:"
-            const siguienteBloque = restoContenido.substring(marcadorLen).search(/^## (?:Prompt|Response|User|Assistant|Gemini):/m);
-            const finBloque = siguienteBloque === -1
-                ? contenido.length
-                : posInicio + marcadorLen + siguienteBloque;
-
-            // Extraer contenido del bloque (skip header y timestamp)
-            const contenidoBloque = contenido.substring(posInicio, finBloque);
-            const lineas = contenidoBloque.split('\n').slice(2, 5);
-            const extracto = lineas.join(' ').substring(0, 100).trim();
-
-            // Detectar si tiene MCP tools (para marcar visualmente)
-            const tieneMCP = ChatbotRoamPatterns.MCP_TOOL_HEADER.test(contenidoBloque);
-
-            bloques.push({
-                pos: posInicio,
-                tipo: tipo,
-                marcadorOriginal: marcadorOriginal,
-                lineNumber: lineNumber,
-                extracto: extracto || '(vacío)',
-                tieneMCP: tieneMCP
-            });
-        }
-
-        return bloques;
-    },
-
-    /**
-     * Detecta si un archivo tiene uso de MCP (para decidir si mostrar editor)
-     */
-    tieneUsoDeMCP(contenido) {
-        return ChatbotRoamPatterns.MCP_TOOL_HEADER.test(contenido);
-    },
-
     // ========================================================================
     // LÓGICA DE PROCESAMIENTO PRINCIPAL
     // ========================================================================
@@ -226,11 +157,6 @@ const ChatbotRoamProcessing = {
      * @returns {Promise<Object>} - { resultado: string, numIntercambios: number }
      */
     async procesarConOpcionesIndividuales(contenido, opciones) {
-        // Eliminar header Antigravity ANTES de procesar
-        if (opciones.eliminar_header_antigravity) {
-            contenido = ChatbotRoamCleaners.eliminarHeaderAntigravity(contenido);
-        }
-
         // Eliminar imágenes ANTES de extraer (si está marcado)
         if (opciones.eliminar_imagenes) {
             contenido = ChatbotRoamCleaners.eliminarImagenesEmbedidas(contenido);
@@ -327,27 +253,14 @@ const ChatbotRoamProcessing = {
      * Detecta automáticamente el tipo de chatbot basándose en marcadores característicos.
      */
     detectarTipoChatbot(contenido) {
-        // Detectar NotebookLM PRIMERO (marcadores chinos: 用户/助手)
+        // Detectar NotebookLM PRIMERO
         if (ChatbotRoamPatterns.isNotebookLM(contenido)) {
             return 'notebooklm';
-        }
-
-        // Detectar Antigravity (marcadores unicos)
-        const esAntigravity = ChatbotRoamPatterns.DETECT_ANTIGRAVITY.test(contenido);
-        if (esAntigravity) {
-            return 'antigravity';
         }
 
         // Detectar Claude V2 (formato actualizado del exportador: ## User: / ## Assistant:)
         const esClaudeV2 = contenido.includes('## User:') && contenido.includes('## Assistant:');
         if (esClaudeV2) {
-            return 'claude';
-        }
-
-        const tieneToolCalls = ChatbotRoamPatterns.DETECT_CLAUDE_TOOLS.test(contenido);
-        const tienePlaintextBlocks = contenido.includes(ChatbotRoamPatterns.BT4 + 'plaintext');
-
-        if (tieneToolCalls || tienePlaintextBlocks) {
             return 'claude';
         }
 

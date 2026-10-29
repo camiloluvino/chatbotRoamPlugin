@@ -26,8 +26,6 @@ const ChatbotRoamPatterns = {
     LINEAS_VACIAS_EXCESIVAS: /\n{3,}/g,
     CODIGO_CUATRO_BACKTICKS: new RegExp(BT4 + "[^\\n\\r\\x60]+", "g"),
     CODIGO_TRES_BACKTICKS: new RegExp(BT3 + "[^\\n\\r\\x60]+", "g"),
-    GEMINI_CODE_EXECUTION: new RegExp(BT3 + "(?:\\w+)?\\?(?:code_reference|code_stdout|code_interpreter)[^\\n\\r\\x60]*[\\s\\S]*?" + BT3, "g"),
-    GEMINI_CODE_TAG: new RegExp(BT3 + "([a-zA-Z0-9_-]+)?\\?[^\\n\\r\\x60]*", "g"),
 
     // TIMESTAMPS
     TIMESTAMP_COMPLETO: /^\d{1,2}\/\d{1,2}\/\d{4},\s+\d{1,2}:\d{2}:\d{2}\s+[ap]\.m\.$/,
@@ -45,32 +43,6 @@ const ChatbotRoamPatterns = {
     // Formato Gemini Exporter: ## User: / ## Gemini:
     RESPONSE_MARKER_GEMINI: /^## Gemini:/gm,
 
-    // THOUGHT PROCESSES
-    // Claude - bloques plaintext
-    PLAINTEXT_BLOCKS_CLAUDE: new RegExp(BT4 + "plaintext[\\s\\S]*?" + BT4, "g"),
-
-    // ChatGPT - Thought process generico
-    THOUGHT_PROCESS_GENERICO: new RegExp(BT4 + "plaintext\\s*Thought process:[\\s\\S]*?" + BT4, "g"),
-
-    // TOOL CALLS (CLAUDE)
-    TOOL_CALLS_COMPLETO: new RegExp("\\*\\*\\w+\\*\\*\\s*\\*Request\\*\\s*" + BT4 + "(?:javascript|json)[\\s\\S]*?" + BT4 + "\\s*\\*Response\\*\\s*" + BT4 + "(?:plaintext|text)[\\s\\S]*?" + BT4, "g"),
-    TOOL_CALLS_SIMPLE: /\*\*\w+\*\*\s*(?=\*Request\*|$)/g,
-
-    // MCP Tool calls (Claude con MCP)
-    MCP_TOOL_CALLS: new RegExp("\\*\\*[\\w-]+:[\\w_]+\\*\\*[\\s\\n]*\\*Request\\*[\\s\\n]*" + BT4 + "(?:javascript|json|plaintext)[\\s\\S]*?" + BT4 + "[\\s\\n]*\\*Response\\*[\\s\\n]*" + BT4 + "(?:javascript|json|plaintext|text)[\\s\\S]*?" + BT4, "g"),
-
-    // MCP Tool Header (para detectar bloques mal clasificados)
-    MCP_TOOL_HEADER: /\*\*[\w-]+:[\w_]+\*\*/,
-
-    // ANTIGRAVITY FORMAT
-    ANTIGRAVITY_PROMPT_MARKER: /^### User Input$/gm,
-    ANTIGRAVITY_RESPONSE_MARKER: /^### Planner Response$/gm,
-    ANTIGRAVITY_ACTIONS: /^\*(?:Listed directory|Viewed|Searched filesystem|Searched|Edited relevant file|Edited|Grep searched|Checked command status|Checked command|User accepted the command|User accepted)[^\n]*$/gm,
-    ANTIGRAVITY_HEADER: /^# Chat Conversation\s*\n+Note: _This is purely[^_]*_\s*\n*/gm,
-    ANTIGRAVITY_SYSTEM_MESSAGE: /^This is a system-generated message[^\n]*$/gm,
-    CCI_LINKS: /\(cci:\d+:\/\/file:\/\/\/[^)]+\)/g,
-    TIMESTAMP_HORA_SUELTA: /^\d{1,2}:\d{2}\s+[ap]\.m\.$/,
-
     // NOTEBOOKLM FORMAT
     NOTEBOOKLM_PROMPT_MARKER: /^###\s+(?:[^\s*#]+\s+)?(?:\*\*)?(?:User|Usuario|\u7528\u6237|Prompt)(?:\*\*)?\s*$/gmi,
     NOTEBOOKLM_RESPONSE_MARKER: /^###\s+(?:[^\s*#]+\s+)?(?:\*\*)?(?:NotebookLM|Assistant|Asistente|\u52A9\u624B|Response)(?:\*\*)?\s*$/gmi,
@@ -78,8 +50,6 @@ const ChatbotRoamPatterns = {
     NOTEBOOKLM_RESPONSE_STR: null,     // For backwards compatibility string matching
 
     // DETECCION DE TIPO DE CHATBOT
-    DETECT_ANTIGRAVITY: /^### (?:User Input|Planner Response)$/m,
-    DETECT_CLAUDE_TOOLS: /\*\*\w+\*\*\s*\*Request\*/,
     DETECT_GEMINI_THINKING: /^>\s*(?:\*\*Thinking steps\*\*|Thinking:)/m,
 
     // Helper getters for backtick strings

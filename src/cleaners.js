@@ -55,22 +55,6 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Reemplaza de forma segura bloques delimitados por backticks para evitar borrado masivo
-     * si falta el delimitador de cierre.
-     */
-    _safeRegexReplace(texto, regex, delimiterStr) {
-        if (!texto || !delimiterStr) return texto;
-        const escapedDelim = delimiterStr.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-        const count = (texto.match(new RegExp(escapedDelim, 'g')) || []).length;
-        // Si el número de delimitadores es impar, hay al menos uno sin cerrar; no aplicamos el regex para evitar borrado masivo
-        if (count % 2 !== 0) {
-            console.warn('ChatbotRoamCleaners: Delimitadores desbalanceados detectados (' + count + '). Omitiendo reemplazo potencialmente destructivo.');
-            return texto;
-        }
-        return texto.replace(regex, '');
-    },
-
-    /**
      * Neutraliza la sintaxis especial de Roam (::, [[, ]]) para evitar que se creen 
      * atributos y referencias a páginas accidentalmente al importar texto de IA,
      * preservando intactos los bloques de código.
@@ -94,44 +78,6 @@ const ChatbotRoamCleaners = {
         return partes.join('');
     },
 
-    // ========================================================================
-    // LIMPIEZA GENÉRICA / CHATGPT
-    // ========================================================================
-
-    /**
-     * Elimina los logs de herramientas de búsqueda como 'project_knowledge_search'.
-     */
-    eliminarToolLogsGenerico(texto) {
-        if (!texto.includes('**project_knowledge_search**')) {
-            return texto;
-        }
-
-        const partes = texto.split('**project_knowledge_search**');
-        const antesDelLog = partes[0];
-        const logYPosibleRespuesta = partes[1];
-
-        let posUltFence = logYPosibleRespuesta.lastIndexOf(ChatbotRoamPatterns.BT4);
-        if (posUltFence === -1) {
-            posUltFence = logYPosibleRespuesta.lastIndexOf(ChatbotRoamPatterns.BT3);
-        }
-
-        if (posUltFence !== -1) {
-            const longitudFence = logYPosibleRespuesta.substring(posUltFence, posUltFence + 4) === ChatbotRoamPatterns.BT4 ? 4 : 3;
-            const finDelLog = posUltFence + longitudFence;
-            const respuestaReal = logYPosibleRespuesta.substring(finDelLog);
-            return antesDelLog + respuestaReal;
-        } else {
-            return antesDelLog;
-        }
-    },
-
-    /**
-     * Elimina bloques de razonamiento del modelo (ChatGPT).
-     */
-    eliminarThoughtProcessGenerico(texto) {
-        return this._safeRegexReplace(texto, ChatbotRoamPatterns.THOUGHT_PROCESS_GENERICO, ChatbotRoamPatterns.BT4);
-    },
-
     /**
      * Elimina líneas de metadata como fechas y '> File:'.
      */
@@ -152,13 +98,6 @@ const ChatbotRoamCleaners = {
     // ========================================================================
     // LIMPIEZA CLAUDE
     // ========================================================================
-
-    /**
-     * Elimina TODOS los bloques de metadata interna de Claude (plaintext blocks).
-     */
-    eliminarThoughtProcessClaude(texto) {
-        return this._safeRegexReplace(texto, ChatbotRoamPatterns.PLAINTEXT_BLOCKS_CLAUDE, ChatbotRoamPatterns.BT4);
-    },
 
     /**
      * Elimina los bloques de pensamiento de Claude V2 que se presentan en formato blockquote
@@ -196,123 +135,6 @@ const ChatbotRoamCleaners = {
                     lineasLimpias.push(bloqueActual[k]);
                 }
             }
-        }
-
-        return lineasLimpias.join('\n');
-    },
-
-    /**
-     * Elimina los bloques completos de herramientas de Claude.
-     */
-    eliminarToolCallsClaude(texto) {
-        // Patrón completo seguro
-        texto = this._safeRegexReplace(texto, ChatbotRoamPatterns.TOOL_CALLS_COMPLETO, ChatbotRoamPatterns.BT4);
-        // Patrón simple
-        texto = texto.replace(ChatbotRoamPatterns.TOOL_CALLS_SIMPLE, '');
-        return texto;
-    },
-
-    /**
-     * Elimina líneas que comienzan con 'Thought:'.
-     */
-    eliminarThoughtLinesClaude(texto) {
-        const lineas = texto.split('\n');
-        const lineasLimpias = [];
-
-        for (const linea of lineas) {
-            if (linea.trim().startsWith('Thought:')) continue;
-            lineasLimpias.push(linea);
-        }
-
-        return lineasLimpias.join('\n');
-    },
-
-    /**
-     * Elimina bloques completos de MCP tool calls de Claude.
-     * Usa procesamiento iterativo para mayor robustez con contenido largo.
-     */
-    eliminarMcpToolCallsClaude(texto) {
-        const BT4 = ChatbotRoamPatterns.BT4;
-
-        // Patron para encontrar nombres de herramientas MCP
-        const patronNombre = /\*\*[\w-]+:[\w_]+\*\*/g;
-
-        // Encontrar todas las posiciones de herramientas MCP
-        const matches = [];
-        let match;
-        while ((match = patronNombre.exec(texto)) !== null) {
-            matches.push({ start: match.index, nombre: match[0] });
-        }
-
-        // Procesar en reversa para no afectar los indices
-        for (let i = matches.length - 1; i >= 0; i--) {
-            const { start, nombre } = matches[i];
-            let cursor = start + nombre.length;
-
-            // Buscar *Request* despues del nombre
-            const posRequest = texto.indexOf('*Request*', cursor);
-            if (posRequest === -1 || posRequest - cursor > 50) continue; // Muy lejos, no es parte del bloque
-            cursor = posRequest + 9;
-
-            // Buscar el primer bloque de codigo (BT4 + lang ... BT4)
-            const posAbreCode1 = texto.indexOf(BT4, cursor);
-            if (posAbreCode1 === -1 || posAbreCode1 - cursor > 50) continue;
-            cursor = posAbreCode1 + 4;
-
-            const posCierraCode1 = texto.indexOf(BT4, cursor);
-            if (posCierraCode1 === -1) continue;
-            cursor = posCierraCode1 + 4;
-
-            // Buscar *Response* despues del primer bloque
-            const posResponse = texto.indexOf('*Response*', cursor);
-            if (posResponse === -1 || posResponse - cursor > 50) continue;
-            cursor = posResponse + 10;
-
-            // Buscar el segundo bloque de codigo
-            const posAbreCode2 = texto.indexOf(BT4, cursor);
-            if (posAbreCode2 === -1 || posAbreCode2 - cursor > 50) continue;
-            cursor = posAbreCode2 + 4;
-
-            const posCierraCode2 = texto.indexOf(BT4, cursor);
-            if (posCierraCode2 === -1) continue;
-
-            // Calcular el fin del bloque completo
-            const finBloque = posCierraCode2 + 4;
-
-            // Eliminar el bloque
-            texto = texto.substring(0, start) + texto.substring(finBloque);
-        }
-
-        // Limpiar lineas residuales (nombres sueltos que no matchearon el patron completo)
-        const patronNombresResiduales = /^\*\*[\w-]+:[\w_]+\*\*\s*$/gm;
-        texto = texto.replace(patronNombresResiduales, '');
-
-        // Limpiar *Request* y *Response* huerfanos
-        const lineas = texto.split('\n');
-        const lineasLimpias = [];
-
-        for (const linea of lineas) {
-            const lineaStripped = linea.trim();
-            if (lineaStripped === '*Request*' || lineaStripped === '*Response*') continue;
-            lineasLimpias.push(linea);
-        }
-
-        return lineasLimpias.join('\n');
-    },
-
-    /**
-     * Elimina metadata específica de Claude.
-     */
-    limpiarMetadataClaude(texto) {
-        const lineas = texto.split('\n');
-        const lineasLimpias = [];
-
-        for (const linea of lineas) {
-            const lineaStripped = linea.trim();
-            if (lineaStripped.startsWith('> File:')) continue;
-            if (ChatbotRoamPatterns.TIMESTAMP_COMPLETO.test(lineaStripped)) continue;
-            if (lineaStripped === '*Request*' || lineaStripped === '*Response*') continue;
-            lineasLimpias.push(linea);
         }
 
         return lineasLimpias.join('\n');
@@ -402,13 +224,6 @@ const ChatbotRoamCleaners = {
     },
 
     /**
-     * Elimina bloques de ejecución de código Python y salida stdout de Gemini (?code_reference, ?code_stdout, ?code_interpreter).
-     */
-    eliminarEjecucionCodigoGemini(texto) {
-        return this._safeRegexReplace(texto, ChatbotRoamPatterns.GEMINI_CODE_EXECUTION, ChatbotRoamPatterns.BT3);
-    },
-
-    /**
      * Limpia parametros y tags de ejecucion en fences de codigo de Gemini (?code_reference, ?code_stdout, etc.)
      * preservando el bloque de codigo y su lenguaje limpio para Roam.
      */
@@ -446,81 +261,8 @@ const ChatbotRoamCleaners = {
     },
 
     // ========================================================================
-    // LIMPIEZA ANTIGRAVITY
-    // ========================================================================
-
-    /**
-     * Elimina el encabezado del archivo Antigravity
-     */
-    eliminarHeaderAntigravity(texto) {
-        return texto.replace(ChatbotRoamPatterns.ANTIGRAVITY_HEADER, '');
-    },
-
-    /**
-     * Elimina lineas de acciones (*Listed directory*, *Viewed*, etc.)
-     */
-    eliminarAccionesAntigravity(texto) {
-        return texto.replace(ChatbotRoamPatterns.ANTIGRAVITY_ACTIONS, '');
-    },
-
-    /**
-     * Limpia enlaces CCI internos (cci:N://file:///...)
-     */
-    limpiarEnlacesCCI(texto) {
-        // Paso 1: Eliminar enlaces CCI completos
-        texto = texto.replace(ChatbotRoamPatterns.CCI_LINKS, '');
-        // Paso 2: Limpiar enlaces markdown que apuntan a CCI
-        texto = texto.replace(/\[([^\]]+)\]\(cci:[^)]+\)/g, '$1');
-        return texto;
-    },
-
-    /**
-     * Elimina mensajes de sistema generados automaticamente
-     */
-    eliminarMensajesSistemaAntigravity(texto) {
-        return texto.replace(ChatbotRoamPatterns.ANTIGRAVITY_SYSTEM_MESSAGE, '');
-    },
-
-    /**
-     * Elimina timestamps de hora suelta (sin fecha)
-     */
-    eliminarTimestampHoraSuelta(texto) {
-        const lineas = texto.split('\n');
-        const lineasLimpias = [];
-
-        for (const linea of lineas) {
-            if (ChatbotRoamPatterns.TIMESTAMP_HORA_SUELTA.test(linea.trim())) continue;
-            lineasLimpias.push(linea);
-        }
-
-        return lineasLimpias.join('\n');
-    },
-
-    // ========================================================================
     // LIMPIEZA NOTEBOOKLM
     // ========================================================================
-
-    /**
-     * Elimina el header YAML y título de NotebookLM
-     * Formato: ---\nexported: ...\nsource: NotebookLM\n---\n# Título\nExported at: ...\n---
-     */
-    eliminarHeaderNotebookLM(texto) {
-        // Eliminar bloque YAML (---...---)
-        texto = texto.replace(/^---[\s\S]*?---\n*/m, '');
-        // Eliminar título # y línea de exportación (chino, inglés, español, etc.)
-        texto = texto.replace(/^# [^\n]+\n+(?:导出时间|Exported at|Exportado el|Exported on)[^\n]*\n*/gmi, '');
-        // Limpiar separadores --- sueltos
-        texto = texto.replace(/^---+\s*\n*/gm, '');
-        return texto;
-    },
-
-    /**
-     * Elimina timestamps de sección como "## 🕒 Today • 3:06 PM" o "## 📅 Monday, August 31"
-     */
-    eliminarTimestampNotebookLM(texto) {
-        // Eliminar líneas de timestamp / fecha de sección de NotebookLM
-        return texto.replace(/^##\s+[^#\n]*(?:Today|Yesterday|Hoy|Ayer|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Lunes|Martes|Mi[eé]rcoles|Jueves|Viernes|S[aá]bado|Domingo|January|February|March|April|May|June|July|August|September|October|November|December|Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre|\d{1,2}\/\d{1,2}|\d{1,2}:\d{2}|AM|PM|a\.m\.|p\.m\.)[^\n]*\n*/gmi, '');
-    },
 
     /**
      * Limpia escapes innecesarios de NotebookLM, como "1\." que debería ser "1.",

@@ -15,17 +15,9 @@ const OPCIONES_LIMPIEZA = [
     // OPCIONES GENÉRICAS (todos los chatbots)
     // ========================================================================
     {
-        id: 'revisar_clasificacion',
-        label: 'Revisar clasificaci\u00f3n (Prompt/Response)',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
-        defaultActivo: false,
-        aplicarA: 'none', // No modifica el texto, es solo un flag UI
-        cleaner: function (texto) { return texto; }
-    },
-    {
         id: 'eliminar_imagenes',
         label: 'Imagenes Base64',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
+        chatbots: ['claude', 'gemini', 'notebooklm'],
         defaultActivo: true,
         aplicarA: 'none', // Se ejecuta una sola vez en el preproceso global
         cleaner: function (texto) { return texto; }
@@ -33,7 +25,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'eliminar_metadata',
         label: 'Timestamps y referencias',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
+        chatbots: ['claude', 'gemini', 'notebooklm'],
         defaultActivo: false,
         aplicarA: 'ambos',
         cleaner: function (texto) { return ChatbotRoamCleaners.limpiarMetadataGenerico(texto); }
@@ -41,7 +33,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'neutralizar_sintaxis',
         label: 'Neutralizar sintaxis Roam (::, [[ ]]) en la IA',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
+        chatbots: ['claude', 'gemini', 'notebooklm'],
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.neutralizarSintaxisRoam(texto); }
@@ -51,56 +43,12 @@ const OPCIONES_LIMPIEZA = [
     // OPCIONES CLAUDE
     // ========================================================================
     {
-        id: 'eliminar_mcp_toolcalls_claude',
-        label: 'MCP Tool calls (Claude)',
-        chatbots: ['claude'],
-        defaultActivo: true,
-        aplicarA: 'respuesta',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarMcpToolCallsClaude(texto); }
-    },
-    {
-        id: 'eliminar_plaintext_claude',
-        label: 'Bloques plaintext (Claude)',
-        chatbots: ['claude'],
-        defaultActivo: true,
-        aplicarA: 'respuesta',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarThoughtProcessClaude(texto); }
-    },
-    {
-        id: 'eliminar_toolcalls_claude',
-        label: 'Tool calls (Claude)',
-        chatbots: ['claude'],
-        defaultActivo: true,
-        aplicarA: 'respuesta',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarToolCallsClaude(texto); }
-    },
-    {
         id: 'eliminar_thinking_blockquotes_claude',
         label: 'Bloques de pensamiento (Claude V2)',
         chatbots: ['claude'],
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarThinkingBlockquotesClaude(texto); }
-    },
-
-    // ========================================================================
-    // OPCIONES CHATGPT
-    // ========================================================================
-    {
-        id: 'eliminar_thought_chatgpt',
-        label: 'Thought process (ChatGPT)',
-        chatbots: ['chatgpt'],
-        defaultActivo: true,
-        aplicarA: 'respuesta',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarThoughtProcessGenerico(texto); }
-    },
-    {
-        id: 'eliminar_logs_chatgpt',
-        label: 'Logs de b\u00fasqueda',
-        chatbots: ['chatgpt'],
-        defaultActivo: true,
-        aplicarA: 'respuesta',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarToolLogsGenerico(texto); }
     },
 
     // ========================================================================
@@ -113,14 +61,6 @@ const OPCIONES_LIMPIEZA = [
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.eliminarThinkingGemini(texto); }
-    },
-    {
-        id: 'eliminar_ejecucion_codigo_gemini',
-        label: 'Eliminar ejecuci\u00f3n de c\u00f3digo / Tools (Gemini)',
-        chatbots: ['gemini'],
-        defaultActivo: false,
-        aplicarA: 'respuesta',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarEjecucionCodigoGemini(texto); }
     },
     {
         id: 'limpiar_etiquetas_codigo_gemini',
@@ -148,69 +88,8 @@ const OPCIONES_LIMPIEZA = [
     },
 
     // ========================================================================
-    // OPCIONES ANTIGRAVITY
-    // ========================================================================
-    {
-        id: 'eliminar_header_antigravity',
-        label: 'Header Antigravity',
-        chatbots: ['antigravity'],
-        defaultActivo: true,
-        aplicarA: 'preproceso',  // Se aplica ANTES de extraer conversación
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarHeaderAntigravity(texto); }
-    },
-    {
-        id: 'eliminar_acciones_antigravity',
-        label: 'Acciones Antigravity',
-        chatbots: ['antigravity'],
-        defaultActivo: true,
-        aplicarA: 'respuesta',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarAccionesAntigravity(texto); }
-    },
-    {
-        id: 'eliminar_cci_links',
-        label: 'Enlaces CCI internos',
-        chatbots: ['antigravity'],
-        defaultActivo: true,
-        aplicarA: 'respuesta',
-        cleaner: function (texto) { return ChatbotRoamCleaners.limpiarEnlacesCCI(texto); }
-    },
-    {
-        id: 'eliminar_sistema_antigravity',
-        label: 'Mensajes de sistema',
-        chatbots: ['antigravity'],
-        defaultActivo: true,
-        aplicarA: 'respuesta',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarMensajesSistemaAntigravity(texto); }
-    },
-    {
-        id: 'eliminar_timestamp_hora',
-        label: 'Timestamps de hora suelta',
-        chatbots: ['antigravity'],
-        defaultActivo: true,
-        aplicarA: 'respuesta',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarTimestampHoraSuelta(texto); }
-    },
-
-    // ========================================================================
     // OPCIONES NOTEBOOKLM
     // ========================================================================
-    {
-        id: 'eliminar_header_notebooklm',
-        label: 'Header NotebookLM (YAML + t\u00edtulo)',
-        chatbots: ['notebooklm'],
-        defaultActivo: true,
-        aplicarA: 'preproceso',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarHeaderNotebookLM(texto); }
-    },
-    {
-        id: 'eliminar_timestamp_notebooklm',
-        label: 'Timestamps de secci\u00f3n (Today, etc.)',
-        chatbots: ['notebooklm'],
-        defaultActivo: true,
-        aplicarA: 'preproceso',
-        cleaner: function (texto) { return ChatbotRoamCleaners.eliminarTimestampNotebookLM(texto); }
-    },
-
     {
         id: 'separar_headers_colisionados_notebooklm',
         label: 'Separar t\u00edtulos colisionados',
@@ -242,7 +121,7 @@ const OPCIONES_LIMPIEZA = [
     {
         id: 'convertir_tablas_roam',
         label: 'Convertir tablas a Roam',
-        chatbots: ['claude', 'chatgpt', 'gemini', 'antigravity', 'notebooklm'],
+        chatbots: ['claude', 'gemini', 'notebooklm'],
         defaultActivo: true,
         aplicarA: 'respuesta',
         cleaner: function (texto) { return ChatbotRoamCleaners.convertirTablasMarkdownARoam(texto); }
@@ -263,7 +142,7 @@ const ChatbotRoamOpciones = {
 
     /**
      * Genera el objeto de preset para un tipo de chatbot
-     * @param {string} tipo - 'claude', 'chatgpt', 'gemini', 'antigravity', 'generico'
+     * @param {string} tipo - 'claude', 'gemini', 'notebooklm', 'generico'
      * @returns {Object} - Objeto con todas las opciones y sus valores default
      */
     getPreset: function (tipo) {
@@ -283,7 +162,7 @@ const ChatbotRoamOpciones = {
      * Aplica los cleaners activos a un texto
      * @param {string} texto - Texto a limpiar
      * @param {Object} opcionesActivas - Objeto con opciones activas (true/false)
-     * @param {string} destino - 'prompt', 'respuesta', o 'preproceso'
+     * @param {string} destino - 'prompt' o 'respuesta'
      * @returns {string} - Texto limpio
      */
     aplicarLimpieza: function (texto, opcionesActivas, destino) {
@@ -313,11 +192,7 @@ const ChatbotRoamOpciones = {
 
         for (var i = 0; i < OPCIONES_LIMPIEZA.length; i++) {
             var opcion = OPCIONES_LIMPIEZA[i];
-            // No mostrar opciones de preproceso (son internas)
-            if (opcion.aplicarA === 'preproceso') continue;
-
-            var extraClass = opcion.id === 'revisar_clasificacion' ? ' chatbot-roam-option-highlight' : '';
-            html += '<label class="chatbot-roam-option' + extraClass + '">' +
+            html += '<label class="chatbot-roam-option">' +
                 '<input type="checkbox" data-option="' + opcion.id + '">' +
                 opcion.label +
                 '</label>';
