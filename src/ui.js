@@ -4,7 +4,7 @@
 const ChatbotRoamUI = {
     // Estado del modal
     _modalContainer: null,
-    _fileContent: null,
+    _archivos: null,         // [{ name, content }] de los archivos cargados
     _processedContent: null,
     _originalProcessedContent: null,  // Para restaurar después de cortar
     _currentOpciones: null,
@@ -38,8 +38,8 @@ const ChatbotRoamUI = {
         }
 
         // Inicializar opciones por defecto
-        this._currentOpciones = ChatbotRoamProcessing.getPresetOpciones('claude');
-        this._fileContent = null;
+        this._currentOpciones = ChatbotRoamOpciones.getDefaults([ChatbotRoamFormatoClaude]);
+        this._archivos = null;
         this._processedContent = null;
         this._originalProcessedContent = null;
         this._searchMatches = [];
@@ -236,16 +236,10 @@ const ChatbotRoamUI = {
             return { valid: false, error: 'El archivo esta vacio.', warning: null };
         }
 
-        // Verificar marcadores de conversacion (Claude, Gemini, NotebookLM y formato clasico)
-        const tienePrompt = content.includes('## Prompt:') ||
-            content.includes('## User:') ||
-            (ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_MARKER && new RegExp(ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_MARKER.source, 'mi').test(content)) ||
-            (ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR && content.includes(ChatbotRoamPatterns.NOTEBOOKLM_PROMPT_STR));
-        const tieneResponse = content.includes('## Response:') ||
-            content.includes('## Assistant:') ||
-            content.includes('## Gemini:') ||
-            (ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_MARKER && new RegExp(ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_MARKER.source, 'mi').test(content)) ||
-            (ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR && content.includes(ChatbotRoamPatterns.NOTEBOOKLM_RESPONSE_STR));
+        // Verificar marcadores de conversacion segun el formato detectado
+        const formato = ChatbotRoamFormatos.detectar(content);
+        const tienePrompt = new RegExp(formato.MARCADOR_PROMPT.source, formato.MARCADOR_PROMPT.flags).test(content);
+        const tieneResponse = new RegExp(formato.MARCADOR_RESPUESTA.source, formato.MARCADOR_RESPUESTA.flags).test(content);
 
         if (!tienePrompt && !tieneResponse) {
             return {
@@ -312,7 +306,7 @@ const ChatbotRoamUI = {
         });
 
         Promise.all(readPromises).then(results => {
-            const validContents = [];
+            const archivos = [];
             let warnings = [];
 
             for (const result of results) {
@@ -322,16 +316,15 @@ const ChatbotRoamUI = {
                     return; // Abortar operacion si un archivo no es valido
                 }
                 if (contentValidation.warning) warnings.push(result.name + ': ' + contentValidation.warning);
-                
-                // Unir contenidos con un delimitador rastreable por el processing
-                validContents.push(':::FILE_BOUNDARY:' + result.name + ':::\n' + result.content);
+
+                archivos.push({ name: result.name, content: result.content });
             }
 
-            this._fileContent = validContents.join('\n\n');
+            this._archivos = archivos;
 
-            // Detectar tipo de chatbot y aplicar preset (usa todo el bloque de texto)
-            const tipo = ChatbotRoamProcessing.detectarTipoChatbot(this._fileContent);
-            this._applyPreset(tipo, true);
+            // Opciones por defecto segun el formato de cada archivo
+            const formatos = archivos.map(a => ChatbotRoamFormatos.detectar(a.content));
+            this._setOpciones(ChatbotRoamOpciones.getDefaults(formatos));
 
             // Actualizar dropzone visual final
             dropzone.querySelector('.chatbot-roam-dropzone-icon').textContent = 'OK';
@@ -357,27 +350,26 @@ const ChatbotRoamUI = {
     // ========================================================================
     // OPTIONS MANAGEMENT
     // ========================================================================
-    _applyPreset(preset, skipProcess = false) {
+    _applyPreset(preset) {
         if (preset === 'limpiar') {
-            // Generar objeto con todas las opciones en false
-            this._currentOpciones = {};
-            var opciones = ChatbotRoamOpciones.getAll();
-            for (var i = 0; i < opciones.length; i++) {
-                this._currentOpciones[opciones[i].id] = false;
-            }
+            this._setOpciones(ChatbotRoamOpciones.getDefaults([]));
         } else {
-            this._currentOpciones = ChatbotRoamProcessing.getPresetOpciones(preset);
+            this._setOpciones(ChatbotRoamOpciones.getDefaults([ChatbotRoamFormatos.porId(preset)]));
         }
 
-        // Update checkboxes
-        this._modalContainer.querySelectorAll('[data-option]').forEach(checkbox => {
-            const option = checkbox.dataset.option;
-            checkbox.checked = this._currentOpciones[option] || false;
-        });
-
-        if (!skipProcess && this._fileContent) {
+        if (this._archivos) {
             this._processAndPreview();
         }
+    },
+
+    /**
+     * Fija las opciones activas y actualiza los checkboxes
+     */
+    _setOpciones(opciones) {
+        this._currentOpciones = opciones;
+        this._modalContainer.querySelectorAll('[data-option]').forEach(checkbox => {
+            checkbox.checked = this._currentOpciones[checkbox.dataset.option] || false;
+        });
     },
 
     _updateOpciones() {
@@ -385,7 +377,7 @@ const ChatbotRoamUI = {
             this._currentOpciones[checkbox.dataset.option] = checkbox.checked;
         });
 
-        if (this._fileContent) {
+        if (this._archivos) {
             clearTimeout(this._updateTimer);
             this._updateTimer = setTimeout(() => this._processAndPreview(), 300);
         }
@@ -409,8 +401,8 @@ const ChatbotRoamUI = {
             // Dar tiempo al browser para renderizar el mensaje de carga
             await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-            const { resultado, numIntercambios } = await ChatbotRoamProcessing.procesarConOpcionesIndividuales(
-                this._fileContent,
+            const { resultado, numIntercambios } = await ChatbotRoamProcessing.procesarArchivos(
+                this._archivos,
                 this._currentOpciones
             );
 
@@ -789,7 +781,7 @@ const ChatbotRoamUI = {
         if (this._modalContainer) {
             this._modalContainer.remove();
             this._modalContainer = null;
-            this._fileContent = null;
+            this._archivos = null;
             this._processedContent = null;
             this._originalProcessedContent = null;
             this._searchMatches = [];

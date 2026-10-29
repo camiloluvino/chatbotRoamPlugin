@@ -1,11 +1,13 @@
 tipo: generico
 - **📁 generico.md**
   - hola, ¿qué es un atributo: : en Roam?
-    - Un atributo se escribe como tipo:: valor y crea una referencia a [[tipo]].
-    - ![imagen](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==)
-    - | Sintaxis | Efecto |
-    - |---|---|
-    - | tipo:: | atributo |
-    - | [[x]] | enlace |
+    - Un atributo se escribe como tipo: : valor y crea una referencia a [ [tipo] ].
+    - {{[[table]]}}
+      - Sintaxis
+        - Efecto
+      - tipo: :
+        - atributo
+      - [ [x] ]
+        - enlace
   - gracias
     - De nada.

@@ -11,9 +11,13 @@ const OUTPUT_FILE = path.join(ROOT, 'chatbot-roam-plugin.js');
 
 // Archivos fuente en orden de dependencias
 const SOURCE_FILES = [
-    'patterns.js',
-    'cleaners.js',
-    'opciones-limpieza.js',
+    'limpieza-comun.js',
+    'formatos/claude.js',
+    'formatos/gemini.js',
+    'formatos/notebooklm.js',
+    'formatos/generico.js',
+    'formatos/registro.js',
+    'opciones.js',
     'formatter.js',
     'processing.js',
     'styles.js',
