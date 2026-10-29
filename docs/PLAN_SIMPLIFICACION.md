@@ -1,5 +1,7 @@
 # Plan de simplificación (v2.0.0)
 
+**Estado:** etapas 0 a 5 completadas en la rama (2026-10-29). Falta la prueba en Roam real y las decisiones pendientes de abajo.
+
 Contexto: el plugin es el eslabón entre un exportador de terceros (que convierte chats del navegador en `.md`) y Roam. Uso real: Claude y Gemini (~90%), NotebookLM con frecuencia. ChatGPT, Grok y otros, muy poco. Antigravity no se usa.
 
 Criterios:
